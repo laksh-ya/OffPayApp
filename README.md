@@ -53,7 +53,7 @@ Every other UPI app needs the internet. In half of India, that's a luxury.
  **Encrypted history** &nbsp;·&nbsp; last 200 successful payments, on-device, encrypted.<br/>
  **Zero tracking** &nbsp;·&nbsp; no analytics, no ads, no servers, no account, zero outbound requests.<br/>
  **PIN never persists** &nbsp;·&nbsp; held in memory only, wiped within 500 ms of every session.<br/>
-✨**Polish** &nbsp;·&nbsp; custom success/failure animations, haptics on every tap.
+**Polish** &nbsp;·&nbsp; custom success/failure animations, haptics on every tap.
 
 ---
 
