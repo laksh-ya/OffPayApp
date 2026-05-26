@@ -36,9 +36,9 @@ All over plain `*99#` USSD on your SIM. No data, no Wi-Fi, no account.
 
 ## Why OffPay
 
-Every other UPI app needs the internet. In half of India, that's a luxury.
+Every other UPI app needs the internet. In huge parts of India, that's a luxury.
 
-`*99#` has been on every SIM since 2012, free, NPCI-backed. The catch: dialling raw codes and typing UPI IDs on a number pad is brutal. **OffPay puts a clean app on top of it.** Same modern feel as GPay or PhonePe — type, scan, tap. Zero bytes of data used.
+`*99#` is a USSD-based UPI service that works over your SIM's voice channel — no data needed. The catch: dialling raw codes and typing UPI IDs on a number pad is brutal. **OffPay puts a clean app on top of it.** Same modern feel as GPay or PhonePe — type, scan, tap. Zero bytes of data used.
 
 > **Built by [Lakshya](https://github.com/laksh-ya) & [Harsh](https://github.com/harshtripathi272).** Side project, not a registered payment service. Your PIN, your data, your transactions — they never leave the device.
 
@@ -46,25 +46,30 @@ Every other UPI app needs the internet. In half of India, that's a luxury.
 
 ## What you get
 
- **Fully offline** &nbsp;·&nbsp; aeroplane mode, dead Wi-Fi, no signal — doesn't matter. SIM voice channel is enough.<br/>
- **Send money** &nbsp;·&nbsp; UPI ID, amount, optional note, your PIN. ₹1 to ₹5,000 per transaction.<br/>
- **Scan or import QR** &nbsp;·&nbsp; live camera with pinch-to-zoom, or pick any QR image from gallery.<br/>
- **Check balance** &nbsp;·&nbsp; one tap, straight from the bank.<br/>
- **Encrypted history** &nbsp;·&nbsp; last 200 successful payments, on-device, encrypted.<br/>
- **Zero tracking** &nbsp;·&nbsp; no analytics, no ads, no servers, no account, zero outbound requests.<br/>
- **PIN never persists** &nbsp;·&nbsp; held in memory only, wiped within 500 ms of every session.<br/>
-**Polish** &nbsp;·&nbsp; custom success/failure animations, haptics on every tap.
+🌐 **Fully offline** &nbsp;·&nbsp; no Wi-Fi, no mobile data — just a SIM with voice signal.<br/>
+💸 **Send money** &nbsp;·&nbsp; UPI ID, amount, optional note, your PIN. ₹1 to ₹5,000 per transaction.<br/>
+📷 **Scan or import QR** &nbsp;·&nbsp; live camera with pinch-to-zoom, or pick any QR image from gallery.<br/>
+🏦 **Check balance** &nbsp;·&nbsp; one tap, straight from the bank.<br/>
+🧾 **Encrypted history** &nbsp;·&nbsp; last 200 successful payments, on-device, encrypted.<br/>
+🚫 **Zero tracking** &nbsp;·&nbsp; no analytics, no ads, no servers, no account, zero outbound requests.<br/>
+🛡️ **PIN never persists** &nbsp;·&nbsp; held in memory only, wiped within 500 ms of every session.<br/>
+✨ **Polish** &nbsp;·&nbsp; custom success/failure animations, haptics on every tap.
 
 ---
 
-## How a payment looks
+## How it looks
 
 <div align="center">
 
-| Type the amount | Bank confirms | If something fails |
+| Pay | Success | Failed |
 |:--:|:--:|:--:|
 | <img src="docs/screenshots/pay-form.jpeg" width="220" /> | <img src="docs/screenshots/payment-success.jpeg" width="220" /> | <img src="docs/screenshots/payment-failed.jpeg" width="220" /> |
-| Inline PIN, auto-fires on the 6th digit | Animated check, real ref id | Carrier's exact error, never silent |
+| Inline PIN, auto-fires on 6th digit | Animated check, real ref id | Carrier's exact error, never silent |
+
+| Balance | History |
+|:--:|:--:|
+| <img src="docs/screenshots/balance-result.jpeg" width="220" /> | <img src="docs/screenshots/history-detail.jpeg" width="220" /> |
+| Live from the bank, cached for later | Carrier reply + ref id + "Pay again" |
 
 </div>
 
