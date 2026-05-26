@@ -77,7 +77,7 @@ private val step3ImageRes: Int? = R.drawable.bhim_step3
  * Tutorial video URL. Tapping the "Watch the tutorial" CTA fires
  * `Intent.ACTION_VIEW` on this URL.
  */
-private val TUTORIAL_VIDEO_URL: String? = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+private val TUTORIAL_VIDEO_URL: String? = "https://youtube.com/playlist?list=PL6zhuU_l94t1y25MDt96Z-MltD3S6iPFj&si=GNlanTwR-IcfOBI"
 
 /**
  * Help/FAQ screen. Reachable from:

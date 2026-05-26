@@ -88,7 +88,7 @@ private val bhimStep3ImageRes: Int? = R.drawable.bhim_step3
  * Tutorial video URL. When non-null, the welcome page (page 1) renders a
  * small "Watch tutorial" link below the hero CTA.
  */
-private val TUTORIAL_VIDEO_URL: String? = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+private val TUTORIAL_VIDEO_URL: String? = "https://youtube.com/playlist?list=PL6zhuU_l94t1y25MDt96Z-MltD3S6iPFj&si=GNlanTwR-IcfOBI"
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable

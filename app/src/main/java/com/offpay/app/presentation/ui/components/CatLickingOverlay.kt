@@ -1,5 +1,7 @@
 package com.offpay.app.presentation.ui.components
 
+import android.media.AudioAttributes
+import android.media.MediaPlayer
 import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.Spring
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,6 +28,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.IntOffset
@@ -55,6 +59,7 @@ import kotlin.random.Random
 @Composable
 fun CatLickingOverlay(onDone: () -> Unit) {
     val view = LocalView.current
+    val context = LocalContext.current
     val onDoneState = rememberUpdatedState(onDone)
     val configuration = LocalConfiguration.current
 
@@ -68,6 +73,19 @@ fun CatLickingOverlay(onDone: () -> Unit) {
         runCatching {
             R.drawable::class.java.getField("cat_meme").getInt(null)
         }.getOrNull() ?: 0
+    }
+
+    // Resolve the "bleh" sound id reflectively as well — kept optional so
+    // the build doesn't break before the raw resource is dropped in. Place
+    // an mp3/wav at `res/raw/bleh.(mp3|wav|m4a|ogg)` and the egg picks it
+    // up automatically. We try a couple of common file names so any of
+    // them works.
+    val soundResId = remember {
+        listOf("bleh", "bleh_sound", "cat_bleh").firstNotNullOfOrNull { name ->
+            runCatching {
+                R.raw::class.java.getField(name).getInt(null)
+            }.getOrNull()
+        } ?: 0
     }
 
     if (resId == 0) {
@@ -112,6 +130,35 @@ fun CatLickingOverlay(onDone: () -> Unit) {
         dismissing = true
         delay(320)
         onDoneState.value()
+    }
+
+    // Play the bleh sound. Tied to the composable's lifetime via
+    // DisposableEffect so the player is released when the overlay
+    // dismisses — even if the user backs out early. Volume is fixed-low
+    // (0.85) so the egg doesn't blow out the user's ears at full media
+    // volume. Whole block silently no-ops if no raw resource is bundled.
+    if (soundResId != 0) {
+        DisposableEffect(soundResId) {
+            val player = runCatching {
+                MediaPlayer.create(context, soundResId)?.apply {
+                    setAudioAttributes(
+                        AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_GAME)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    setVolume(0.85f, 0.85f)
+                    setOnCompletionListener { mp ->
+                        runCatching { mp.release() }
+                    }
+                    start()
+                }
+            }.getOrNull()
+            onDispose {
+                runCatching { player?.stop() }
+                runCatching { player?.release() }
+            }
+        }
     }
 
     Box(
