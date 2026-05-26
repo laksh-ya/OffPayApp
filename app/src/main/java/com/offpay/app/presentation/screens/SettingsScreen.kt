@@ -398,9 +398,17 @@ private fun AboutSection(
                 // gives us the right spacing there.
                 .layout { measurable, constraints ->
                     val sidePaddingPx = 20.dp.roundToPx()
+                    // Composition tweak: shift the cropped banner so the
+                    // cat lands a touch right-of-centre instead of dead
+                    // centre. Achieved by widening the image more on the
+                    // right than the left while keeping the placement at
+                    // -sidePadding — that way both edges still overflow
+                    // off-screen (no black gap on either side) but the
+                    // image's centre point lands at +rightShift.
+                    val rightShiftPx = 24.dp.roundToPx()
                     val widened = constraints.copy(
-                        minWidth = constraints.minWidth + sidePaddingPx * 2,
-                        maxWidth = constraints.maxWidth + sidePaddingPx * 2
+                        minWidth = constraints.minWidth + (sidePaddingPx + rightShiftPx) * 2,
+                        maxWidth = constraints.maxWidth + (sidePaddingPx + rightShiftPx) * 2
                     )
                     val placeable = measurable.measure(widened)
                     layout(placeable.width, placeable.height) {

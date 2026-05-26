@@ -82,7 +82,7 @@ PayScreen (Compose)
   ▼
 PayViewModel.attemptPayment()
   │ ① validates VPA / amount / PIN via InputValidator
-  │ ② chooses MANUAL vs AUTO/ADVANCED based on persisted Operation Mode
+  │ ② chooses MANUAL vs AUTO based on persisted Operation Mode
   │
   ▼
 ActionRunner.runAction(SendUpi, vars)
@@ -170,7 +170,7 @@ The bridge between the pure domain and Android:
 
 - `UssdEngine` (implements `UssdEnginePort`) — the session coordinator.
 - `UssdAccessibilityService` — the system-level service that watches the carrier dialog package set and emits frames. Restricted via an `accessibility_service_config.xml` that explicitly enumerates supported dialog packages.
-- `OverlayController` (interface) + `OverlayControllerImpl` — the system-overlay window for Auto mode and the floating progress bar for Advanced mode.
+- `OverlayController` (interface) + `OverlayControllerImpl` — the system-overlay window for Auto mode. (A floating progress chip variant for the legacy Advanced mode also exists in code but is no longer surfaced in the UI.)
 - `CarrierDetector` — reads the active SIM's carrier name and applies the Jio fail-fast rule.
 - `QrScannerManager` — CameraX preview + ML Kit barcode binding, plus a gallery decode helper.
 - `ApkShareUtil` — utility that exports the installed APK so users can share OffPay over Bluetooth or WhatsApp without a Play Store link.
@@ -189,17 +189,46 @@ The single-activity choice is intentional: a multi-activity setup races against 
 
 ---
 
+## Permissions
+
+| Permission                       | Why                                                                                              | Required?                                |
+|----------------------------------|--------------------------------------------------------------------------------------------------|------------------------------------------|
+| `CALL_PHONE`                     | Dial the `*99#` USSD code over the SIM voice channel.                                            | Yes, always.                             |
+| `CAMERA`                         | Live QR scanner.                                                                                 | Only if the user opens Scan.             |
+| `READ_PHONE_STATE`               | Read the active SIM's carrier name to apply the Jio fail-fast rule.                              | Recommended.                             |
+| Accessibility Service            | Read the carrier USSD dialog and answer prompts. Restricted by config to known dialog packages.  | Required for **Auto** mode.              |
+| `SYSTEM_ALERT_WINDOW`            | Paint the OffPay UI over the carrier dialog in **Auto** mode.                                    | Required for **Auto** mode.              |
+
+If the user denies the optional permissions, **Manual** mode still works on any Android device. Nothing here exfiltrates data — the accessibility service is hard-restricted via `accessibility_service_config.xml` to the known dialer/USSD packages and ignores every other window.
+
+---
+
+## Compatibility and device support
+
+- Min SDK 26 (Android 8.0). Tested on stock Android, OneUI, MIUI, ColorOS.
+- Phone with a working voice SIM. Wi-Fi-only tablets cannot use `*99#`.
+- **Carriers**: Airtel, Vi, BSNL — work. **Jio** — does not, by network design. The app detects Jio on launch and refuses to dial.
+- The accessibility service is sometimes killed by aggressive battery optimisation on Samsung, Xiaomi, OnePlus, and Oppo devices. The app detects this on launch and prompts the user to whitelist OffPay if needed.
+
+---
+
 ## Operation modes
 
-The runtime behaviour during a session is selected by `OperationMode` (`AUTO`, `ADVANCED`, `MANUAL`), persisted in DataStore.
+The runtime behaviour during a session is selected by `OperationMode`, persisted in DataStore. The codebase ships **two user-selectable modes** today: `AUTO` (default) and `MANUAL`. A legacy `ADVANCED` enum value still exists in `OperationMode.kt` so older persisted preferences don't crash on read — at runtime it is treated identically to `AUTO`. The Settings UI only exposes Auto and Manual.
 
 | Mode       | Auto-fills the dialog? | Hides the carrier dialog?   | Permissions beyond `CALL_PHONE`             |
 |------------|------------------------|-----------------------------|---------------------------------------------|
 | `AUTO`     | Yes                    | Yes (full overlay)          | Accessibility + `SYSTEM_ALERT_WINDOW`       |
-| `ADVANCED` | Yes                    | No (carrier dialog visible) | Accessibility                               |
+| `ADVANCED` | Yes (legacy, runtime-aliased to AUTO) | n/a            | Same as AUTO                                |
 | `MANUAL`   | No                     | n/a                         | None                                        |
 
 `MANUAL` is the universal fallback — it copies the UPI ID to the clipboard, opens the system dialer with `*99*1*3#` already typed, and the user takes over from there. It does not require the accessibility service to be enabled and works on any Android device.
+
+---
+
+## Web PWA
+
+A small companion PWA lives at **[offpay.vercel.app](https://offpay.vercel.app/)** for iOS users and anyone who can't install the APK. It implements the Manual-mode flow only — VPA + amount form, copy-to-clipboard, deep-link into the device dialer with `*99*1*3#` prefilled. The PWA is a separate codebase, not part of this Android repo.
 
 ---
 
