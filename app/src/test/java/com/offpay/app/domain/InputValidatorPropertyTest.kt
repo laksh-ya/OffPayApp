@@ -46,8 +46,8 @@ class InputValidatorPropertyTest : FunSpec({
 
     val arbAmountInput = Arb.of(
         // Valid amounts
-        "0.01",
         "1",
+        "1.00",
         "100.50",
         "5000",
         "5000.00",
@@ -56,6 +56,8 @@ class InputValidatorPropertyTest : FunSpec({
         "",
         "0",
         "0.00",
+        "0.01",
+        "0.99",
         "0.001",
         "5000.01",
         "5001",

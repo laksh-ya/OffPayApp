@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -42,6 +43,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
@@ -80,6 +82,7 @@ import com.offpay.app.presentation.ui.components.StatusBanner
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
 
 @Composable
@@ -234,6 +237,7 @@ private fun PayForm(
     val keyboard = LocalSoftwareKeyboardController.current
     val amountFocus = remember { FocusRequester() }
     val pinFocus = remember { FocusRequester() }
+    val scope = rememberCoroutineScope()
 
     // Defer the initial focus request until after the first layout pass
     // completes — requesting focus during composition (or before parent
@@ -262,6 +266,10 @@ private fun PayForm(
 
     val pinSectionVisible = showPinSection && mode != OperationMode.MANUAL
 
+    // Hoisted so we can programmatically scroll the form when the PIN
+    // section appears or grows — otherwise the IME covers the boxes.
+    val scrollState = rememberScrollState()
+
     LaunchedEffect(pinSectionVisible) {
         if (pinSectionVisible && ui.pin.isEmpty()) {
             // Same deferred pattern as above so the section's parents have
@@ -270,6 +278,12 @@ private fun PayForm(
             delay(50)
             runCatching { pinFocus.requestFocus() }
             keyboard?.show()
+            // Scroll all the way down so the PIN boxes (last item before
+            // the buttons) sit comfortably above the keyboard.
+            // animateScrollTo continues animating to maxValue as the
+            // window resizes for the IME, so the boxes stay in view.
+            delay(120)
+            scrollState.animateScrollTo(scrollState.maxValue)
         }
     }
 
@@ -309,7 +323,8 @@ private fun PayForm(
         Column(
             Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
+                .imePadding()
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             // ── Header: wordmark + history shortcut ──
@@ -380,6 +395,10 @@ private fun PayForm(
                         onTap = {
                             runCatching { pinFocus.requestFocus() }
                             keyboard?.show()
+                            scope.launch {
+                                delay(120)
+                                scrollState.animateScrollTo(scrollState.maxValue)
+                            }
                         },
                         error = ui.errors[FormField.PIN]
                     )
@@ -641,9 +660,10 @@ private fun PermissionGate(
 }
 
 /**
- * Big centered amount input. Decimal-only, max 2 dp, max 7 integer digits
- * (the *99# RBI cap is ₹5000 — but we let the user type more so the
- * validator can give a precise error).
+ * Big centered amount input. Decimal-only, max 2 dp. Per RBI's *99# cap
+ * the validator allows ₹1 — ₹5000 only, so the typing filter restricts
+ * input to at most 4 integer digits (and the validator does the precise
+ * range check on submit).
  */
 @Composable
 private fun AmountInput(
@@ -672,7 +692,7 @@ private fun AmountInput(
             BasicTextField(
                 value = value,
                 onValueChange = { v ->
-                    if (v.length <= 8 && v.matches(Regex("^\\d{0,7}(\\.\\d{0,2})?$"))) {
+                    if (v.length <= 7 && v.matches(Regex("^\\d{0,4}(\\.\\d{0,2})?$"))) {
                         onChange(v)
                     }
                 },
@@ -712,6 +732,13 @@ private fun AmountInput(
         if (error != null) {
             Spacer(Modifier.height(8.dp))
             Text(text = error, style = NeoPopType.BodySmall, color = NeoPopColors.Danger)
+        } else {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "₹1 — ₹5,000",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.TextMuted
+            )
         }
     }
 }

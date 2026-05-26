@@ -291,6 +291,15 @@ class PayViewModel(
         sessionJob = viewModelScope.launch {
             launch {
                 run.events.collect { event ->
+                    // Once we've reached a terminal session state (Success
+                    // or Failed), don't let any straggling events from the
+                    // runner overwrite it. ActionRunner already guards
+                    // its own re-entrancy, but this is belt-and-braces for
+                    // any synthetic frame that races through.
+                    val current = _sessionState.value
+                    if (current is SessionState.Success || current is SessionState.Failed) {
+                        return@collect
+                    }
                     when (event) {
                         is ActionEvent.Progress -> {
                             _sessionState.value = SessionState.Running(

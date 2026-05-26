@@ -8,7 +8,7 @@ object InputValidator {
 
     private val VPA_PATTERN = Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$")
     private const val VPA_MAX_LENGTH = 50
-    private const val AMOUNT_MIN = 0.01
+    private const val AMOUNT_MIN = 1.0
     private const val AMOUNT_MAX = 5000.0
     private val PIN_PATTERN = Regex("^\\d{4,6}$")
     private val DECIMAL_PLACES_PATTERN = Regex("^\\d+(\\.\\d{1,2})?$")
@@ -34,7 +34,7 @@ object InputValidator {
 
     /**
      * Validates a payment amount string.
-     * Must parse as a number between 0.01 and 5000 with at most 2 decimal places.
+     * Must parse as a number between ₹1 and ₹5000 with at most 2 decimal places.
      */
     fun validateAmount(amount: String): ValidationResult {
         val trimmed = amount.trim()
@@ -47,7 +47,7 @@ object InputValidator {
         val value = trimmed.toDoubleOrNull()
             ?: return ValidationResult(isValid = false, errorMessage = "Invalid amount")
         if (value < AMOUNT_MIN) {
-            return ValidationResult(isValid = false, errorMessage = "Amount must be at least ₹0.01")
+            return ValidationResult(isValid = false, errorMessage = "Amount must be at least ₹1")
         }
         if (value > AMOUNT_MAX) {
             return ValidationResult(isValid = false, errorMessage = "Amount must not exceed ₹5000")

@@ -82,6 +82,18 @@ class ActionRunner(private val engine: UssdEnginePort) {
         job = scope.launch {
             var currentStepIndex = 0
             val totalSteps = action.steps.size
+            // Guard against the race where engine.cancel() — fired from
+            // inside the collect lambda after we emit a terminal event —
+            // synthesises its own "User cancelled" terminal frame into the
+            // SharedFlow buffer. The buffered frame is delivered to the
+            // very next collect tick (before cooperative cancellation
+            // kicks in), causing a successful payment to be re-classified
+            // as "Unexpected carrier response" by Priority 4.
+            //
+            // Once this flips to true we stop processing further frames
+            // until cancellation actually takes effect on the next
+            // suspension point.
+            var terminated = false
 
             try {
                 // 1. Dismiss any leftover dialog and dial the action code.
@@ -94,12 +106,14 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
                 // 3. Walk frames as they arrive.
                 engine.frames.collect { frame ->
+                    if (terminated) return@collect
                     if (frame.sessionId != mySessionId) return@collect
 
                     val text = frame.text
 
                     // ── Priority 1: universal success short-circuit ────────
                     if (matchesUniversalSuccess(text)) {
+                        terminated = true
                         eventFlow.emit(ActionEvent.Done(text))
                         resultDeferred.complete(ActionResult(success = true, resultText = text))
                         engine.dismissDialog()
@@ -110,6 +124,7 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
                     // ── Priority 2: action-specific failure patterns ───────
                     if (matchesFailurePattern(text, action.failurePatterns)) {
+                        terminated = true
                         eventFlow.emit(ActionEvent.Error("Transaction failed", text))
                         resultDeferred.complete(ActionResult(success = false, resultText = text))
                         engine.dismissDialog()
@@ -129,6 +144,7 @@ class ActionRunner(private val engine: UssdEnginePort) {
                         eventFlow.emit(ActionEvent.Frame(frame, matchedIndex))
 
                         if (step.done) {
+                            terminated = true
                             eventFlow.emit(ActionEvent.Done(text))
                             resultDeferred.complete(ActionResult(success = true, resultText = text))
                             engine.dismissDialog()
@@ -143,6 +159,7 @@ class ActionRunner(private val engine: UssdEnginePort) {
                             // optimization can kill it mid-session.
                             if (!engine.isServiceEnabled()) {
                                 val errorMsg = "Accessibility service was killed — re-enable it in settings"
+                                terminated = true
                                 eventFlow.emit(ActionEvent.Error(errorMsg, text))
                                 resultDeferred.complete(ActionResult(success = false, resultText = errorMsg))
                                 job?.cancel()
@@ -162,6 +179,7 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
                     // ── Priority 4: terminal frame with no match ───────────
                     if (frame.isTerminal) {
+                        terminated = true
                         eventFlow.emit(ActionEvent.Error("Unexpected carrier response", text))
                         resultDeferred.complete(ActionResult(success = false, resultText = text))
                         engine.dismissDialog()

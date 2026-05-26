@@ -171,6 +171,15 @@ class BalanceViewModel(
         sessionJob = viewModelScope.launch {
             launch {
                 actionRun.events.collect { event ->
+                    // Drop any straggler events once we've already reached
+                    // a terminal session state (Success/Failed). Mirrors
+                    // the guard in PayViewModel and protects against a
+                    // synthetic "User cancelled" frame racing through
+                    // after engine.cancel() inside the runner.
+                    val current = _sessionState.value
+                    if (current is SessionState.Success || current is SessionState.Failed) {
+                        return@collect
+                    }
                     when (event) {
                         is ActionEvent.Progress -> {
                             _sessionState.value = SessionState.Running(
