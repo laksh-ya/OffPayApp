@@ -37,8 +37,10 @@ import com.offpay.app.presentation.screens.BalanceScreen
 import com.offpay.app.presentation.screens.FaqScreen
 import com.offpay.app.presentation.screens.HistoryScreen
 import com.offpay.app.presentation.screens.PayScreen
+import com.offpay.app.presentation.screens.PrivacyScreen
 import com.offpay.app.presentation.screens.ScanScreen
 import com.offpay.app.presentation.screens.SettingsScreen
+import com.offpay.app.presentation.screens.TermsScreen
 import com.offpay.app.presentation.screens.onboarding.OnboardingFlow
 import com.offpay.app.presentation.ui.components.NeoPopBottomNav
 import com.offpay.app.presentation.ui.components.NeoPopNavItem
@@ -98,7 +100,9 @@ private fun MainScaffold(app: OffPayApplication) {
     val hideBottomNav = sessionActive ||
         currentRoute == Screen.Scan.route ||
         currentRoute == Screen.Faq.route ||
-        currentRoute == Screen.History.route
+        currentRoute == Screen.History.route ||
+        currentRoute == Screen.Privacy.route ||
+        currentRoute == Screen.Terms.route
 
     Column(
         Modifier
@@ -201,11 +205,27 @@ private fun MainScaffold(app: OffPayApplication) {
                             navController.navigate(Screen.History.route) {
                                 launchSingleTop = true
                             }
+                        },
+                        onOpenPrivacy = {
+                            navController.navigate(Screen.Privacy.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenTerms = {
+                            navController.navigate(Screen.Terms.route) {
+                                launchSingleTop = true
+                            }
                         }
                     )
                 }
                 composable(Screen.Faq.route) {
                     FaqScreen(onClose = { navController.popBackStack() })
+                }
+                composable(Screen.Privacy.route) {
+                    PrivacyScreen(onClose = { navController.popBackStack() })
+                }
+                composable(Screen.Terms.route) {
+                    TermsScreen(onClose = { navController.popBackStack() })
                 }
             }
         }
