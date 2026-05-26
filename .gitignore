@@ -31,6 +31,11 @@ obj/
 # Local configuration file (sdk path, etc)
 local.properties
 
+# Release signing (never commit these)
+keystore.properties
+*.jks
+*.keystore
+
 # Node modules (reference projects)
 node_modules/
 .next/
