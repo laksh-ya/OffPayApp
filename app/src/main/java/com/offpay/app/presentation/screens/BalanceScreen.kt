@@ -16,15 +16,11 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
@@ -129,28 +125,22 @@ fun BalanceScreen(
             .background(NeoPopColors.Black)
             .statusBarsPadding()
     ) {
-        // Layout structure:
-        //   ┌─ outer Column ───────────────────────────────────────────┐
-        //   │   sticky header (wordmark)  ← always visible             │
-        //   │   ╭─ scrollable Column ──────────────────────────╮ ← imePadding
-        //   │   │   Idle/Running/Success/Failed hero            │
-        //   │   │   CTA button                                  │
-        //   │   │   Recent transactions preview                 │
-        //   │   ╰───────────────────────────────────────────────╯       │
-        //   └──────────────────────────────────────────────────────────┘
-        //
-        // Why split: when imePadding shrinks the *whole* column the
-        // wordmark gets pushed above the visible area and stays clipped
-        // because the column starts at content offset 0. Putting the
-        // header outside the scroll keeps it pinned at the top while the
-        // PIN/CTA/recents area underneath scrolls freely against the IME.
-        Column(Modifier.fillMaxSize()) {
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 16.dp, bottom = 16.dp),
-                verticalAlignment = Alignment.Bottom
-            ) {
+        // The Balance page is intentionally static: header → PIN section
+        // → CTA → recent transactions, all in a single non-scrollable
+        // Column. We deliberately do NOT use imePadding or verticalScroll
+        // here — the IME pushing the page upward (and then the user being
+        // unable to scroll back to find the CTA) was the source of every
+        // "check balance still cuts off the top" complaint. Instead, the
+        // PIN section + CTA fit comfortably in the upper half of any
+        // phone, so when the keyboard slides up it just covers the
+        // recent-transactions strip below the CTA — which is fine, those
+        // are decorative.
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Bottom) {
                 OffPayWordmark()
                 Spacer(Modifier.size(10.dp))
                 Text(
@@ -161,83 +151,71 @@ fun BalanceScreen(
                 )
             }
 
-            Column(
-                Modifier
-                    .weight(1f)
-                    .imePadding()
-                    .verticalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp)
-            ) {
-                Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(20.dp))
 
-                // Idle/running/success/failed hero — content shrinks naturally
-                // inside the scroll container instead of being forced into a
-                // weight(1f) box that ignores IME insets.
-                when (val s = session) {
-                    is SessionState.Idle -> IdleHero(
-                        last = last,
-                        mode = mode,
-                        pin = ui.pin,
-                        pinError = ui.pinError,
-                        onTapPin = {
-                            runCatching { pinFocus.requestFocus() }
-                            keyboard?.show()
-                        }
-                    )
-                    is SessionState.Running -> SessionRunning(s)
-                    is SessionState.Success -> SuccessHero(s.resultText)
-                    is SessionState.Failed -> FailedCard(s.message, s.resultText) {
-                        viewModel.dismissSession()
+            // Idle/running/success/failed hero.
+            when (val s = session) {
+                is SessionState.Idle -> IdleHero(
+                    last = last,
+                    mode = mode,
+                    pin = ui.pin,
+                    pinError = ui.pinError,
+                    onTapPin = {
+                        runCatching { pinFocus.requestFocus() }
+                        keyboard?.show()
                     }
+                )
+                is SessionState.Running -> SessionRunning(s)
+                is SessionState.Success -> SuccessHero(s.resultText)
+                is SessionState.Failed -> FailedCard(s.message, s.resultText) {
+                    viewModel.dismissSession()
                 }
+            }
 
-                Spacer(Modifier.height(20.dp))
+            Spacer(Modifier.height(16.dp))
 
-                when (val s = session) {
-                    is SessionState.Idle -> {
-                        val ctaText = when (mode) {
-                            OperationMode.MANUAL -> "Open Dialer"
-                            else -> "Check Now"
-                        }
-                        NeoPopPrimaryButton(
-                            text = ctaText,
-                            onClick = {
-                                keyboard?.hide()
-                                viewModel.attemptCheckBalance()
-                            },
-                            modifier = Modifier.fillMaxWidth()
-                        )
+            when (val s = session) {
+                is SessionState.Idle -> {
+                    val ctaText = when (mode) {
+                        OperationMode.MANUAL -> "Open Dialer"
+                        else -> "Check Now"
                     }
-                    is SessionState.Success -> {
-                        NeoPopPrimaryButton(
-                            text = "Check Again",
-                            onClick = { viewModel.dismissSession() },
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    is SessionState.Running -> {
-                        NeoPopDangerOutlinedButton(
-                            text = "Cancel",
-                            onClick = viewModel::cancelSession,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    }
-                    else -> Unit
-                }
-
-                // Recent transactions preview — visible only when idle so
-                // the user gets a quick "what did I do recently" without
-                // leaving the page. Tapping any row jumps to History.
-                if (session is SessionState.Idle && txns.isNotEmpty()) {
-                    Spacer(Modifier.height(36.dp))
-                    RecentTransactionsSection(
-                        txns = txns.take(3),
-                        onOpenAll = onOpenHistory
+                    NeoPopPrimaryButton(
+                        text = ctaText,
+                        onClick = {
+                            keyboard?.hide()
+                            viewModel.attemptCheckBalance()
+                        },
+                        modifier = Modifier.fillMaxWidth()
                     )
                 }
+                is SessionState.Success -> {
+                    NeoPopPrimaryButton(
+                        text = "Check Again",
+                        onClick = { viewModel.dismissSession() },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                is SessionState.Running -> {
+                    NeoPopDangerOutlinedButton(
+                        text = "Cancel",
+                        onClick = viewModel::cancelSession,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+                else -> Unit
+            }
 
-                Spacer(Modifier.height(24.dp))
-                Spacer(Modifier.navigationBarsPadding())
+            // Recent transactions preview — visible only when idle and
+            // there's free space below the CTA. When the keyboard is up
+            // these get covered by the IME, which is fine; they're a
+            // glance-only convenience, not a primary control.
+            if (session is SessionState.Idle && txns.isNotEmpty()) {
+                Spacer(Modifier.height(28.dp))
+                RecentTransactionsSection(
+                    txns = txns.take(3),
+                    onOpenAll = onOpenHistory
+                )
             }
         }
 

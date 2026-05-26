@@ -60,6 +60,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
@@ -221,24 +222,6 @@ fun SettingsScreen(
         Hairline()
         Spacer(Modifier.height(24.dp))
 
-        // ── Danger ──
-        // Sits under "Share" / above "About" so Clear-All-Data is a real
-        // settings action, not an awkward neighbour to the credits line.
-        SectionHeader("Danger", danger = true)
-        Spacer(Modifier.height(12.dp))
-        NeoPopDangerOutlinedButton(
-            text = "Clear All Data",
-            onClick = {
-                historyViewModel.clearHistory()
-                onClearAllData()
-            },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(28.dp))
-        Hairline()
-        Spacer(Modifier.height(24.dp))
-
         // ── About — last on the page; ends with the aesthetic-cat footer.
         AboutSection(
             versionName = versionName,
@@ -246,7 +229,9 @@ fun SettingsScreen(
             onOpenHarsh = { openUrl(context, "https://github.com/harshtripathi272/") }
         )
 
-        Spacer(Modifier.height(40.dp))
+        // No trailing spacer here — the AboutSection's footer image is
+        // the visual end of the page. The bottom nav has its own padding
+        // so there's no overlap.
     }
 }
 
@@ -364,8 +349,10 @@ private fun AboutSection(
 
     // Aesthetic-cat footer image. Sits at the bottom of the About card
     // as a wide banner — purely decorative, signals "end of content".
-    // Resource is resolved reflectively so the build doesn't break if
-    // artifacts/cat_aesthetic.png hasn't been packed yet via
+    // Renders edge-to-edge by using a layout modifier to break out of
+    // the page-level 20.dp horizontal padding that wraps the Settings
+    // Column. Drawable is resolved reflectively so the build doesn't
+    // break if artifacts/cat_aesthetic.png hasn't been packed yet via
     // scripts/pack_assets.py.
     val aestheticCatRes = remember {
         runCatching {
@@ -373,14 +360,29 @@ private fun AboutSection(
         }.getOrNull() ?: 0
     }
     if (aestheticCatRes != 0) {
-        Spacer(Modifier.height(20.dp))
+        Spacer(Modifier.height(16.dp))
         Image(
             painter = painterResource(id = aestheticCatRes),
             contentDescription = null,
             contentScale = ContentScale.Crop,
             modifier = Modifier
-                .fillMaxWidth()
-                .height(160.dp)
+                // Break out of the parent Column's 20.dp horizontal
+                // padding so the banner reaches the screen edges. We
+                // don't need this hack on the vertical axis because
+                // Spacer above + the parent's bottom padding already
+                // gives us the right spacing there.
+                .layout { measurable, constraints ->
+                    val sidePaddingPx = 20.dp.roundToPx()
+                    val widened = constraints.copy(
+                        minWidth = constraints.minWidth + sidePaddingPx * 2,
+                        maxWidth = constraints.maxWidth + sidePaddingPx * 2
+                    )
+                    val placeable = measurable.measure(widened)
+                    layout(placeable.width, placeable.height) {
+                        placeable.placeRelative(-sidePaddingPx, 0)
+                    }
+                }
+                .height(180.dp)
         )
     }
 }
