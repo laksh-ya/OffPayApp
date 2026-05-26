@@ -102,6 +102,21 @@ fun openAccessibilitySettings(context: Context) {
     )
 }
 
+/**
+ * Same as [openAccessibilitySettings], but also shows a Toast hint that
+ * explains how to defeat Android 13+'s "Restricted Settings" lock when
+ * the toggle appears greyed out. Most users hit this once and are stuck
+ * until they know the menu path.
+ */
+fun openAccessibilitySettingsWithGuide(context: Context) {
+    openAccessibilitySettings(context)
+    android.widget.Toast.makeText(
+        context,
+        "If toggle is greyed out, long-press OffPay icon → App info → ⋮ → Allow restricted settings.",
+        android.widget.Toast.LENGTH_LONG
+    ).show()
+}
+
 /** Launches the OS "Display over other apps" page for our package. */
 fun openOverlaySettings(context: Context) {
     context.startActivity(

@@ -47,6 +47,10 @@ class TransactionPersistencePropertyTest : FunSpec({
             }
         }
 
+        override suspend fun deleteById(id: Long) {
+            records.update { list -> list.filterNot { it.id == id } }
+        }
+
         override suspend fun deleteAll() {
             records.update { emptyList() }
         }

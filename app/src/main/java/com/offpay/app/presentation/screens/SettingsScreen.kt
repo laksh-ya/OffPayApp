@@ -1,10 +1,7 @@
 package com.offpay.app.presentation.screens
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,12 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.ChevronRight
+import androidx.compose.material.icons.filled.Help
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
@@ -38,9 +37,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.offpay.app.data.PreferencesRepository
 import com.offpay.app.domain.OperationMode
@@ -51,24 +51,9 @@ import com.offpay.app.presentation.permissions.openOverlaySettings
 import com.offpay.app.presentation.permissions.rememberPermissionLaunchers
 import com.offpay.app.presentation.ui.components.NeoPopCard
 import com.offpay.app.presentation.ui.components.NeoPopDangerOutlinedButton
-import com.offpay.app.presentation.ui.components.NeoPopToggle
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlinx.coroutines.launch
-
-/**
- * Two simplified modes shown in settings: Dialer (manual fallback that
- * opens the system dialer with the code prefilled) and Auto (overlay mode
- * with full automation). The underlying [OperationMode.ADVANCED] is collapsed
- * into Auto along with [OperationMode.OVERLAY].
- */
-private enum class UiMode { Dialer, Auto }
-
-private fun OperationMode.toUiMode(): UiMode =
-    if (this == OperationMode.DIALER) UiMode.Dialer else UiMode.Auto
-
-private fun UiMode.toOperationMode(): OperationMode =
-    if (this == UiMode.Dialer) OperationMode.DIALER else OperationMode.OVERLAY
 
 @Composable
 fun SettingsScreen(
@@ -77,9 +62,11 @@ fun SettingsScreen(
     permissions: PermissionStatus,
     versionName: String,
     onClearAllData: () -> Unit,
+    onOpenFaq: () -> Unit,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val mode by prefsRepo.operationMode.collectAsState(initial = OperationMode.OVERLAY)
+    val mode by prefsRepo.operationMode.collectAsState(initial = OperationMode.AUTO)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val launchers = rememberPermissionLaunchers()
@@ -93,12 +80,6 @@ fun SettingsScreen(
             .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Text(
-            text = "OFFPAY",
-            style = NeoPopType.LabelMedium,
-            color = NeoPopColors.Accent
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
             text = "Settings",
             style = NeoPopType.DisplayLarge,
             color = NeoPopColors.TextPrimary
@@ -109,28 +90,30 @@ fun SettingsScreen(
         // ── Mode ──
         SectionHeader("Mode")
         Spacer(Modifier.height(12.dp))
-        NeoPopToggle(
-            options = listOf(
-                UiMode.Dialer to "Dialer",
-                UiMode.Auto to "Auto"
-            ),
-            selected = mode.toUiMode(),
-            onSelect = { ui ->
-                scope.launch { prefsRepo.setOperationMode(ui.toOperationMode()) }
-            }
+        ModeOption(
+            label = "Auto",
+            description = "Default. Pays automatically. Carrier dialog hidden behind OffPay's overlay.",
+            selected = mode == OperationMode.AUTO,
+            onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.AUTO) } }
         )
-        Spacer(Modifier.height(10.dp))
-        Text(
-            text = if (mode == OperationMode.DIALER) {
-                "Dialer mode opens your phone's USSD dialog. You'll type the steps manually."
-            } else {
-                "Auto mode hides the carrier dialog with OffPay's overlay and drives the session for you."
-            },
-            style = NeoPopType.BodySmall,
-            color = NeoPopColors.TextMuted
+        Spacer(Modifier.height(8.dp))
+        ModeOption(
+            label = "Advanced",
+            description = "Pays automatically. Small progress bar at top; you watch the carrier dialog work.",
+            selected = mode == OperationMode.ADVANCED,
+            onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.ADVANCED) } }
+        )
+        Spacer(Modifier.height(8.dp))
+        ModeOption(
+            label = "Manual",
+            description = "Copies UPI ID and opens dialer. You enter the rest yourself. No accessibility needed.",
+            selected = mode == OperationMode.MANUAL,
+            onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.MANUAL) } }
         )
 
         Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
 
         // ── Permissions ──
         SectionHeader("Permissions")
@@ -167,34 +150,29 @@ fun SettingsScreen(
         }
 
         Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
 
-        // ── FAQ ──
-        SectionHeader("FAQ")
+        // ── Help & history shortcuts ──
+        SectionHeader("More")
         Spacer(Modifier.height(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            FaqItem(
-                question = "What is *99#?",
-                answer = "*99# is NPCI's USSD code for offline UPI payments. It works without internet over your phone's signaling channel, so you can pay or check balance even when you have no data."
-            )
-            FaqItem(
-                question = "Which carriers work?",
-                answer = "Airtel, Vi, and BSNL support *99# reliably. Jio's coverage is unreliable, so OffPay warns you before dialing on Jio SIMs."
-            )
-            FaqItem(
-                question = "How does the overlay work?",
-                answer = "Auto mode opens the system USSD dialog and immediately covers it with OffPay's overlay. Behind the scenes, an accessibility service reads the dialog text and types in the right replies for each step."
-            )
-            FaqItem(
-                question = "Is my UPI PIN safe?",
-                answer = "Your PIN never leaves the phone. It's held only in memory while a session is active and cleared within 500ms of completion or cancellation. It's never logged or persisted."
-            )
-            FaqItem(
-                question = "What if it fails?",
-                answer = "OffPay surfaces the carrier's exact error wording. Common causes: wrong PIN, invalid UPI ID, insufficient balance, or the recipient's handle isn't registered. Check the message and try again."
-            )
-        }
+        ShortcutRow(
+            icon = Icons.Default.History,
+            title = "Transaction History",
+            subtitle = "Past payments",
+            onClick = onOpenHistory
+        )
+        Spacer(Modifier.height(8.dp))
+        ShortcutRow(
+            icon = Icons.Default.Help,
+            title = "Help & FAQ",
+            subtitle = "How OffPay works, what to do when it fails",
+            onClick = onOpenFaq
+        )
 
         Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
 
         // ── About ──
         SectionHeader("About")
@@ -211,6 +189,8 @@ fun SettingsScreen(
         )
 
         Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
 
         // ── Danger ──
         SectionHeader("Danger", danger = true)
@@ -235,6 +215,75 @@ private fun SectionHeader(label: String, danger: Boolean = false) {
         style = NeoPopType.LabelMedium,
         color = if (danger) NeoPopColors.Danger else NeoPopColors.Accent
     )
+}
+
+@Composable
+private fun Hairline() {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .height(1.dp)
+            .background(NeoPopColors.Border)
+    )
+}
+
+@Composable
+private fun ModeOption(
+    label: String,
+    description: String,
+    selected: Boolean,
+    onClick: () -> Unit
+) {
+    val view = LocalView.current
+    val borderColor by animateColorAsState(
+        targetValue = if (selected) NeoPopColors.Accent else NeoPopColors.Border,
+        label = "mode_border"
+    )
+
+    NeoPopCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                if (!selected) {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    onClick()
+                }
+            },
+        borderColor = borderColor
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(20.dp)
+                    .background(
+                        if (selected) NeoPopColors.Accent else NeoPopColors.Surface
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (selected) {
+                    Box(
+                        Modifier
+                            .size(10.dp)
+                            .background(NeoPopColors.Black)
+                    )
+                }
+            }
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = label,
+                    style = NeoPopType.TitleLarge,
+                    color = NeoPopColors.TextPrimary
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = description,
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextMuted
+                )
+            }
+        }
+    }
 }
 
 @Composable
@@ -295,12 +344,12 @@ private fun StatusPill(granted: Boolean, onFix: () -> Unit) {
             )
         }
     } else {
-        val view = androidx.compose.ui.platform.LocalView.current
+        val view = LocalView.current
         Box(
             Modifier
                 .background(NeoPopColors.Accent)
                 .clickable {
-                    view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                     onFix()
                 }
                 .padding(horizontal = 12.dp, vertical = 8.dp)
@@ -315,49 +364,54 @@ private fun StatusPill(granted: Boolean, onFix: () -> Unit) {
 }
 
 @Composable
-private fun FaqItem(question: String, answer: String) {
-    var open by remember { mutableStateOf(false) }
-    NeoPopCard(modifier = Modifier
-        .fillMaxWidth()
-        .clickable { open = !open }) {
-        Column {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = question,
-                    style = NeoPopType.TitleMedium,
-                    color = NeoPopColors.TextPrimary,
-                    modifier = Modifier.weight(1f)
-                )
+private fun ShortcutRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit
+) {
+    val view = LocalView.current
+    NeoPopCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(40.dp)
+                    .background(NeoPopColors.Surface),
+                contentAlignment = Alignment.Center
+            ) {
                 Icon(
-                    imageVector = if (open) Icons.Default.Add else Icons.Default.ChevronRight,
+                    imageVector = icon,
                     contentDescription = null,
                     tint = NeoPopColors.Accent,
-                    modifier = Modifier
-                        .size(20.dp)
-                        .rotate(if (open) 45f else 0f)
+                    modifier = Modifier.size(20.dp)
                 )
             }
-            AnimatedVisibility(
-                visible = open,
-                enter = expandVertically() + fadeIn(),
-                exit = shrinkVertically() + fadeOut()
-            ) {
-                Column {
-                    Spacer(Modifier.height(12.dp))
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .height(1.dp)
-                            .background(NeoPopColors.Border)
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Text(
-                        text = answer,
-                        style = NeoPopType.BodyMedium,
-                        color = NeoPopColors.TextSecondary
-                    )
-                }
+            Spacer(Modifier.size(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    style = NeoPopType.TitleMedium,
+                    color = NeoPopColors.TextPrimary
+                )
+                Spacer(Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextMuted
+                )
             }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = NeoPopColors.TextMuted
+            )
         }
     }
 }

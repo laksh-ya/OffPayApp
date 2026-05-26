@@ -28,6 +28,11 @@ class HistoryRepository(private val dao: TransactionDao) {
         }
     }
 
+    /** Delete a single transaction by id. */
+    suspend fun delete(id: Long) {
+        dao.deleteById(id)
+    }
+
     suspend fun clearHistory() {
         dao.deleteAll()
     }

@@ -53,9 +53,9 @@ class DataStoreIntegrationTest {
     }
 
     @Test
-    fun operationMode_defaultsToDialer() = runBlocking {
+    fun operationMode_defaultsToAuto() = runBlocking {
         val mode = repository.operationMode.first()
-        assertEquals(OperationMode.DIALER, mode)
+        assertEquals(OperationMode.AUTO, mode)
     }
 
     @Test
@@ -66,16 +66,16 @@ class DataStoreIntegrationTest {
     }
 
     @Test
-    fun operationMode_persistsOverlayMode() = runBlocking {
-        repository.setOperationMode(OperationMode.OVERLAY)
+    fun operationMode_persistsAutoMode() = runBlocking {
+        repository.setOperationMode(OperationMode.AUTO)
         val mode = repository.operationMode.first()
-        assertEquals(OperationMode.OVERLAY, mode)
+        assertEquals(OperationMode.AUTO, mode)
     }
 
     @Test
     fun operationMode_survivesRepositoryRecreation() = runBlocking {
         // Write with original repository
-        repository.setOperationMode(OperationMode.OVERLAY)
+        repository.setOperationMode(OperationMode.AUTO)
 
         // Recreate repository with same DataStore file (simulates restart)
         val newDataStore = PreferenceDataStoreFactory.create {
@@ -83,9 +83,9 @@ class DataStoreIntegrationTest {
         }
         val newRepository = PreferencesRepository(newDataStore)
 
-        // Read back — should still be OVERLAY
+        // Read back — should still be AUTO
         val mode = newRepository.operationMode.first()
-        assertEquals(OperationMode.OVERLAY, mode)
+        assertEquals(OperationMode.AUTO, mode)
     }
 
     @Test

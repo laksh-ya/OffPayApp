@@ -5,12 +5,13 @@ import androidx.compose.material3.Shapes
 import androidx.compose.ui.unit.dp
 
 /**
- * NeoPOP doesn't do rounded blobs. Sharp corners or 4dp max — full stop.
+ * NeoPOP softened: cards round to 8dp (still geometric, less harsh on
+ * smaller surfaces). Buttons stay sharp on their own NeoPopButton path.
  */
 val NeoPopShapes = Shapes(
-    extraSmall = RoundedCornerShape(0.dp),
-    small = RoundedCornerShape(2.dp),
-    medium = RoundedCornerShape(4.dp),
-    large = RoundedCornerShape(4.dp),
-    extraLarge = RoundedCornerShape(8.dp)
+    extraSmall = RoundedCornerShape(2.dp),
+    small = RoundedCornerShape(4.dp),
+    medium = RoundedCornerShape(8.dp),
+    large = RoundedCornerShape(8.dp),
+    extraLarge = RoundedCornerShape(12.dp)
 )

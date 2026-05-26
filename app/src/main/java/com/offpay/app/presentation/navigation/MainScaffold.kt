@@ -1,31 +1,26 @@
 package com.offpay.app.presentation.navigation
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -37,6 +32,8 @@ import com.offpay.app.presentation.BalanceViewModel
 import com.offpay.app.presentation.HistoryViewModel
 import com.offpay.app.presentation.PayViewModel
 import com.offpay.app.presentation.permissions.rememberPermissionStatus
+import com.offpay.app.presentation.screens.BalanceScreen
+import com.offpay.app.presentation.screens.FaqScreen
 import com.offpay.app.presentation.screens.HistoryScreen
 import com.offpay.app.presentation.screens.PayScreen
 import com.offpay.app.presentation.screens.ScanScreen
@@ -50,16 +47,20 @@ import kotlinx.coroutines.launch
 private val NAV_ITEMS = listOf(
     NeoPopNavItem(Screen.Pay.route, "Pay", Icons.Default.Payments),
     NeoPopNavItem(Screen.Scan.route, "Scan", Icons.Default.QrCodeScanner),
-    NeoPopNavItem(Screen.History.route, "History", Icons.Default.History),
+    NeoPopNavItem(Screen.Balance.route, "Balance", Icons.Default.AccountBalance),
     NeoPopNavItem(Screen.Settings.route, "Settings", Icons.Default.Settings)
 )
 
 /**
  * Top-level scaffold:
  *  - First-launch flow gates the rest until the user finishes onboarding.
- *  - Bottom nav with 4 tabs.
- *  - QR scan navigates back to Pay with the scanned data autofilled.
- *  - Bottom nav hides during onboarding and during an active USSD session.
+ *  - Bottom nav with 4 tabs: Pay / Scan / Balance / Settings.
+ *  - History reachable from Pay (top-bar shortcut) and Settings.
+ *  - PIN entry is INLINE on the Pay & Balance forms — there is no
+ *    standalone PIN screen.
+ *  - FAQ is a modal route pushed from Settings/Scanner/Pay error states.
+ *  - Bottom nav hides during onboarding, an active session, scanner, or
+ *    FAQ/History modals.
  */
 @Composable
 fun OffPayApp() {
@@ -83,17 +84,20 @@ private fun MainScaffold(app: OffPayApplication) {
     val currentRoute = backstackEntry?.destination?.route ?: Screen.Pay.route
 
     val permissions by rememberPermissionStatus()
-    val context = LocalContext.current
 
-    // ViewModels — manual DI from the app singletons. Stable instances across
-    // tab switches because we anchor them to the NavHost lifecycle.
     val payViewModel = rememberPayViewModel(app)
+    val balanceViewModel = rememberBalanceViewModel(app)
     val historyViewModel = rememberHistoryViewModel(app)
 
     val payVmSession by payViewModel.sessionState.collectAsState()
-    val sessionActive = payVmSession is SessionState.Running
+    val balanceVmSession by balanceViewModel.sessionState.collectAsState()
 
-    val hideBottomNav = sessionActive || currentRoute == Screen.Scan.route
+    val sessionActive = payVmSession is SessionState.Running ||
+        balanceVmSession is SessionState.Running
+    val hideBottomNav = sessionActive ||
+        currentRoute == Screen.Scan.route ||
+        currentRoute == Screen.Faq.route ||
+        currentRoute == Screen.History.route
 
     Column(
         Modifier
@@ -114,6 +118,16 @@ private fun MainScaffold(app: OffPayApplication) {
                                 launchSingleTop = true
                             }
                         },
+                        onNavigateHistory = {
+                            navController.navigate(Screen.History.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onNavigateFaq = {
+                            navController.navigate(Screen.Faq.route) {
+                                launchSingleTop = true
+                            }
+                        },
                         permissions = permissions
                     )
                 }
@@ -126,8 +140,16 @@ private fun MainScaffold(app: OffPayApplication) {
                                 popUpTo(Screen.Pay.route) { inclusive = true }
                             }
                         },
-                        onClose = { navController.popBackStack() }
+                        onClose = { navController.popBackStack() },
+                        onOpenFaq = {
+                            navController.navigate(Screen.Faq.route) {
+                                launchSingleTop = true
+                            }
+                        }
                     )
+                }
+                composable(Screen.Balance.route) {
+                    BalanceScreen(viewModel = balanceViewModel)
                 }
                 composable(Screen.History.route) {
                     HistoryScreen(
@@ -136,7 +158,8 @@ private fun MainScaffold(app: OffPayApplication) {
                             navController.navigate(Screen.Pay.route) {
                                 popUpTo(Screen.Pay.route) { inclusive = true }
                             }
-                        }
+                        },
+                        onClose = { navController.popBackStack() }
                     )
                 }
                 composable(Screen.Settings.route) {
@@ -145,8 +168,21 @@ private fun MainScaffold(app: OffPayApplication) {
                         historyViewModel = historyViewModel,
                         permissions = permissions,
                         versionName = "1.0.0",
-                        onClearAllData = { /* historyViewModel.clearHistory already wired */ }
+                        onClearAllData = { /* historyViewModel.clearHistory already wired */ },
+                        onOpenFaq = {
+                            navController.navigate(Screen.Faq.route) {
+                                launchSingleTop = true
+                            }
+                        },
+                        onOpenHistory = {
+                            navController.navigate(Screen.History.route) {
+                                launchSingleTop = true
+                            }
+                        }
                     )
+                }
+                composable(Screen.Faq.route) {
+                    FaqScreen(onClose = { navController.popBackStack() })
                 }
             }
         }
@@ -168,6 +204,15 @@ private fun MainScaffold(app: OffPayApplication) {
     }
 }
 
+/**
+ * Writes [text] to the system clipboard with a "UPI ID" label. Used by
+ * MANUAL mode to pre-stage the recipient VPA before opening the dialer.
+ */
+private fun writeToClipboard(context: Context, text: String) {
+    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+    clipboard.setPrimaryClip(ClipData.newPlainText("UPI ID", text))
+}
+
 @Composable
 private fun rememberPayViewModel(app: OffPayApplication): PayViewModel {
     val context = LocalContext.current
@@ -182,7 +227,26 @@ private fun rememberPayViewModel(app: OffPayApplication): PayViewModel {
                 val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$code"))
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
-            }
+            },
+            clipboardWriter = { text -> writeToClipboard(context, text) }
+        )
+    }
+}
+
+@Composable
+private fun rememberBalanceViewModel(app: OffPayApplication): BalanceViewModel {
+    val context = LocalContext.current
+    return remember {
+        BalanceViewModel(
+            actionRunner = app.actionRunner,
+            prefsRepo = app.prefsRepo,
+            overlayController = app.overlayController,
+            onDialerFallback = { code ->
+                val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$code"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+            },
+            clipboardWriter = { text -> writeToClipboard(context, text) }
         )
     }
 }

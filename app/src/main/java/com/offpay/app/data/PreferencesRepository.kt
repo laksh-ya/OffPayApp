@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.offpay.app.domain.OperationMode
 import kotlinx.coroutines.flow.Flow
@@ -13,6 +14,8 @@ object PreferencesKeys {
     val OPERATION_MODE = stringPreferencesKey("operation_mode")
     val BATTERY_WARNING_DISMISSED = booleanPreferencesKey("battery_warning_dismissed")
     val FIRST_LAUNCH_COMPLETE = booleanPreferencesKey("first_launch_complete")
+    val LAST_BALANCE_TEXT = stringPreferencesKey("last_balance_text")
+    val LAST_BALANCE_TIMESTAMP = longPreferencesKey("last_balance_timestamp")
 }
 
 class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
@@ -23,10 +26,25 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
             try {
                 OperationMode.valueOf(stored)
             } catch (_: IllegalArgumentException) {
-                OperationMode.DIALER
+                // Migrate legacy persisted enum names to the current set.
+                //   OVERLAY     → AUTO   (very old name for the full overlay mode)
+                //   MINIMAL     → ADVANCED  (renamed for clarity)
+                //   DIALER      → MANUAL    (renamed for clarity)
+                //   ADVANCED    → AUTO   (one prior name briefly meant the
+                //                         full overlay; remap so we don't
+                //                         silently switch a legacy ADVANCED
+                //                         user into the new ADVANCED mode
+                //                         which behaves differently)
+                // Anything else falls back to AUTO.
+                when (stored) {
+                    "MINIMAL" -> OperationMode.ADVANCED
+                    "DIALER" -> OperationMode.MANUAL
+                    "OVERLAY", "ADVANCED" -> OperationMode.AUTO
+                    else -> OperationMode.AUTO
+                }
             }
         } else {
-            OperationMode.DIALER
+            OperationMode.AUTO
         }
     }
 
@@ -53,6 +71,30 @@ class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
     suspend fun setFirstLaunchComplete(complete: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.FIRST_LAUNCH_COMPLETE] = complete
+        }
+    }
+
+    /** Last successful balance check — full carrier reply text. */
+    val lastBalanceText: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.LAST_BALANCE_TEXT]
+    }
+
+    /** Epoch millis of the last successful balance check. */
+    val lastBalanceTimestamp: Flow<Long?> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.LAST_BALANCE_TIMESTAMP]
+    }
+
+    suspend fun setLastBalance(text: String, timestamp: Long) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_BALANCE_TEXT] = text
+            preferences[PreferencesKeys.LAST_BALANCE_TIMESTAMP] = timestamp
+        }
+    }
+
+    suspend fun clearLastBalance() {
+        dataStore.edit { preferences ->
+            preferences.remove(PreferencesKeys.LAST_BALANCE_TEXT)
+            preferences.remove(PreferencesKeys.LAST_BALANCE_TIMESTAMP)
         }
     }
 }

@@ -97,6 +97,11 @@ class FakeTransactionDao : TransactionDao {
         }
     }
 
+    override suspend fun deleteById(id: Long) {
+        records.removeAll { it.id == id }
+        updateFlow()
+    }
+
     override suspend fun deleteAll() {
         records.clear()
         updateFlow()

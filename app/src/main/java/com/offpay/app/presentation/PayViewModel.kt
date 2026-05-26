@@ -27,7 +27,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
- * UI state for the Pay screen form.
+ * UI state for the Pay screen form. PIN is captured inline on the form
+ * itself in a highlighted "ENTER UPI PIN" section — no dedicated screen.
  */
 data class PayUiState(
     val vpa: String = "",
@@ -42,6 +43,20 @@ data class PayUiState(
 /**
  * ViewModel for the Pay screen. Manages form state, QR autofill,
  * input validation, USSD session lifecycle, and PIN security.
+ *
+ * Pay flow:
+ *  1. User fills VPA + amount + inline PIN.
+ *  2. Either auto-fires when 6 digits are typed (the screen debounces and
+ *     calls [attemptPayment]) or the user taps the Pay button at 4-5 digits.
+ *  3. [attemptPayment] validates everything; in MANUAL mode it copies the
+ *     VPA to clipboard and opens the dialer; in ADVANCED/AUTO it runs the
+ *     ActionRunner.
+ *  4. PIN is held in volatile memory only and cleared <500ms after session
+ *     end (security guarantee from the original spec).
+ *
+ * @param clipboardWriter callback used by MANUAL mode to copy the VPA to
+ *   the system clipboard. Wired in the activity layer so the ViewModel
+ *   itself stays free of Android Context dependencies.
  */
 class PayViewModel(
     private val actionRunner: ActionRunner,
@@ -49,7 +64,8 @@ class PayViewModel(
     private val prefsRepo: PreferencesRepository,
     private val carrierDetector: CarrierDetector,
     private val overlayController: OverlayController? = null,
-    private val onDialerFallback: (String) -> Unit = {}
+    private val onDialerFallback: (String) -> Unit = {},
+    private val clipboardWriter: (String) -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PayUiState())
@@ -58,9 +74,12 @@ class PayViewModel(
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Idle)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
 
+    private val _snackbar = MutableStateFlow<String?>(null)
+    val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
+
     /** Currently selected operation mode, observed for routing payments. */
     val operationMode: StateFlow<OperationMode> = prefsRepo.operationMode
-        .stateIn(viewModelScope, SharingStarted.Eagerly, OperationMode.OVERLAY)
+        .stateIn(viewModelScope, SharingStarted.Eagerly, OperationMode.AUTO)
 
     private var activeRun: ActionRun? = null
     private var sessionJob: Job? = null
@@ -89,34 +108,49 @@ class PayViewModel(
     fun onFormFieldChanged(
         vpa: String? = null,
         amount: String? = null,
-        note: String? = null,
-        pin: String? = null
+        note: String? = null
     ) {
         _uiState.update { current ->
             val newErrors = current.errors.toMutableMap()
             if (vpa != null) newErrors.remove(FormField.VPA)
             if (amount != null) newErrors.remove(FormField.AMOUNT)
-            if (pin != null) newErrors.remove(FormField.PIN)
             current.copy(
                 vpa = vpa ?: current.vpa,
                 amount = amount ?: current.amount,
                 note = note ?: current.note,
-                pin = pin ?: current.pin,
                 errors = newErrors
             )
         }
     }
 
     /**
-     * Validates inputs and starts the USSD payment session if valid.
-     * Routes through DIALER mode (Intent.ACTION_DIAL) when the user has
-     * picked the manual fallback in settings; otherwise runs the automated
-     * ActionRunner with the branded overlay.
+     * Inline PIN editing. Strips non-digits and caps at 6. Clears any
+     * existing PIN error so the user sees the highlight clear as they type.
      */
-    fun startPayment(vpa: String, amount: String, note: String, pin: String) {
+    fun onPinChanged(pin: String) {
+        val digits = pin.filter { it.isDigit() }.take(6)
+        _uiState.update { current ->
+            current.copy(
+                pin = digits,
+                errors = current.errors - FormField.PIN
+            )
+        }
+    }
+
+    /**
+     * Attempts to start a payment. Validates the form, then either:
+     *  - Manual mode: copies VPA to clipboard, opens dialer, resets state.
+     *  - Advanced/Auto: runs the ActionRunner via [runPayment].
+     *
+     * Auto-fires once the user types a 6-digit PIN (the screen calls this).
+     * Manual taps of the Pay button at 4-5 digits also reach here.
+     */
+    fun attemptPayment() {
+        val state = _uiState.value
         val mode = operationMode.value
 
-        if (mode != OperationMode.DIALER && !actionRunner.isServiceEnabled()) {
+        // For non-manual modes the accessibility service must be alive.
+        if (mode != OperationMode.MANUAL && !actionRunner.isServiceEnabled()) {
             _sessionState.value = SessionState.Failed(
                 message = "Accessibility service is disabled. Enable it in Settings.",
                 resultText = ""
@@ -124,37 +158,88 @@ class PayViewModel(
             return
         }
 
-        // For dialer mode we skip PIN/amount validation strictly — user types
-        // those into the system dialer themselves. We still want a VPA though.
-        if (mode == OperationMode.DIALER) {
+        // Validate VPA and amount up front for every mode (manual still
+        // needs a valid VPA — that's what we copy to the clipboard).
+        val errors = mutableMapOf<FormField, String>()
+        InputValidator.validateVpa(state.vpa).also {
+            if (!it.isValid) errors[FormField.VPA] = it.errorMessage!!
+        }
+        InputValidator.validateAmount(state.amount).also {
+            if (!it.isValid) errors[FormField.AMOUNT] = it.errorMessage!!
+        }
+
+        // PIN is required only for automated modes; manual mode lets the
+        // user enter the PIN themselves in the dialer.
+        if (mode != OperationMode.MANUAL) {
+            InputValidator.validatePin(state.pin).also {
+                if (!it.isValid) errors[FormField.PIN] = it.errorMessage!!
+            }
+        }
+
+        if (errors.isNotEmpty()) {
+            _uiState.update { it.copy(errors = errors) }
+            return
+        }
+        _uiState.update { it.copy(errors = emptyMap()) }
+
+        val cleanedVpa = state.vpa.trim()
+        val cleanedAmount = state.amount.trim()
+        val cleanedNote = state.note
+
+        if (mode == OperationMode.MANUAL) {
+            // Copy the recipient VPA so the user can paste it after the
+            // dialer opens (most carriers' *99# UI accepts a paste into the
+            // first prompt). Then fire the dialer with *99*1*3# prefilled.
+            clipboardWriter(cleanedVpa)
+            _snackbar.value = "UPI ID copied to clipboard"
             onDialerFallback("*99*1*3#")
+            // Reset transient session state — the user owns the dialer flow.
+            _sessionState.value = SessionState.Idle
             return
         }
 
-        val validationResult = InputValidator.validatePaymentForm(vpa, amount, pin)
-        if (validationResult.errors.isNotEmpty()) {
-            _uiState.update { it.copy(errors = validationResult.errors) }
-            return
-        }
+        runPayment(cleanedVpa, cleanedAmount, cleanedNote, state.pin)
+    }
 
-        _uiState.update { it.copy(errors = emptyMap(), isSessionActive = true, pin = pin) }
+    /**
+     * Validates inputs and starts the USSD payment session if valid.
+     * Routes through ADVANCED or AUTO based on the user's preference.
+     */
+    private fun runPayment(vpa: String, amount: String, note: String, pin: String) {
+        val mode = operationMode.value
+
+        _uiState.update { it.copy(errors = emptyMap(), isSessionActive = true) }
         _sessionState.value = SessionState.Running(
             label = "Starting payment",
             stepIndex = 0,
             total = Actions.SendUpi.steps.size
         )
 
-        // Show overlay at session start
-        overlayController?.show(
-            title = "Paying ₹${amount.trim()}",
-            subtitle = "to ${vpa.trim()}",
-            stepLabel = "STARTING"
-        )
+        // Show the appropriate overlay based on mode.
+        when (mode) {
+            OperationMode.AUTO -> {
+                overlayController?.show(
+                    title = "Paying ₹$amount",
+                    subtitle = "to $vpa",
+                    stepLabel = "STARTING"
+                )
+            }
+            OperationMode.ADVANCED -> {
+                overlayController?.showMinimal(
+                    progress = 0,
+                    total = Actions.SendUpi.steps.size,
+                    label = "PAYING"
+                )
+            }
+            OperationMode.MANUAL -> {
+                // Shouldn't reach here; attemptPayment short-circuits MANUAL.
+            }
+        }
         overlayController?.onCancel = { cancelSession() }
 
         val vars = mapOf(
-            "vpa" to vpa.trim(),
-            "amount" to amount.trim(),
+            "vpa" to vpa,
+            "amount" to amount,
             "note" to note.ifBlank { "Payment" },
             "pin" to pin
         )
@@ -172,11 +257,19 @@ class PayViewModel(
                                 stepIndex = event.stepIndex,
                                 total = event.total
                             )
-                            overlayController?.update(
-                                title = "Paying ₹${amount.trim()}",
-                                subtitle = "to ${vpa.trim()}",
-                                stepLabel = (event.label ?: "Processing").uppercase()
-                            )
+                            when (mode) {
+                                OperationMode.AUTO -> overlayController?.update(
+                                    title = "Paying ₹$amount",
+                                    subtitle = "to $vpa",
+                                    stepLabel = (event.label ?: "Processing").uppercase()
+                                )
+                                OperationMode.ADVANCED -> overlayController?.updateMinimal(
+                                    progress = event.stepIndex,
+                                    total = event.total,
+                                    label = "PAYING"
+                                )
+                                else -> Unit
+                            }
                         }
                         is ActionEvent.Done -> {
                             _sessionState.value = SessionState.Success(resultText = event.resultText)
@@ -184,9 +277,9 @@ class PayViewModel(
                             onSessionEnded()
                             launch {
                                 historyRepo.recordTransaction(
-                                    vpa = vpa.trim(),
+                                    vpa = vpa,
                                     payeeName = _uiState.value.payeeName.ifBlank { null },
-                                    amount = amount.trim(),
+                                    amount = amount,
                                     note = note.ifBlank { null },
                                     carrierReply = event.resultText
                                 )
@@ -232,10 +325,14 @@ class PayViewModel(
 
     /** Dismiss a terminal (success/failed) session card and return to the form. */
     fun dismissSession() {
+        val wasSuccess = _sessionState.value is SessionState.Success
         _sessionState.value = SessionState.Idle
-        if (_sessionState.value is SessionState.Idle) {
+        if (wasSuccess) {
             // After success, clear the form so the user starts fresh.
             _uiState.update { PayUiState() }
+        } else {
+            // On failure, just clear the PIN so the user can re-enter it.
+            _uiState.update { it.copy(pin = "") }
         }
     }
 
@@ -247,24 +344,30 @@ class PayViewModel(
         }
     }
 
+    fun dismissSnackbar() {
+        _snackbar.value = null
+    }
+
     fun onNavigateAway() {
-        clearPin()
+        // Defensive: if the user backs out mid-form, drop the in-memory PIN.
+        _uiState.update { it.copy(pin = "") }
     }
 
     fun onBackground() {
-        clearPin()
+        _uiState.update { it.copy(pin = "") }
     }
 
+    /**
+     * Called whenever the session reaches a terminal state. Marks the
+     * session as inactive and schedules a wipe of the PIN within 500ms so
+     * it never lingers in memory longer than necessary.
+     */
     private fun onSessionEnded() {
         _uiState.update { it.copy(isSessionActive = false) }
         activeRun = null
         viewModelScope.launch {
-            delay(100L)
-            clearPin()
+            delay(500)
+            _uiState.update { it.copy(pin = "") }
         }
-    }
-
-    private fun clearPin() {
-        _uiState.update { it.copy(pin = "") }
     }
 }

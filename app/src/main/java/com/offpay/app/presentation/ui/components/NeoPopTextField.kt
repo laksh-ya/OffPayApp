@@ -103,7 +103,7 @@ fun NeoPopTextField(
                         strokeWidth = 3f
                     )
                 }
-                .padding(horizontal = 16.dp, vertical = 14.dp)
+                .padding(horizontal = 18.dp, vertical = 18.dp)
         ) {
             Column {
                 // Floating label
@@ -112,7 +112,7 @@ fun NeoPopTextField(
                     style = if (labelFloating) NeoPopType.LabelSmall else NeoPopType.LabelMedium,
                     color = labelColor
                 )
-                Spacer(Modifier.height(6.dp))
+                Spacer(Modifier.height(8.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (leadingIcon != null) {
                         Icon(

@@ -1,6 +1,18 @@
 package com.offpay.app.presentation.screens
 
+import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,6 +32,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCodeScanner
 import androidx.compose.material3.Icon
@@ -32,16 +45,21 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.offpay.app.domain.FormField
+import com.offpay.app.domain.OperationMode
 import com.offpay.app.domain.SessionState
 import com.offpay.app.presentation.PayUiState
 import com.offpay.app.presentation.PayViewModel
@@ -55,19 +73,26 @@ import com.offpay.app.presentation.ui.components.NeoPopDangerOutlinedButton
 import com.offpay.app.presentation.ui.components.NeoPopPrimaryButton
 import com.offpay.app.presentation.ui.components.NeoPopSecondaryButton
 import com.offpay.app.presentation.ui.components.NeoPopTextField
+import com.offpay.app.presentation.ui.components.PinBoxes
 import com.offpay.app.presentation.ui.components.StatusBanner
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
+import kotlinx.coroutines.delay
+import androidx.compose.runtime.withFrameNanos
 
 @Composable
 fun PayScreen(
     viewModel: PayViewModel,
     onNavigateScan: () -> Unit,
+    onNavigateHistory: () -> Unit,
+    onNavigateFaq: () -> Unit,
     permissions: PermissionStatus,
     modifier: Modifier = Modifier
 ) {
     val ui by viewModel.uiState.collectAsState()
     val session by viewModel.sessionState.collectAsState()
+    val mode by viewModel.operationMode.collectAsState()
+    val snackbar by viewModel.snackbar.collectAsState()
 
     Box(
         modifier
@@ -78,17 +103,74 @@ fun PayScreen(
         when (val s = session) {
             is SessionState.Idle -> PayForm(
                 ui = ui,
+                mode = mode,
                 permissions = permissions,
-                onPay = { viewModel.startPayment(ui.vpa, ui.amount, ui.note, ui.pin) },
+                onPay = { viewModel.attemptPayment() },
                 onScan = onNavigateScan,
+                onHistory = onNavigateHistory,
                 onVpa = { v -> viewModel.onFormFieldChanged(vpa = v) },
                 onAmount = { v -> viewModel.onFormFieldChanged(amount = v) },
                 onNote = { v -> viewModel.onFormFieldChanged(note = v) },
-                onPin = { v -> viewModel.onFormFieldChanged(pin = v) }
+                onPinChanged = viewModel::onPinChanged
             )
             is SessionState.Running -> SessionRunningCard(s, onCancel = viewModel::cancelSession)
             is SessionState.Success -> SessionSuccessCard(s, onDone = viewModel::dismissSession)
-            is SessionState.Failed -> SessionFailedCard(s, onRetry = viewModel::dismissSession)
+            is SessionState.Failed -> SessionFailedCard(
+                state = s,
+                onRetry = viewModel::dismissSession,
+                onWhyFailed = onNavigateFaq
+            )
+        }
+
+        // Toast-style snackbar pinned to the bottom for 2.5s.
+        SnackbarBanner(
+            message = snackbar,
+            onDismiss = viewModel::dismissSnackbar,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 24.dp)
+        )
+    }
+}
+
+@Composable
+private fun SnackbarBanner(
+    message: String?,
+    onDismiss: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LaunchedEffect(message) {
+        if (message != null) {
+            delay(2_500)
+            onDismiss()
+        }
+    }
+    AnimatedVisibility(
+        visible = message != null,
+        enter = slideInVertically { it } + fadeIn(),
+        exit = slideOutVertically { it } + fadeOut(),
+        modifier = modifier
+    ) {
+        if (message != null) {
+            Box(
+                Modifier
+                    .padding(horizontal = 24.dp)
+                    .background(NeoPopColors.SurfaceHigher)
+                    .drawBehind {
+                        drawRect(
+                            color = NeoPopColors.Accent,
+                            topLeft = androidx.compose.ui.geometry.Offset(0f, 0f),
+                            size = androidx.compose.ui.geometry.Size(3.dp.toPx(), size.height)
+                        )
+                    }
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Text(
+                    text = message,
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextPrimary
+                )
+            }
         }
     }
 }
@@ -98,124 +180,305 @@ fun PayScreen(
 @Composable
 private fun PayForm(
     ui: PayUiState,
+    mode: OperationMode,
     permissions: PermissionStatus,
     onPay: () -> Unit,
     onScan: () -> Unit,
+    onHistory: () -> Unit,
     onVpa: (String) -> Unit,
     onAmount: (String) -> Unit,
     onNote: (String) -> Unit,
-    onPin: (String) -> Unit
+    onPinChanged: (String) -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val launchers = rememberPermissionLaunchers()
     val keyboard = LocalSoftwareKeyboardController.current
     val amountFocus = remember { FocusRequester() }
+    val pinFocus = remember { FocusRequester() }
 
-    LaunchedEffect(Unit) { runCatching { amountFocus.requestFocus() } }
+    // Defer the initial focus request until after the first layout pass
+    // completes — requesting focus during composition (or before parent
+    // placement) crashes the BringIntoView responder on Compose-foundation.
+    LaunchedEffect(Unit) {
+        withFrameNanos { /* one frame: layout placement is now committed */ }
+        delay(50)
+        runCatching { amountFocus.requestFocus() }
+    }
 
-    Column(
-        Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+    // Auto-focus the PIN field once the user has filled in a plausibly-valid
+    // VPA (contains "@" + non-empty trailing chars) AND a non-zero amount.
+    val vpaLooksValid = ui.vpa.contains('@') && ui.vpa.substringAfter('@').isNotEmpty()
+    val amountLooksValid = ui.amount.toDoubleOrNull()?.let { it > 0.0 } == true
+    val pinSectionVisible = mode != OperationMode.MANUAL && vpaLooksValid && amountLooksValid
+
+    LaunchedEffect(pinSectionVisible) {
+        if (pinSectionVisible && ui.pin.isEmpty()) {
+            // Same deferred pattern as above so the section's parents have
+            // been measured/placed before the hidden field grabs focus.
+            withFrameNanos { /* wait one frame */ }
+            delay(50)
+            runCatching { pinFocus.requestFocus() }
+        }
+    }
+
+    // Auto-fire when 6 digits entered and form is valid (debounced 250ms).
+    LaunchedEffect(ui.pin) {
+        if (ui.pin.length == 6 && pinSectionVisible) {
+            delay(250)
+            keyboard?.hide()
+            onPay()
+        }
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
+            // ── Header with history shortcut ──
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "Pay",
+                    style = NeoPopType.DisplayLarge,
+                    color = NeoPopColors.TextPrimary,
+                    modifier = Modifier.weight(1f)
+                )
+                HistoryShortcut(onClick = onHistory)
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            PermissionGate(
+                permissions = permissions,
+                mode = mode,
+                launchers = launchers,
+                context = context
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            AmountInput(
+                value = ui.amount,
+                onChange = onAmount,
+                focusRequester = amountFocus,
+                error = ui.errors[FormField.AMOUNT]
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = "TO",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.TextSecondary
+            )
+            Spacer(Modifier.height(10.dp))
+            NeoPopTextField(
+                value = ui.vpa,
+                onValueChange = onVpa,
+                label = "UPI ID",
+                placeholder = "username@bank",
+                error = ui.errors[FormField.VPA],
+                keyboardType = KeyboardType.Email,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(16.dp))
+
+            NeoPopTextField(
+                value = ui.note,
+                onValueChange = onNote,
+                label = "Note (optional)",
+                placeholder = "Coffee",
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            // ── Inline PIN section (Advanced/Auto only) ──
+            if (mode != OperationMode.MANUAL) {
+                Spacer(Modifier.height(20.dp))
+                AnimatedVisibility(
+                    visible = pinSectionVisible,
+                    enter = fadeIn() + slideInVertically { it / 4 },
+                    exit = fadeOut() + slideOutVertically { it / 4 }
+                ) {
+                    InlinePinSection(
+                        value = ui.pin,
+                        onTap = { runCatching { pinFocus.requestFocus() } },
+                        error = ui.errors[FormField.PIN]
+                    )
+                }
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            val payButtonText = when (mode) {
+                OperationMode.MANUAL -> "Open Dialer"
+                else -> "Pay ₹${ui.amount.ifBlank { "0" }}"
+            }
+            NeoPopPrimaryButton(
+                text = payButtonText,
+                leadingIcon = Icons.Default.Lock,
+                onClick = {
+                    keyboard?.hide()
+                    onPay()
+                },
+                enabled = permissions.readyForDialerPay,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(12.dp))
+
+            NeoPopSecondaryButton(
+                text = "Scan QR",
+                leadingIcon = Icons.Default.QrCodeScanner,
+                onClick = onScan,
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(Modifier.height(40.dp))
+        }
+
+        // Hidden PIN BasicTextField rendered as a SIBLING of the scrolling
+        // Column, not inside it. This keeps it in the layout tree so it can
+        // receive focus and surface the IME, but takes it out of the scroll
+        // container's BringIntoView walk path — which is what was crashing
+        // when the IME tried to scroll the focused field into view before
+        // the scroll Column had been placed.
+        //
+        // 1.dp + alpha(0f) (vs the old Modifier.size(0.dp)) gives the field
+        // a real, fully-placed layout box, sidestepping the placement edge
+        // case that triggered ContentInViewNode.calculateRectForParent's
+        // `Expected BringIntoViewRequester to not be used before parents
+        // are placed` IllegalStateException.
+        if (mode != OperationMode.MANUAL) {
+            val view = LocalView.current
+            BasicTextField(
+                value = ui.pin,
+                onValueChange = { v ->
+                    val before = ui.pin.length
+                    onPinChanged(v)
+                    if (v.length > before) {
+                        view.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP)
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .focusRequester(pinFocus)
+                    .size(1.dp)
+                    .alpha(0f),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                cursorBrush = SolidColor(NeoPopColors.Black),
+                singleLine = true,
+                textStyle = TextStyle(color = NeoPopColors.Black)
+            )
+        }
+    }
+}
+
+/**
+ * Highlighted "ENTER UPI PIN" section. Wrapped in a [NeoPopAccentCard]
+ * with a thin lime border so it visually pops on the form.
+ *
+ * The hidden BasicTextField that backs these boxes lives OUTSIDE the
+ * scrolling Column (rendered as a sibling in [PayForm]'s outer Box). That
+ * separation is intentional: keeping the focus-grabbing field out of the
+ * verticalScroll's parent chain avoids the BringIntoView placement crash
+ * that fires when the IME asks the scroll container to bring the focused
+ * field into view before the parents have been placed.
+ *
+ * Tapping anywhere on the card forwards focus to that hidden field via
+ * [onTap], which is what brings up the keyboard.
+ */
+@Composable
+private fun InlinePinSection(
+    value: String,
+    onTap: () -> Unit,
+    error: String?
+) {
+    NeoPopAccentCard(
+        accent = NeoPopColors.Accent,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onTap() }
     ) {
-        // ── Header ──
-        Text(
-            text = "OFFPAY",
-            style = NeoPopType.LabelMedium,
-            color = NeoPopColors.Accent
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = "Pay",
-            style = NeoPopType.DisplayLarge,
-            color = NeoPopColors.TextPrimary
-        )
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
+            Text(
+                text = "ENTER UPI PIN",
+                style = NeoPopType.LabelLarge,
+                color = NeoPopColors.Accent
+            )
+            Spacer(Modifier.height(14.dp))
+            PinBoxes(
+                value = value,
+                length = 6,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (error != null) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = error,
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.Danger
+                )
+            } else {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "tap any box to bring up the keyboard",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.TextMuted
+                )
+            }
+        }
+    }
+}
 
-        Spacer(Modifier.height(20.dp))
-
-        PermissionGate(permissions = permissions, launchers = launchers, context = context)
-
-        Spacer(Modifier.height(20.dp))
-
-        AmountInput(
-            value = ui.amount,
-            onChange = onAmount,
-            focusRequester = amountFocus,
-            error = ui.errors[FormField.AMOUNT]
-        )
-
-        Spacer(Modifier.height(20.dp))
-
-        Text(
-            text = "TO",
-            style = NeoPopType.LabelMedium,
-            color = NeoPopColors.TextSecondary
-        )
-        Spacer(Modifier.height(8.dp))
-        NeoPopTextField(
-            value = ui.vpa,
-            onValueChange = onVpa,
-            label = "UPI ID",
-            placeholder = "username@bank",
-            error = ui.errors[FormField.VPA],
-            keyboardType = KeyboardType.Email,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        NeoPopTextField(
-            value = ui.note,
-            onValueChange = onNote,
-            label = "Note (optional)",
-            placeholder = "Coffee",
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        NeoPopTextField(
-            value = ui.pin,
-            onValueChange = onPin,
-            label = "UPI PIN",
-            placeholder = "••••",
-            leadingIcon = Icons.Default.Lock,
-            error = ui.errors[FormField.PIN],
-            keyboardType = KeyboardType.NumberPassword,
-            visualTransformation = PasswordVisualTransformation('•'),
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(28.dp))
-
-        NeoPopPrimaryButton(
-            text = "Pay ₹${ui.amount.ifBlank { "0" }}",
-            leadingIcon = Icons.Default.Lock,
-            onClick = {
-                keyboard?.hide()
-                onPay()
+@Composable
+private fun HistoryShortcut(onClick: () -> Unit) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "history_scale"
+    )
+    Box(
+        Modifier
+            .size(44.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .background(NeoPopColors.SurfaceHigh)
+            .drawBehind {
+                drawRect(
+                    color = NeoPopColors.Accent.copy(alpha = 0.30f),
+                    style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
+                )
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
             },
-            enabled = permissions.readyForDialerPay,
-            modifier = Modifier.fillMaxWidth()
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.History,
+            contentDescription = "History",
+            tint = NeoPopColors.TextPrimary,
+            modifier = Modifier.size(20.dp)
         )
-
-        Spacer(Modifier.height(12.dp))
-
-        NeoPopSecondaryButton(
-            text = "Scan QR",
-            leadingIcon = Icons.Default.QrCodeScanner,
-            onClick = onScan,
-            modifier = Modifier.fillMaxWidth()
-        )
-
-        Spacer(Modifier.height(40.dp))
     }
 }
 
 @Composable
 private fun PermissionGate(
     permissions: PermissionStatus,
+    mode: OperationMode,
     launchers: com.offpay.app.presentation.permissions.PermissionLaunchers,
     context: android.content.Context
 ) {
@@ -228,22 +491,25 @@ private fun PermissionGate(
         )
         Spacer(Modifier.height(8.dp))
     }
-    if (!permissions.accessibility) {
-        StatusBanner(
-            title = "Accessibility off",
-            message = "Enable OffPay's accessibility service so we can drive the carrier dialog.",
-            actionLabel = "Fix",
-            onAction = { openAccessibilitySettings(context) }
-        )
-        Spacer(Modifier.height(8.dp))
-    }
-    if (!permissions.overlay) {
-        StatusBanner(
-            title = "Overlay off",
-            message = "Allow display over other apps to hide the system USSD dialog.",
-            actionLabel = "Fix",
-            onAction = { openOverlaySettings(context) }
-        )
+    // Manual mode doesn't use accessibility or the overlay — don't nag.
+    if (mode != OperationMode.MANUAL) {
+        if (!permissions.accessibility) {
+            StatusBanner(
+                title = "Accessibility off",
+                message = "Enable OffPay's accessibility service so we can drive the carrier dialog.",
+                actionLabel = "Fix",
+                onAction = { openAccessibilitySettings(context) }
+            )
+            Spacer(Modifier.height(8.dp))
+        }
+        if (!permissions.overlay) {
+            StatusBanner(
+                title = "Overlay off",
+                message = "Allow display over other apps to hide the system USSD dialog.",
+                actionLabel = "Fix",
+                onAction = { openOverlaySettings(context) }
+            )
+        }
     }
 }
 
@@ -355,7 +621,9 @@ private fun SessionRunningCard(state: SessionState.Running, onCancel: () -> Unit
                 Spacer(Modifier.height(20.dp))
                 LinearProgressIndicator(
                     progress = { ((state.stepIndex + 1f) / state.total).coerceIn(0f, 1f) },
-                    modifier = Modifier.fillMaxWidth().height(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
                     color = NeoPopColors.Accent,
                     trackColor = NeoPopColors.Border
                 )
@@ -413,7 +681,11 @@ private fun SessionSuccessCard(state: SessionState.Success, onDone: () -> Unit) 
 }
 
 @Composable
-private fun SessionFailedCard(state: SessionState.Failed, onRetry: () -> Unit) {
+private fun SessionFailedCard(
+    state: SessionState.Failed,
+    onRetry: () -> Unit,
+    onWhyFailed: () -> Unit
+) {
     Column(
         Modifier
             .fillMaxSize()
@@ -455,6 +727,13 @@ private fun SessionFailedCard(state: SessionState.Failed, onRetry: () -> Unit) {
                         color = NeoPopColors.TextSecondary
                     )
                 }
+                Spacer(Modifier.height(16.dp))
+                Text(
+                    text = "Why did this fail?",
+                    style = NeoPopType.LabelMedium,
+                    color = NeoPopColors.Accent,
+                    modifier = Modifier.clickable { onWhyFailed() }
+                )
             }
         }
         Spacer(Modifier.height(20.dp))

@@ -1,12 +1,19 @@
 package com.offpay.app.presentation.screens
 
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,47 +28,66 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.Inbox
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.offpay.app.data.TransactionEntity
 import com.offpay.app.presentation.HistoryViewModel
 import com.offpay.app.presentation.ui.components.NeoPopCard
-import com.offpay.app.presentation.ui.components.NeoPopDangerOutlinedButton
-import com.offpay.app.presentation.ui.components.NeoPopPrimaryButton
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+/**
+ * Transaction history with per-item delete via swipe-from-right or
+ * long-press, and "CLEAR ALL" with a confirm sheet at the top.
+ */
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
     onPay: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val txns by viewModel.transactions.collectAsState()
+    var showClearAllDialog by remember { mutableStateOf(false) }
+    var pendingDelete by remember { mutableStateOf<TransactionEntity?>(null) }
 
     Column(
         modifier
             .fillMaxSize()
             .background(NeoPopColors.Black)
             .statusBarsPadding()
-            .padding(horizontal = 20.dp, vertical = 16.dp)
+            .padding(horizontal = 20.dp, vertical = 12.dp)
     ) {
-        Header(count = txns.size)
+        Header(
+            count = txns.size,
+            onClose = onClose,
+            onClearAll = { showClearAllDialog = true }
+        )
         Spacer(Modifier.height(20.dp))
 
         if (txns.isEmpty()) {
@@ -72,28 +98,118 @@ fun HistoryScreen(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(items = txns, key = { it.id }) { txn ->
-                    TransactionCard(txn)
-                }
-                item { Spacer(Modifier.height(12.dp)) }
-                item {
-                    NeoPopDangerOutlinedButton(
-                        text = "Clear History",
-                        onClick = viewModel::clearHistory,
-                        modifier = Modifier.fillMaxWidth()
+                    SwipeableTransactionCard(
+                        txn = txn,
+                        onDelete = { viewModel.deleteTransaction(txn.id) },
+                        onLongPress = { pendingDelete = txn }
                     )
                 }
                 item { Spacer(Modifier.height(40.dp)) }
             }
         }
     }
+
+    if (showClearAllDialog) {
+        AlertDialog(
+            onDismissRequest = { showClearAllDialog = false },
+            title = { Text("Clear all transactions?", style = NeoPopType.HeadlineLarge) },
+            text = {
+                Text(
+                    text = "This will delete every transaction in your history. " +
+                        "This action can't be undone.",
+                    style = NeoPopType.BodyMedium
+                )
+            },
+            confirmButton = {
+                Box(
+                    Modifier.clickable {
+                        viewModel.clearHistory()
+                        showClearAllDialog = false
+                    }
+                ) {
+                    Text(
+                        text = "CLEAR ALL",
+                        style = NeoPopType.LabelLarge,
+                        color = NeoPopColors.Danger,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    Modifier.clickable { showClearAllDialog = false }
+                ) {
+                    Text(
+                        text = "CANCEL",
+                        style = NeoPopType.LabelLarge,
+                        color = NeoPopColors.TextSecondary,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            },
+            containerColor = NeoPopColors.SurfaceHigh,
+            titleContentColor = NeoPopColors.TextPrimary,
+            textContentColor = NeoPopColors.TextSecondary
+        )
+    }
+
+    pendingDelete?.let { txn ->
+        AlertDialog(
+            onDismissRequest = { pendingDelete = null },
+            title = { Text("Delete this transaction?", style = NeoPopType.HeadlineLarge) },
+            text = {
+                Text(
+                    text = "₹${txn.amount} to ${txn.vpa}. This can't be undone.",
+                    style = NeoPopType.BodyMedium
+                )
+            },
+            confirmButton = {
+                Box(
+                    Modifier.clickable {
+                        viewModel.deleteTransaction(txn.id)
+                        pendingDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "DELETE",
+                        style = NeoPopType.LabelLarge,
+                        color = NeoPopColors.Danger,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            },
+            dismissButton = {
+                Box(
+                    Modifier.clickable { pendingDelete = null }
+                ) {
+                    Text(
+                        text = "CANCEL",
+                        style = NeoPopType.LabelLarge,
+                        color = NeoPopColors.TextSecondary,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            },
+            containerColor = NeoPopColors.SurfaceHigh,
+            titleContentColor = NeoPopColors.TextPrimary,
+            textContentColor = NeoPopColors.TextSecondary
+        )
+    }
 }
 
 @Composable
-private fun Header(count: Int) {
+private fun Header(count: Int, onClose: () -> Unit, onClearAll: () -> Unit) {
+    val view = LocalView.current
     Row(
         Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        CornerIconButton(
+            icon = Icons.Default.ArrowBack,
+            contentDescription = "Back",
+            onClick = onClose
+        )
+        Spacer(Modifier.size(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 text = "RECENT",
@@ -102,24 +218,75 @@ private fun Header(count: Int) {
             )
             Spacer(Modifier.height(2.dp))
             Text(
-                text = "History",
-                style = NeoPopType.DisplayLarge,
-                color = NeoPopColors.TextPrimary
+                text = if (count > 0) "$count transaction${if (count == 1) "" else "s"}" else "no transactions",
+                style = NeoPopType.BodySmall,
+                color = NeoPopColors.TextMuted
             )
         }
         if (count > 0) {
             Box(
                 Modifier
-                    .background(NeoPopColors.SurfaceHigh)
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        onClearAll()
+                    }
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = count.toString(),
-                    style = NeoPopType.LabelLarge,
-                    color = NeoPopColors.Accent
+                    text = "CLEAR ALL",
+                    style = NeoPopType.LabelMedium,
+                    color = NeoPopColors.Danger
                 )
             }
         }
+    }
+}
+
+/**
+ * 40dp tap-target with a subtle 12% white hairline ring and a 0.92
+ * scale-on-press feedback. Mirrors the FAQ corner button.
+ */
+@Composable
+private fun CornerIconButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit
+) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "history_close_scale"
+    )
+    Box(
+        Modifier
+            .size(40.dp)
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .drawBehind {
+                drawRect(
+                    color = NeoPopColors.TextPrimary.copy(alpha = 0.12f),
+                    style = Stroke(width = 1f)
+                )
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            },
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = NeoPopColors.TextPrimary
+        )
     }
 }
 
@@ -130,47 +297,104 @@ private fun EmptyState(onPay: () -> Unit, modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Inbox,
-                    contentDescription = null,
-                    tint = NeoPopColors.TextMuted,
-                    modifier = Modifier.size(48.dp)
-                )
-                Spacer(Modifier.height(16.dp))
-                Text(
-                    text = "NO TRANSACTIONS YET",
-                    style = NeoPopType.LabelMedium,
-                    color = NeoPopColors.TextSecondary
-                )
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    text = "Make your first payment to see it here.",
-                    style = NeoPopType.BodyMedium,
-                    color = NeoPopColors.TextMuted
-                )
-            }
-        }
-        Spacer(Modifier.height(20.dp))
-        NeoPopPrimaryButton(
-            text = "Make Your First Payment",
-            onClick = onPay,
-            modifier = Modifier.fillMaxWidth()
+        Box(
+            Modifier
+                .size(10.dp)
+                .background(NeoPopColors.Accent)
         )
+        Spacer(Modifier.height(16.dp))
+        Text(
+            text = "no transactions yet",
+            style = NeoPopType.HeadlineLarge,
+            color = NeoPopColors.TextPrimary
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "your payments will appear here",
+            style = NeoPopType.BodyMedium,
+            color = NeoPopColors.TextMuted
+        )
+        Spacer(Modifier.height(24.dp))
+        Box(
+            Modifier
+                .clickable { onPay() }
+                .padding(horizontal = 16.dp, vertical = 10.dp)
+        ) {
+            Text(
+                text = "MAKE A PAYMENT",
+                style = NeoPopType.LabelLarge,
+                color = NeoPopColors.Accent
+            )
+        }
     }
 }
 
 @Composable
-private fun TransactionCard(txn: TransactionEntity) {
+private fun SwipeableTransactionCard(
+    txn: TransactionEntity,
+    onDelete: () -> Unit,
+    onLongPress: () -> Unit
+) {
+    val dismissState = rememberSwipeToDismissBoxState(
+        confirmValueChange = { value ->
+            // Only allow EndToStart (right→left swipe) to trigger delete.
+            if (value == SwipeToDismissBoxValue.EndToStart) {
+                onDelete()
+                true
+            } else false
+        },
+        positionalThreshold = { totalDistance -> totalDistance * 0.5f }
+    )
+
+    SwipeToDismissBox(
+        state = dismissState,
+        backgroundContent = {
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(NeoPopColors.Danger)
+                    .padding(horizontal = 24.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.End
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "Delete",
+                    tint = NeoPopColors.TextPrimary
+                )
+                Spacer(Modifier.size(8.dp))
+                Text(
+                    text = "DELETE",
+                    style = NeoPopType.LabelLarge,
+                    color = NeoPopColors.TextPrimary
+                )
+            }
+        },
+        enableDismissFromStartToEnd = false,
+        enableDismissFromEndToStart = true
+    ) {
+        TransactionCard(txn = txn, onLongPress = onLongPress)
+    }
+}
+
+@Composable
+private fun TransactionCard(txn: TransactionEntity, onLongPress: () -> Unit) {
     var expanded by remember { mutableStateOf(false) }
+    val view = LocalView.current
+
     NeoPopCard(
         modifier = Modifier
             .fillMaxWidth()
             .clickable { expanded = !expanded }
+            .pointerInput(txn.id) {
+                detectTapGestures(
+                    onLongPress = {
+                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                        onLongPress()
+                    },
+                    onTap = { expanded = !expanded }
+                )
+            }
     ) {
         Column {
             Row(
@@ -180,7 +404,10 @@ private fun TransactionCard(txn: TransactionEntity) {
                 Column(Modifier.weight(1f)) {
                     Text(
                         text = txn.vpa,
-                        style = NeoPopType.Mono.copy(color = NeoPopColors.TextPrimary)
+                        style = NeoPopType.Mono.copy(
+                            color = NeoPopColors.TextPrimary,
+                            fontSize = 14.sp
+                        )
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
@@ -189,35 +416,25 @@ private fun TransactionCard(txn: TransactionEntity) {
                         color = NeoPopColors.TextMuted
                     )
                 }
-                Text(
-                    text = "₹${txn.amount}",
-                    style = NeoPopType.Mono.copy(
-                        color = NeoPopColors.TextPrimary,
-                        fontSize = 20.sp
-                    )
-                )
-            }
-            Spacer(Modifier.height(8.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    Modifier
-                        .size(12.dp)
-                        .background(NeoPopColors.Success)
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    text = "PAID",
-                    style = NeoPopType.LabelSmall,
-                    color = NeoPopColors.Success
-                )
-                if (!txn.note.isNullOrBlank()) {
-                    Spacer(Modifier.size(12.dp))
+                Column(horizontalAlignment = Alignment.End) {
+                    StatusPill()
+                    Spacer(Modifier.height(4.dp))
                     Text(
-                        text = "•  ${txn.note}",
-                        style = NeoPopType.BodySmall,
-                        color = NeoPopColors.TextSecondary
+                        text = "₹${txn.amount}",
+                        style = NeoPopType.MonoAmount.copy(
+                            color = NeoPopColors.TextPrimary,
+                            fontSize = 17.sp
+                        )
                     )
                 }
+            }
+            if (!txn.note.isNullOrBlank()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = txn.note,
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextSecondary
+                )
             }
             AnimatedVisibility(
                 visible = expanded,
@@ -247,6 +464,21 @@ private fun TransactionCard(txn: TransactionEntity) {
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun StatusPill() {
+    Box(
+        Modifier
+            .background(NeoPopColors.Accent.copy(alpha = 0.15f))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+    ) {
+        Text(
+            text = "✓ paid",
+            style = NeoPopType.LabelSmall,
+            color = NeoPopColors.Accent
+        )
     }
 }
 

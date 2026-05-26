@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -16,9 +18,12 @@ import androidx.compose.ui.unit.dp
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 
 /**
- * Static NeoPOP card — same 5-surface technique as [NeoPopButton] but it
- * doesn't move on touch. Slimmer default depth (4dp) so it reads as
- * decoration, not as an interactive control.
+ * Static NeoPOP card — same surface technique as [NeoPopButton] but it
+ * doesn't move on touch. 4dp depth + 8dp top-face rounding so it reads as
+ * decoration, not a control.
+ *
+ * Polished pass: corners are softened from 0/4dp to 8dp (still geometric)
+ * and depth is held at 4dp. Side faces are subtle so the card is calm.
  */
 @Composable
 fun NeoPopCard(
@@ -28,6 +33,7 @@ fun NeoPopCard(
     bottomColor: Color = NeoPopColors.Black,
     borderColor: Color = NeoPopColors.Border,
     depth: Dp = 4.dp,
+    cornerRadius: Dp = 8.dp,
     contentPadding: PaddingValues = PaddingValues(20.dp),
     content: @Composable () -> Unit
 ) {
@@ -66,9 +72,9 @@ fun NeoPopCard(
         Box(
             Modifier
                 .padding(end = depth, bottom = depth)
+                .clip(RoundedCornerShape(cornerRadius))
                 .background(surfaceColor)
                 .drawWithCache {
-                    // Hairline border on the top face for that crisp NeoPOP edge.
                     onDrawBehind {
                         drawRect(borderColor, style = Stroke(width = 1f))
                     }
@@ -90,6 +96,7 @@ fun NeoPopAccentCard(
     accent: Color,
     modifier: Modifier = Modifier,
     depth: Dp = 4.dp,
+    cornerRadius: Dp = 8.dp,
     contentPadding: PaddingValues = PaddingValues(20.dp),
     content: @Composable () -> Unit
 ) {
@@ -100,6 +107,7 @@ fun NeoPopAccentCard(
         bottomColor = accent.copy(alpha = 0.7f),
         borderColor = accent,
         depth = depth,
+        cornerRadius = cornerRadius,
         contentPadding = contentPadding,
         content = content
     )

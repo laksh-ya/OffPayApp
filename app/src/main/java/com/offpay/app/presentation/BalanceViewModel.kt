@@ -7,17 +7,30 @@ import com.offpay.app.domain.ActionEvent
 import com.offpay.app.domain.ActionRunner
 import com.offpay.app.domain.Actions
 import com.offpay.app.domain.InputValidator
+import com.offpay.app.domain.OperationMode
 import com.offpay.app.domain.SessionState
+import com.offpay.app.platform.OverlayController
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 /**
+ * The most recent successful balance check, persisted across app kills.
+ */
+data class BalanceResult(val text: String, val timestamp: Long)
+
+/**
  * UI state for the Balance check screen.
+ *
+ * PIN is captured inline on the form (a 6-box section is the screen's
+ * hero) and lives here so it survives recompositions.
  */
 data class BalanceUiState(
     val pin: String = "",
@@ -27,15 +40,25 @@ data class BalanceUiState(
 
 /**
  * ViewModel for the Balance check screen.
- * Validates PIN before starting balance check,
- * wires ActionRunner for the check-balance flow,
- * and clears PIN on session end.
  *
- * Validates: Requirements 3.1, 3.2, 3.3, 3.4, 9.1
+ * Flow:
+ *  1. User enters their PIN inline → screen calls [attemptCheckBalance]
+ *     either on the 6th digit (auto-fire) or via the explicit "Check Now"
+ *     CTA at 4-5 digits.
+ *  2. [attemptCheckBalance] validates the PIN and starts the CheckBalance
+ *     action via [runCheck].
+ *  3. On success the carrier reply is persisted to PreferencesRepository
+ *     so the last result survives app kill.
+ *
+ * @param clipboardWriter only used by MANUAL mode where the screen falls
+ *   back to the dialer with *99*3# prefilled. Unused in ADVANCED/AUTO.
  */
 class BalanceViewModel(
     private val actionRunner: ActionRunner,
-    private val prefsRepo: PreferencesRepository
+    private val prefsRepo: PreferencesRepository,
+    private val overlayController: OverlayController? = null,
+    private val onDialerFallback: (String) -> Unit = {},
+    private val clipboardWriter: (String) -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BalanceUiState())
@@ -44,15 +67,49 @@ class BalanceViewModel(
     private val _sessionState = MutableStateFlow<SessionState>(SessionState.Idle)
     val sessionState: StateFlow<SessionState> = _sessionState.asStateFlow()
 
-    private var sessionJob: Job? = null
+    private val _snackbar = MutableStateFlow<String?>(null)
+    val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
     /**
-     * Validates the PIN and initiates a balance check session if valid.
-     * If PIN is invalid, sets the error on uiState without starting a session.
+     * Last persisted balance result. Hydrated from DataStore so the screen
+     * renders the prior balance immediately on launch.
      */
-    fun checkBalance(pin: String) {
-        // Guard: block session if accessibility service is not running
-        // Validates: Requirement 15.2
+    val lastResult: StateFlow<BalanceResult?> = combine(
+        prefsRepo.lastBalanceText,
+        prefsRepo.lastBalanceTimestamp
+    ) { text, ts ->
+        if (text != null && ts != null) BalanceResult(text, ts) else null
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    val operationMode: StateFlow<OperationMode> = prefsRepo.operationMode
+        .stateIn(viewModelScope, SharingStarted.Eagerly, OperationMode.AUTO)
+
+    private var sessionJob: Job? = null
+
+    /** Inline PIN editing — strips non-digits, caps at 6, clears any error. */
+    fun onPinChanged(pin: String) {
+        val digits = pin.filter { it.isDigit() }.take(6)
+        _uiState.update { it.copy(pin = digits, pinError = null) }
+    }
+
+    /**
+     * Validates the entered PIN and starts a balance-check session.
+     *
+     *  - Manual mode: opens the dialer with *99*3# prefilled. PIN entry is
+     *    deferred to the carrier dialog itself.
+     *  - Advanced/Auto: requires a valid 4-6 digit PIN, then runs the
+     *    CheckBalance action via [runCheck].
+     */
+    fun attemptCheckBalance() {
+        val mode = operationMode.value
+
+        if (mode == OperationMode.MANUAL) {
+            _snackbar.value = "Opening dialer for *99*3#"
+            onDialerFallback("*99*3#")
+            _sessionState.value = SessionState.Idle
+            return
+        }
+
         if (!actionRunner.isServiceEnabled()) {
             _sessionState.value = SessionState.Failed(
                 message = "Accessibility service is disabled. Please enable it in Settings.",
@@ -61,27 +118,48 @@ class BalanceViewModel(
             return
         }
 
-        // Validate PIN
-        val validationResult = InputValidator.validatePin(pin)
-        if (!validationResult.isValid) {
-            _uiState.update { it.copy(pinError = validationResult.errorMessage) }
+        val pin = _uiState.value.pin
+        val validation = InputValidator.validatePin(pin)
+        if (!validation.isValid) {
+            _uiState.update { it.copy(pinError = validation.errorMessage) }
             return
         }
 
-        // Clear any previous error and mark session active
-        _uiState.update { it.copy(pin = pin, pinError = null, isSessionActive = true) }
+        runCheck(pin)
+    }
+
+    /**
+     * Runs the CheckBalance action with the captured PIN.
+     */
+    private fun runCheck(pin: String) {
+        val mode = operationMode.value
+
+        _uiState.update { it.copy(pinError = null, isSessionActive = true) }
         _sessionState.value = SessionState.Running(
             label = "Checking balance",
             stepIndex = 0,
             total = Actions.CheckBalance.steps.size
         )
 
-        // Run CheckBalance action via ActionRunner
+        when (mode) {
+            OperationMode.AUTO -> overlayController?.show(
+                title = "Checking balance",
+                subtitle = "OffPay is asking your bank…",
+                stepLabel = "STARTING"
+            )
+            OperationMode.ADVANCED -> overlayController?.showMinimal(
+                progress = 0,
+                total = Actions.CheckBalance.steps.size,
+                label = "CHECKING BALANCE"
+            )
+            OperationMode.MANUAL -> Unit // not reached
+        }
+        overlayController?.onCancel = { cancelSession() }
+
         val vars = mapOf("pin" to pin)
         val actionRun = actionRunner.runAction(Actions.CheckBalance, vars, viewModelScope)
 
         sessionJob = viewModelScope.launch {
-            // Collect events to update session state
             launch {
                 actionRun.events.collect { event ->
                     when (event) {
@@ -91,9 +169,29 @@ class BalanceViewModel(
                                 stepIndex = event.stepIndex,
                                 total = event.total
                             )
+                            when (mode) {
+                                OperationMode.AUTO -> overlayController?.update(
+                                    title = "Checking balance",
+                                    subtitle = "OffPay is asking your bank…",
+                                    stepLabel = (event.label ?: "Processing").uppercase()
+                                )
+                                OperationMode.ADVANCED -> overlayController?.updateMinimal(
+                                    progress = event.stepIndex,
+                                    total = event.total,
+                                    label = "CHECKING BALANCE"
+                                )
+                                else -> Unit
+                            }
                         }
                         is ActionEvent.Done -> {
                             _sessionState.value = SessionState.Success(resultText = event.resultText)
+                            overlayController?.hide()
+                            launch {
+                                prefsRepo.setLastBalance(
+                                    text = event.resultText,
+                                    timestamp = System.currentTimeMillis()
+                                )
+                            }
                             onSessionEnd()
                         }
                         is ActionEvent.Error -> {
@@ -101,14 +199,17 @@ class BalanceViewModel(
                                 message = event.message,
                                 resultText = event.resultText
                             )
+                            overlayController?.showError(
+                                title = "Check failed",
+                                message = event.message
+                            )
                             onSessionEnd()
                         }
-                        else -> { /* Frame and Reply events — no UI state change needed */ }
+                        else -> { /* Frame and Reply events — no UI state change */ }
                     }
                 }
             }
 
-            // Also await the result deferred to handle edge cases (e.g. cancellation)
             val result = actionRun.result.await()
             if (!result.success && _sessionState.value is SessionState.Running) {
                 _sessionState.value = SessionState.Failed(
@@ -126,19 +227,25 @@ class BalanceViewModel(
     fun cancelSession() {
         sessionJob?.cancel()
         sessionJob = null
+        overlayController?.hide()
         _sessionState.value = SessionState.Idle
         onSessionEnd()
     }
 
-    /**
-     * Clears PIN from volatile memory within 500ms of session end.
-     * Requirement 9.1: PIN cleared on success, failure, timeout, or cancellation.
-     */
+    fun dismissSession() {
+        _sessionState.value = SessionState.Idle
+        // Clear PIN so a retry forces fresh entry.
+        _uiState.update { it.copy(pin = "") }
+    }
+
+    fun dismissSnackbar() {
+        _snackbar.value = null
+    }
+
     private fun onSessionEnd() {
         _uiState.update { it.copy(isSessionActive = false) }
         viewModelScope.launch {
-            // Clear PIN within 500ms as required by Requirement 9.1
-            delay(100)
+            delay(500)
             _uiState.update { it.copy(pin = "") }
         }
     }

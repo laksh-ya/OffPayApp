@@ -16,6 +16,13 @@ class HistoryViewModel(
     val transactions: StateFlow<List<TransactionEntity>> = historyRepo.transactions
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    /** Delete a single transaction by id. */
+    fun deleteTransaction(id: Long) {
+        viewModelScope.launch {
+            historyRepo.delete(id)
+        }
+    }
+
     fun clearHistory() {
         viewModelScope.launch {
             historyRepo.clearHistory()

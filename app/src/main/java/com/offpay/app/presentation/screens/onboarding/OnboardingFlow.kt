@@ -1,11 +1,17 @@
 package com.offpay.app.presentation.screens.onboarding
 
+import android.content.Intent
+import android.net.Uri
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -13,9 +19,11 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -27,22 +35,34 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.offpay.app.R
 import com.offpay.app.presentation.permissions.PermissionStatus
 import com.offpay.app.presentation.permissions.openAccessibilitySettings
 import com.offpay.app.presentation.permissions.openOverlaySettings
@@ -54,9 +74,27 @@ import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlinx.coroutines.launch
 
+// ─── Hooks for the user to drop in real assets later ──────────────────────────
+
+/**
+ * BHIM walkthrough screenshots, mirrored from FaqScreen so the same images
+ * surface here too.
+ */
+private val bhimStep1ImageRes: Int? = R.drawable.bhim_step1
+private val bhimStep2ImageRes: Int? = R.drawable.bhim_step2
+private val bhimStep3ImageRes: Int? = R.drawable.bhim_step3
+
+/**
+ * Tutorial video URL. When non-null, the welcome page (page 1) renders a
+ * small "Watch tutorial" link below the hero CTA.
+ */
+private val TUTORIAL_VIDEO_URL: String? = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingFlow(onComplete: () -> Unit) {
-    val pagerState = rememberPagerState(pageCount = { 4 })
+    val totalPages = 5
+    val pagerState = rememberPagerState(pageCount = { totalPages })
     val scope = rememberCoroutineScope()
 
     val permissionsState = rememberPermissionStatus()
@@ -75,20 +113,24 @@ fun OnboardingFlow(onComplete: () -> Unit) {
             when (page) {
                 0 -> WelcomePage()
                 1 -> Star99ExplainerPage()
-                2 -> PermissionsPage(permissions = permissions)
-                3 -> ReadyPage()
+                2 -> BhimSetupPage(onSkip = {
+                    scope.launch { pagerState.animateScrollToPage(3) }
+                })
+                3 -> PermissionsPage(permissions = permissions)
+                4 -> ReadyPage()
             }
         }
         Spacer(Modifier.height(8.dp))
-        PageIndicator(current = pagerState.currentPage, total = 4)
+        PageIndicator(current = pagerState.currentPage, total = totalPages)
         Spacer(Modifier.height(16.dp))
-        Box(modifier = Modifier.padding(20.dp)) {
-            val isLast = pagerState.currentPage == 3
+        Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+            val isLast = pagerState.currentPage == totalPages - 1
             NeoPopPrimaryButton(
                 text = when (pagerState.currentPage) {
                     0 -> "Continue"
                     1 -> "Got It"
-                    2 -> if (permissions.readyForOverlayPay) "Looks Good" else "Next"
+                    2 -> "Continue"
+                    3 -> if (permissions.readyForOverlayPay) "Looks Good" else "Continue Anyway"
                     else -> "Let's Pay"
                 },
                 onClick = {
@@ -112,12 +154,25 @@ private fun PageIndicator(current: Int, total: Int) {
         horizontalArrangement = Arrangement.Center
     ) {
         repeat(total) { i ->
+            val isActive = i == current
+            // 6dp dot inactive, 24dp lime pill active. Spring animation
+            // smooths the transition between states.
+            val width by animateDpAsState(
+                targetValue = if (isActive) 24.dp else 6.dp,
+                animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+                label = "indicator_w_$i"
+            )
+            val height by animateDpAsState(
+                targetValue = if (isActive) 6.dp else 6.dp,
+                animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
+                label = "indicator_h_$i"
+            )
             Box(
                 Modifier
-                    .size(width = if (i == current) 24.dp else 8.dp, height = 4.dp)
-                    .background(if (i == current) NeoPopColors.Accent else NeoPopColors.Border)
+                    .size(width = width, height = height)
+                    .background(if (isActive) NeoPopColors.Accent else NeoPopColors.Border)
             )
-            if (i < total - 1) Spacer(Modifier.width(4.dp))
+            if (i < total - 1) Spacer(Modifier.width(6.dp))
         }
     }
 }
@@ -126,6 +181,7 @@ private fun PageIndicator(current: Int, total: Int) {
 
 @Composable
 private fun WelcomePage() {
+    val context = LocalContext.current
     val transition = rememberInfiniteTransition(label = "welcome")
     val pulse by transition.animateFloat(
         initialValue = 0.6f,
@@ -168,6 +224,32 @@ private fun WelcomePage() {
             style = NeoPopType.BodyLarge,
             color = NeoPopColors.TextSecondary
         )
+        // Optional inline link to a tutorial video — only renders when the
+        // top-of-file constant is set.
+        TUTORIAL_VIDEO_URL?.let { url ->
+            Spacer(Modifier.height(20.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable {
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(intent) }
+                }
+            ) {
+                Icon(
+                    imageVector = Icons.Default.PlayArrow,
+                    contentDescription = null,
+                    tint = NeoPopColors.Accent,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "Watch tutorial",
+                    style = NeoPopType.LabelMedium,
+                    color = NeoPopColors.Accent
+                )
+            }
+        }
     }
 }
 
@@ -237,20 +319,193 @@ private fun CarrierPill(name: String, supported: Boolean, modifier: Modifier = M
     }
 }
 
-// ── Page 3: Permissions ──
+// ── Page 3: BHIM setup ──
 
+@Composable
+private fun BhimSetupPage(onSkip: () -> Unit) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        Text(
+            text = "FIRST, LINK *99# IN BHIM",
+            style = NeoPopType.LabelMedium,
+            color = NeoPopColors.Accent
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "First, link *99# in BHIM",
+            style = NeoPopType.DisplayMedium,
+            color = NeoPopColors.TextPrimary
+        )
+        Spacer(Modifier.height(16.dp))
+
+        NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+            Column {
+                NumberedStep(1, "Open BHIM app → tap your profile avatar (initials in top-left).")
+                ImageSlot(res = bhimStep1ImageRes)
+                Spacer(Modifier.height(14.dp))
+                NumberedStep(2, "Scroll down → tap Settings.")
+                ImageSlot(res = bhimStep2ImageRes)
+                Spacer(Modifier.height(14.dp))
+                NumberedStep(3, "Find \"USSD service (*99#)\" under Account settings → toggle it ON.")
+                ImageSlot(res = bhimStep3ImageRes)
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 12.dp)
+                .clickable { onSkip() },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Already done? Skip",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.TextMuted
+            )
+        }
+    }
+}
+
+@Composable
+private fun NumberedStep(index: Int, body: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier
+                .size(24.dp)
+                .background(NeoPopColors.Accent),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = index.toString(),
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Black
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = body,
+            style = NeoPopType.BodyMedium,
+            color = NeoPopColors.TextSecondary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ImageSlot(res: Int?) {
+    Spacer(Modifier.height(10.dp))
+    if (res != null) {
+        // Real screenshot: scale-to-fit, capped at 480dp tall so the portrait
+        // BHIM screenshots don't dominate the screen on small devices.
+        Image(
+            painter = painterResource(id = res),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+        )
+    } else {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .background(NeoPopColors.Surface)
+                .drawBehind {
+                    drawRect(
+                        color = NeoPopColors.Accent.copy(alpha = 0.4f),
+                        style = Stroke(width = 1f)
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "step image",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.TextMuted
+            )
+        }
+    }
+}
+
+// ── Page 4: Permissions ──
+
+private data class PermissionInfo(
+    val key: String,
+    val icon: ImageVector,
+    val title: String,
+    val short: String,
+    val why: String,
+    val granted: Boolean,
+    val onGrant: () -> Unit,
+    /** When true, the GRANT button shows an inline FAQ-link hint below it. */
+    val showFaqHint: Boolean = false
+)
+
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 private fun PermissionsPage(permissions: PermissionStatus) {
     val context = LocalContext.current
     val launchers = rememberPermissionLaunchers()
 
+    val items = listOf(
+        PermissionInfo(
+            key = "phone",
+            icon = Icons.Default.Phone,
+            title = "Phone",
+            short = "Dial *99# and read the carrier name.",
+            why = "OffPay dials *99# through Android's call API to start each USSD session, and reads the active SIM's carrier name to warn you if you're on Jio (where *99# is unreliable).",
+            granted = permissions.phoneBundle,
+            onGrant = { launchers.requestPhoneBundle() }
+        ),
+        PermissionInfo(
+            key = "camera",
+            icon = Icons.Default.Camera,
+            title = "Camera",
+            short = "Scan UPI QR codes.",
+            why = "We use the camera to scan UPI QR codes and autofill the recipient's UPI ID and amount. You can also pick QR images from your gallery — that doesn't need camera access.",
+            granted = permissions.camera,
+            onGrant = { launchers.requestCamera() }
+        ),
+        PermissionInfo(
+            key = "accessibility",
+            icon = Icons.Default.Settings,
+            title = "Accessibility",
+            short = "Read and reply to the carrier's USSD dialog.",
+            why = "Android's only public USSD API can't navigate multi-step menus. The accessibility service is what lets OffPay automatically type your amount, VPA and PIN into the carrier's dialog so you don't have to.",
+            granted = permissions.accessibility,
+            onGrant = { openAccessibilitySettings(context) },
+            // Android 13+ may grey out the toggle. The FAQ has the workaround
+            // — surface a tappable hint right next to the GRANT button.
+            showFaqHint = true
+        ),
+        PermissionInfo(
+            key = "overlay",
+            icon = Icons.Default.Layers,
+            title = "Display Over Other Apps",
+            short = "Cover the system dialog with OffPay's overlay.",
+            why = "In Auto mode, OffPay paints a branded overlay over the system USSD dialog so you only ever see OffPay's UI during a session. In Advanced mode, the overlay is a small chip pinned under the status bar.",
+            granted = permissions.overlay,
+            onGrant = { openOverlaySettings(context) }
+        )
+    )
+
+    val view = LocalView.current
+    var helpFor by remember { mutableStateOf<PermissionInfo?>(null) }
+    val sheetState = rememberModalBottomSheetState()
+
     Column(
         Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
-            .padding(28.dp)
+            .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
-        Spacer(Modifier.height(16.dp))
         Text(
             text = "PERMISSIONS",
             style = NeoPopType.LabelMedium,
@@ -262,110 +517,176 @@ private fun PermissionsPage(permissions: PermissionStatus) {
             style = NeoPopType.DisplayMedium,
             color = NeoPopColors.TextPrimary
         )
-        Spacer(Modifier.height(20.dp))
-        PermissionTile(
-            icon = Icons.Default.Phone,
-            title = "Phone",
-            why = "Dial *99# and read the active SIM's carrier.",
-            granted = permissions.phoneBundle,
-            onGrant = { launchers.requestPhoneBundle() }
-        )
-        Spacer(Modifier.height(12.dp))
-        PermissionTile(
-            icon = Icons.Default.Camera,
-            title = "Camera",
-            why = "Scan UPI QR codes to autofill the recipient.",
-            granted = permissions.camera,
-            onGrant = { launchers.requestCamera() }
-        )
-        Spacer(Modifier.height(12.dp))
-        PermissionTile(
-            icon = Icons.Default.Settings,
-            title = "Accessibility",
-            why = "Read and reply to the carrier's USSD dialog.",
-            granted = permissions.accessibility,
-            onGrant = { openAccessibilitySettings(context) }
-        )
-        Spacer(Modifier.height(12.dp))
-        PermissionTile(
-            icon = Icons.Default.Layers,
-            title = "Display Over Other Apps",
-            why = "Cover the system dialog with OffPay's overlay.",
-            granted = permissions.overlay,
-            onGrant = { openOverlaySettings(context) }
-        )
-        Spacer(Modifier.height(20.dp))
-    }
-}
 
-@Composable
-private fun PermissionTile(
-    icon: ImageVector,
-    title: String,
-    why: String,
-    granted: Boolean,
-    onGrant: () -> Unit
-) {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        val ungranted = items.count { !it.granted }
+        if (ungranted > 0) {
+            Spacer(Modifier.height(12.dp))
             Box(
                 Modifier
-                    .size(44.dp)
-                    .background(NeoPopColors.Surface),
-                contentAlignment = Alignment.Center
+                    .background(NeoPopColors.Warn.copy(alpha = 0.16f))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    tint = if (granted) NeoPopColors.Accent else NeoPopColors.TextSecondary,
-                    modifier = Modifier.size(22.dp)
+                Text(
+                    text = "$ungranted not granted — some features won't work until they are.",
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.Warn
                 )
             }
-            Spacer(Modifier.width(14.dp))
-            Column(Modifier.weight(1f)) {
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        items.forEach { info ->
+            PermissionCard(
+                info = info,
+                onHelp = {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    helpFor = info
+                }
+            )
+            Spacer(Modifier.height(12.dp))
+        }
+        Spacer(Modifier.height(20.dp))
+    }
+
+    helpFor?.let { info ->
+        ModalBottomSheet(
+            onDismissRequest = { helpFor = null },
+            sheetState = sheetState,
+            containerColor = NeoPopColors.SurfaceHigh
+        ) {
+            Column(Modifier.padding(horizontal = 24.dp, vertical = 8.dp)) {
                 Text(
-                    text = title.uppercase(),
+                    text = info.title.uppercase(),
                     style = NeoPopType.LabelMedium,
+                    color = NeoPopColors.Accent
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Why we need this",
+                    style = NeoPopType.DisplaySmall,
                     color = NeoPopColors.TextPrimary
                 )
-                Spacer(Modifier.height(2.dp))
+                Spacer(Modifier.height(12.dp))
                 Text(
-                    text = why,
-                    style = NeoPopType.BodySmall,
-                    color = NeoPopColors.TextMuted
+                    text = info.why,
+                    style = NeoPopType.BodyLarge,
+                    color = NeoPopColors.TextSecondary
                 )
-            }
-            Spacer(Modifier.width(10.dp))
-            if (granted) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = "Granted",
-                    tint = NeoPopColors.Success,
-                    modifier = Modifier.size(22.dp)
-                )
-            } else {
-                val view = androidx.compose.ui.platform.LocalView.current
-                Box(
-                    Modifier
-                        .background(NeoPopColors.Accent)
-                        .clickable {
-                            view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY)
-                            onGrant()
-                        }
-                        .padding(horizontal = 12.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "GRANT",
-                        style = NeoPopType.LabelSmall,
-                        color = NeoPopColors.Black
-                    )
-                }
+                Spacer(Modifier.height(28.dp))
             }
         }
     }
 }
 
-// ── Page 4: Ready ──
+@Composable
+private fun PermissionCard(info: PermissionInfo, onHelp: () -> Unit) {
+    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    Modifier
+                        .size(44.dp)
+                        .background(NeoPopColors.Surface),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = info.icon,
+                        contentDescription = null,
+                        tint = if (info.granted) NeoPopColors.Accent else NeoPopColors.TextSecondary,
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Spacer(Modifier.width(14.dp))
+                Column(Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = info.title,
+                            style = NeoPopType.TitleLarge,
+                            color = NeoPopColors.TextPrimary
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Box(
+                            Modifier
+                                .size(20.dp)
+                                .clickable { onHelp() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HelpOutline,
+                                contentDescription = "Help",
+                                tint = NeoPopColors.TextMuted,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = info.short,
+                        style = NeoPopType.BodySmall,
+                        color = NeoPopColors.TextMuted
+                    )
+                }
+                Spacer(Modifier.width(10.dp))
+                StatusButton(granted = info.granted, onGrant = info.onGrant)
+            }
+            // Inline "Stuck? See FAQ → Enable Accessibility" hint.
+            if (info.showFaqHint && !info.granted) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = "Stuck? See FAQ → Enable Accessibility",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.Accent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatusButton(granted: Boolean, onGrant: () -> Unit) {
+    val view = LocalView.current
+    if (granted) {
+        Box(
+            Modifier
+                .background(NeoPopColors.Success.copy(alpha = 0.18f))
+                .padding(horizontal = 12.dp, vertical = 8.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(
+                    imageVector = Icons.Default.Check,
+                    contentDescription = null,
+                    tint = NeoPopColors.Success,
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "GRANTED",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.Success
+                )
+            }
+        }
+    } else {
+        Box(
+            Modifier
+                .background(NeoPopColors.Accent)
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    onGrant()
+                }
+                .padding(horizontal = 14.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "GRANT",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.Black
+            )
+        }
+    }
+}
+
+// ── Page 5: Ready ──
 
 @Composable
 private fun ReadyPage() {
