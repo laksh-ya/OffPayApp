@@ -119,23 +119,20 @@ fun SettingsScreen(
         // ── Mode ──
         SectionHeader("Mode")
         Spacer(Modifier.height(12.dp))
+        // Two modes only — Auto (default, full overlay) and Manual (dialer
+        // fallback). The legacy ADVANCED enum value still exists so old
+        // preferences don't crash, but it's not user-selectable any more
+        // and is treated identically to AUTO across the runtime.
         ModeOption(
             label = "Auto",
-            description = "Default. Pays automatically. Carrier dialog hidden behind OffPay's overlay.",
-            selected = mode == OperationMode.AUTO,
+            description = "Default. OffPay handles the carrier dialog automatically — you stay in OffPay throughout.",
+            selected = mode != OperationMode.MANUAL,
             onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.AUTO) } }
         )
         Spacer(Modifier.height(8.dp))
         ModeOption(
-            label = "Advanced",
-            description = "Pays automatically. Small progress bar at top; you watch the carrier dialog work.",
-            selected = mode == OperationMode.ADVANCED,
-            onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.ADVANCED) } }
-        )
-        Spacer(Modifier.height(8.dp))
-        ModeOption(
             label = "Manual",
-            description = "Copies UPI ID and opens dialer. You enter the rest yourself. No accessibility needed.",
+            description = "Copies the UPI ID and opens the dialer. You enter the rest yourself. No accessibility needed.",
             selected = mode == OperationMode.MANUAL,
             onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.MANUAL) } }
         )
@@ -209,20 +206,8 @@ fun SettingsScreen(
         ShortcutRow(
             icon = Icons.Default.Share,
             title = "Share OffPay",
-            subtitle = "Send the install link to a friend",
-            onClick = {
-                val send = Intent(Intent.ACTION_SEND).apply {
-                    type = "text/plain"
-                    putExtra(
-                        Intent.EXTRA_TEXT,
-                        "Try OffPay — UPI payments without internet. " +
-                            "Web: https://offpay.vercel.app/"
-                    )
-                }
-                runCatching {
-                    context.startActivity(Intent.createChooser(send, "Share OffPay"))
-                }
-            }
+            subtitle = "Send the installed APK (or install link)",
+            onClick = { com.offpay.app.platform.ApkShareUtil.shareInstalledApk(context) }
         )
         Spacer(Modifier.height(8.dp))
         ShortcutRow(
@@ -236,18 +221,9 @@ fun SettingsScreen(
         Hairline()
         Spacer(Modifier.height(24.dp))
 
-        // ── About + cat easter egg ──
-        AboutSection(
-            versionName = versionName,
-            onOpenLakshya = { openUrl(context, "https://github.com/laksh-ya/") },
-            onOpenHarsh = { openUrl(context, "https://github.com/harshtripathi272/") }
-        )
-
-        Spacer(Modifier.height(28.dp))
-        Hairline()
-        Spacer(Modifier.height(24.dp))
-
         // ── Danger ──
+        // Sits under "Share" / above "About" so Clear-All-Data is a real
+        // settings action, not an awkward neighbour to the credits line.
         SectionHeader("Danger", danger = true)
         Spacer(Modifier.height(12.dp))
         NeoPopDangerOutlinedButton(
@@ -257,6 +233,17 @@ fun SettingsScreen(
                 onClearAllData()
             },
             modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
+
+        // ── About — last on the page; ends with the aesthetic-cat footer.
+        AboutSection(
+            versionName = versionName,
+            onOpenLakshya = { openUrl(context, "https://github.com/laksh-ya/") },
+            onOpenHarsh = { openUrl(context, "https://github.com/harshtripathi272/") }
         )
 
         Spacer(Modifier.height(40.dp))
@@ -273,9 +260,14 @@ private fun openUrl(context: android.content.Context, url: String) {
 }
 
 /**
- * About card with the OffPay logo, the "made by" credit (each name links
- * to GitHub via Code-icon rows), version, and a hidden cat-rain easter
- * egg that triggers after 5 quick taps on the credit line.
+ * About section — minimal credit "made by Lakshya & Harsh", an OffPay
+ * logo + version line, and two hidden easter eggs:
+ *   - Tap the **OffPay header row** (logo + name) once → summons the
+ *     "big cat rises from the bottom" overlay. This is the about-OffPay
+ *     egg, separate from the wordmark money-rain on the Pay screen.
+ *   - Tap the **credit line** once → opens an action sheet with the
+ *     two GitHub profiles. No counter, no easter egg here — just a
+ *     clean tap-to-link.
  */
 @Composable
 private fun AboutSection(
@@ -284,144 +276,183 @@ private fun AboutSection(
     onOpenHarsh: () -> Unit
 ) {
     val view = LocalView.current
-    var creditTaps by remember { mutableStateOf(0) }
-    var showCats by remember { mutableStateOf(false) }
-    var lastTap by remember { mutableStateOf(0L) }
+    var showCat by remember { mutableStateOf(false) }
+    var showCreditSheet by remember { mutableStateOf(false) }
 
-    // Reset the tap counter if the user takes their finger off too long.
-    LaunchedEffect(creditTaps) {
-        if (creditTaps in 1..4) {
-            delay(1_500)
-            if (System.currentTimeMillis() - lastTap > 1_400) {
-                creditTaps = 0
+    Column {
+        SectionHeader("About")
+        Spacer(Modifier.height(12.dp))
+        // Tappable header row → cat easter egg.
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    showCat = true
+                }
+                .padding(vertical = 4.dp)
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.offpay_logo),
+                contentDescription = "OffPay",
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = "OffPay",
+                    style = NeoPopType.TitleLarge,
+                    color = NeoPopColors.TextPrimary
+                )
+                Text(
+                    text = "Version $versionName",
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextMuted
+                )
             }
         }
-    }
 
-    Box {
-        Column {
-            SectionHeader("About")
-            Spacer(Modifier.height(12.dp))
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Image(
-                    painter = painterResource(id = R.drawable.offpay_logo),
-                    contentDescription = "OffPay",
-                    contentScale = ContentScale.Fit,
-                    modifier = Modifier.size(56.dp)
-                )
-                Spacer(Modifier.width(14.dp))
-                Column(Modifier.weight(1f)) {
-                    Text(
-                        text = "OffPay",
-                        style = NeoPopType.TitleLarge,
-                        color = NeoPopColors.TextPrimary
-                    )
-                    Text(
-                        text = "Version $versionName",
-                        style = NeoPopType.BodySmall,
-                        color = NeoPopColors.TextMuted
-                    )
+        Spacer(Modifier.height(16.dp))
+
+        // Credit line — single tap opens the GitHub action sheet. No
+        // easter egg here; the cat lives on the OffPay header row above.
+        Box(
+            Modifier
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    showCreditSheet = true
                 }
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Credit line — each tap increments a counter, 5 quick taps
-            // unleash the cat rain (with a single meow on the first
-            // animation tick via a system click sound proxy).
-            Box(
-                Modifier
-                    .clickable {
-                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
-                        val now = System.currentTimeMillis()
-                        creditTaps = if (now - lastTap < 1_400) creditTaps + 1 else 1
-                        lastTap = now
-                        if (creditTaps >= 5) {
-                            showCats = true
-                            creditTaps = 0
-                        }
-                    }
-                    .padding(vertical = 4.dp)
-            ) {
+                .padding(vertical = 4.dp)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = "made by Lakshya & Harsh",
+                    text = "made by ",
                     style = NeoPopType.BodyMedium,
                     color = NeoPopColors.TextSecondary
                 )
+                Text(
+                    text = "Lakshya & Harsh",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextPrimary
+                )
             }
-
-            Spacer(Modifier.height(12.dp))
-
-            ShortcutRow(
-                icon = Icons.Default.Code,
-                title = "Lakshya · GitHub",
-                subtitle = "github.com/laksh-ya",
-                onClick = onOpenLakshya
-            )
-            Spacer(Modifier.height(8.dp))
-            ShortcutRow(
-                icon = Icons.Default.Code,
-                title = "Harsh · GitHub",
-                subtitle = "github.com/harshtripathi272",
-                onClick = onOpenHarsh
-            )
         }
     }
 
-    // Floating layer — cats fall on top of the entire screen when the
-    // easter egg fires.
-    AnimatedVisibility(visible = showCats, enter = fadeIn(), exit = fadeOut()) {
-        CatRainOverlay(onDone = { showCats = false })
+    // GitHub action sheet — only opens on a single tap.
+    if (showCreditSheet) {
+        CreditSheet(
+            onDismiss = { showCreditSheet = false },
+            onOpenLakshya = {
+                showCreditSheet = false
+                onOpenLakshya()
+            },
+            onOpenHarsh = {
+                showCreditSheet = false
+                onOpenHarsh()
+            }
+        )
+    }
+
+    // Big-cat-rising-from-bottom easter egg overlay.
+    AnimatedVisibility(visible = showCat, enter = fadeIn(), exit = fadeOut()) {
+        com.offpay.app.presentation.ui.components.CatLickingOverlay(
+            onDone = { showCat = false }
+        )
+    }
+
+    // Aesthetic-cat footer image. Sits at the bottom of the About card
+    // as a wide banner — purely decorative, signals "end of content".
+    // Resource is resolved reflectively so the build doesn't break if
+    // artifacts/cat_aesthetic.png hasn't been packed yet via
+    // scripts/pack_assets.py.
+    val aestheticCatRes = remember {
+        runCatching {
+            R.drawable::class.java.getField("cat_aesthetic").getInt(null)
+        }.getOrNull() ?: 0
+    }
+    if (aestheticCatRes != 0) {
+        Spacer(Modifier.height(20.dp))
+        Image(
+            painter = painterResource(id = aestheticCatRes),
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp)
+        )
     }
 }
 
-/**
- * Falling-cat overlay. Drops a row of 🐱 emojis from the top of the screen
- * with randomised x positions and durations. A single Meow chime is played
- * via HapticFeedbackConstants.CONFIRM as a soft acknowledgement (audio
- * playback would need a real Mp3 asset which we don't bundle).
- */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-private fun CatRainOverlay(onDone: () -> Unit) {
+private fun CreditSheet(
+    onDismiss: () -> Unit,
+    onOpenLakshya: () -> Unit,
+    onOpenHarsh: () -> Unit
+) {
+    val sheetState = androidx.compose.material3.rememberModalBottomSheetState()
+    androidx.compose.material3.ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = NeoPopColors.SurfaceHigh
+    ) {
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = "made by",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Accent
+            )
+            Spacer(Modifier.height(12.dp))
+            CreditRow(name = "Lakshya", handle = "@laksh-ya", onClick = onOpenLakshya)
+            Spacer(Modifier.height(8.dp))
+            CreditRow(name = "Harsh", handle = "@harshtripathi272", onClick = onOpenHarsh)
+            Spacer(Modifier.height(28.dp))
+        }
+    }
+}
+
+@Composable
+private fun CreditRow(name: String, handle: String, onClick: () -> Unit) {
     val view = LocalView.current
-    val density = LocalDensity.current
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-
-    // Pre-compute 18 cats with random x, delay, duration, size.
-    data class Cat(val xFraction: Float, val delayMs: Long, val durationMs: Int, val size: Int)
-    val cats = remember {
-        List(18) {
-            Cat(
-                xFraction = Random.nextFloat(),
-                delayMs = Random.nextLong(0, 800),
-                durationMs = Random.nextInt(1_400, 2_400),
-                size = Random.nextInt(36, 64)
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            Modifier
+                .size(36.dp)
+                .background(NeoPopColors.Surface),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Code,
+                contentDescription = null,
+                tint = NeoPopColors.Accent,
+                modifier = Modifier.size(18.dp)
             )
         }
-    }
-
-    LaunchedEffect(Unit) {
-        // "Meow" via the audible confirm haptic — the closest we can get
-        // without bundling an audio asset.
-        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        // Clean up after the longest cat finishes falling.
-        delay(2_800)
-        onDone()
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        cats.forEach { cat ->
-            FallingEmoji(
-                emoji = "🐱",
-                xPx = cat.xFraction * screenWidthPx,
-                fallToPx = screenHeightPx + 64f,
-                durationMs = cat.durationMs,
-                delayMs = cat.delayMs,
-                sizeSp = cat.size
-            )
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(name, style = NeoPopType.TitleMedium, color = NeoPopColors.TextPrimary)
+            Text(handle, style = NeoPopType.BodySmall, color = NeoPopColors.TextMuted)
         }
+        Icon(
+            imageVector = Icons.Default.ChevronRight,
+            contentDescription = null,
+            tint = NeoPopColors.TextMuted
+        )
     }
 }
 

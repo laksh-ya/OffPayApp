@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -167,6 +168,20 @@ private fun MainScaffold(app: OffPayApplication) {
                                 popUpTo(Screen.Pay.route) { inclusive = true }
                             }
                         },
+                        onPayAgain = { txn ->
+                            // Pre-fill the Pay form with this transaction's
+                            // recipient + amount + note, then route back.
+                            // The user still has to enter a PIN before any
+                            // money moves — we never re-execute silently.
+                            payViewModel.prefillFromTransaction(
+                                vpa = txn.vpa,
+                                amount = txn.amount,
+                                note = txn.note
+                            )
+                            navController.navigate(Screen.Pay.route) {
+                                popUpTo(Screen.Pay.route) { inclusive = true }
+                            }
+                        },
                         onClose = { navController.popBackStack() }
                     )
                 }
@@ -221,6 +236,20 @@ private fun writeToClipboard(context: Context, text: String) {
     clipboard.setPrimaryClip(ClipData.newPlainText("UPI ID", text))
 }
 
+/**
+ * Shows a system-level Toast that survives our activity losing focus —
+ * critical for MANUAL mode, where we hand off to the native dialer the
+ * moment after copying the UPI ID. The Compose snackbar inside the app
+ * disappears the instant the dialer takes the foreground.
+ *
+ * Uses applicationContext so the Toast queue isn't tied to the activity
+ * that triggered it (it's still the user's request, this just keeps the
+ * Toast alive across the activity transition).
+ */
+private fun showSystemToast(context: Context, text: String) {
+    Toast.makeText(context.applicationContext, text, Toast.LENGTH_LONG).show()
+}
+
 @Composable
 private fun rememberPayViewModel(app: OffPayApplication): PayViewModel {
     val context = LocalContext.current
@@ -236,7 +265,8 @@ private fun rememberPayViewModel(app: OffPayApplication): PayViewModel {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
             },
-            clipboardWriter = { text -> writeToClipboard(context, text) }
+            clipboardWriter = { text -> writeToClipboard(context, text) },
+            systemToast = { text -> showSystemToast(context, text) }
         )
     }
 }
@@ -254,7 +284,8 @@ private fun rememberBalanceViewModel(app: OffPayApplication): BalanceViewModel {
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 context.startActivity(intent)
             },
-            clipboardWriter = { text -> writeToClipboard(context, text) }
+            clipboardWriter = { text -> writeToClipboard(context, text) },
+            systemToast = { text -> showSystemToast(context, text) }
         )
     }
 }

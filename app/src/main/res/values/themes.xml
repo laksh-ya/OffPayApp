@@ -5,4 +5,12 @@
         <item name="android:navigationBarColor">@android:color/transparent</item>
         <item name="android:windowBackground">@android:color/black</item>
     </style>
+
+    <!--
+      Splash-screen theme for the launching activity. On Android 12+ the
+      values-v31 override adds the SplashScreen API attributes; on older
+      devices we fall back to the regular black-window theme so cold start
+      still flashes black, never white.
+    -->
+    <style name="Theme.OffPay.Splash" parent="Theme.OffPay" />
 </resources>

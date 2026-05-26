@@ -183,7 +183,7 @@ private fun CameraScannerContent(
                 qrManager.decodeFromUri(context, uri)?.let { raw ->
                     view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                     detected = true
-                    delay(700)
+                    delay(180)
                     onResult(raw)
                 }
             }
@@ -197,12 +197,13 @@ private fun CameraScannerContent(
             if (!detected) {
                 detected = true
                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                // Hold the "QR DETECTED" state visible for ~700ms before
-                // navigating away so the corner-snap and success colour
-                // actually register — the camera was finishing so fast
-                // the user would hit Pay before realising what happened.
+                // Brief 180ms hold so the lime corners get to snap into
+                // place + the success flash registers, then fade through
+                // and hand off. The dwell used to be 700ms but the user
+                // reported it felt buggy/slow; the visual "captured" cue
+                // is carried by the fade-out overlay (DetectionFlash).
                 scope.launch {
-                    delay(700)
+                    delay(180)
                     onResult(raw)
                 }
             }
@@ -235,6 +236,13 @@ private fun CameraScannerContent(
 
         // Viewfinder + scanline overlay
         ViewfinderOverlay(detected = detected)
+
+        // Once detected, fade-to-black overlay smooths the hand-off to
+        // the Pay screen so the camera doesn't snap-cut away. Animates
+        // 0 → 1 alpha over 180ms in tandem with the navigation delay
+        // above; the success caption and lime corners stay visible
+        // through the fade.
+        DetectionFadeOverlay(visible = detected)
 
         // Focus ring animation
         focusTap?.let { tap ->
@@ -489,6 +497,25 @@ private fun ViewfinderOverlay(detected: Boolean) {
             }
         }
     }
+}
+
+/**
+ * Brief fade-to-black overlay shown the moment a QR is detected. Smooths
+ * the hand-off from the camera screen to the Pay form so it doesn't feel
+ * like a hard snap-cut. ~220ms 0 → 0.55 alpha while we navigate away.
+ */
+@Composable
+private fun DetectionFadeOverlay(visible: Boolean) {
+    val alpha by animateFloatAsState(
+        targetValue = if (visible) 0.55f else 0f,
+        animationSpec = tween(durationMillis = 220, easing = LinearEasing),
+        label = "scan_fade"
+    )
+    Box(
+        Modifier
+            .fillMaxSize()
+            .background(Color.Black.copy(alpha = alpha))
+    )
 }
 
 @Composable

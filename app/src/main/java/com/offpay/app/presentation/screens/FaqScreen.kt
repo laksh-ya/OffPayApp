@@ -324,24 +324,19 @@ private fun ThreeModesCard() {
     NeoPopCard(modifier = Modifier.fillMaxWidth()) {
         Column {
             Text(
-                text = "THREE MODES",
+                text = "TWO MODES",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.Accent
             )
             Spacer(Modifier.height(12.dp))
             ModeRow(
                 name = "Auto",
-                desc = "Default. Pays automatically. Carrier dialog hidden behind OffPay's overlay."
-            )
-            Spacer(Modifier.height(12.dp))
-            ModeRow(
-                name = "Advanced",
-                desc = "Pays automatically. Small progress bar at top; you watch the carrier dialog work."
+                desc = "Default. OffPay handles the carrier dialog automatically — you stay in OffPay throughout."
             )
             Spacer(Modifier.height(12.dp))
             ModeRow(
                 name = "Manual",
-                desc = "Copies UPI ID and opens dialer. You enter the rest yourself. No accessibility needed."
+                desc = "Copies the UPI ID and opens the dialer. You enter the rest yourself. No accessibility needed."
             )
         }
     }

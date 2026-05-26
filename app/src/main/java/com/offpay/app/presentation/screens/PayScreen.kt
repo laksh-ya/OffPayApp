@@ -166,7 +166,9 @@ fun PayScreen(
             enter = fadeIn(),
             exit = fadeOut()
         ) {
-            MoneyRainOverlay(onDone = { showMoneyRain = false })
+            com.offpay.app.presentation.ui.components.MoneyRainOverlay(
+                onDone = { showMoneyRain = false }
+            )
         }
     }
 }
@@ -868,50 +870,3 @@ private fun SessionFailedCard(
     }
 }
 
-/**
- * Money-rain easter egg. Drops 💸/💰/💵 emojis from the top of the screen
- * for ~2.8 seconds. Triggered by tapping the OffPay wordmark 5+ times in
- * quick succession. The "ch-chingg" SFX is approximated with a CONFIRM
- * haptic — no audio asset is bundled.
- */
-@Composable
-private fun MoneyRainOverlay(onDone: () -> Unit) {
-    val view = LocalView.current
-    val density = androidx.compose.ui.platform.LocalDensity.current
-    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
-    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
-    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
-
-    data class Drop(val emoji: String, val xFraction: Float, val delayMs: Long, val durationMs: Int, val size: Int)
-    val drops = remember {
-        val pool = listOf("💸", "💰", "💵", "🪙")
-        List(28) {
-            Drop(
-                emoji = pool[kotlin.random.Random.nextInt(pool.size)],
-                xFraction = kotlin.random.Random.nextFloat(),
-                delayMs = kotlin.random.Random.nextLong(0, 900),
-                durationMs = kotlin.random.Random.nextInt(1_300, 2_300),
-                size = kotlin.random.Random.nextInt(30, 56)
-            )
-        }
-    }
-
-    LaunchedEffect(Unit) {
-        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-        delay(2_800)
-        onDone()
-    }
-
-    Box(Modifier.fillMaxSize()) {
-        drops.forEach { d ->
-            com.offpay.app.presentation.ui.components.FallingEmoji(
-                emoji = d.emoji,
-                xPx = d.xFraction * screenWidthPx,
-                fallToPx = screenHeightPx + 64f,
-                durationMs = d.durationMs,
-                delayMs = d.delayMs,
-                sizeSp = d.size
-            )
-        }
-    }
-}

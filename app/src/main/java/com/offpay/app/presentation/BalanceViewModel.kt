@@ -58,7 +58,12 @@ class BalanceViewModel(
     private val prefsRepo: PreferencesRepository,
     private val overlayController: OverlayController? = null,
     private val onDialerFallback: (String) -> Unit = {},
-    private val clipboardWriter: (String) -> Unit = {}
+    private val clipboardWriter: (String) -> Unit = {},
+    /**
+     * System-level Toast hook — shows over other apps including the
+     * dialer once we hand off in MANUAL mode. Wired in MainScaffold.
+     */
+    private val systemToast: (String) -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BalanceUiState())
@@ -106,6 +111,10 @@ class BalanceViewModel(
         if (mode == OperationMode.MANUAL) {
             _snackbar.value = "Opening dialer for *99*3#"
             onDialerFallback("*99*3#")
+            // System Toast — visible on top of the dialer so the user
+            // remembers what's queued. The in-app snackbar above only
+            // renders inside our activity which is about to lose focus.
+            systemToast("Opening dialer for *99*3#")
             _sessionState.value = SessionState.Idle
             return
         }

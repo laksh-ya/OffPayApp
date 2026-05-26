@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!--
+      Exposes the app's own installed APK location to FileProvider so the
+      share sheet can attach the .apk to a chooser. We copy the installed
+      APK into the cache as "OffPay.apk" before sharing — see
+      ApkShareUtil.shareInstalledApk().
+    -->
+    <cache-path name="cache" path="." />
+    <files-path name="files" path="." />
+</paths>

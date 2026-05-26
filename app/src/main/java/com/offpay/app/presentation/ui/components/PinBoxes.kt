@@ -15,7 +15,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
@@ -24,13 +23,22 @@ import com.offpay.app.presentation.ui.theme.NeoPopColors
 /**
  * Reusable PIN-display row.
  *
- * Renders [length] sharp 48dp boxes (default 6) reflecting the typed [value]:
- *  - Empty box: 1.5dp [NeoPopColors.BorderStrong] border on a black square.
- *  - Filled box: lime accent fill at 14% alpha + 1.5dp lime border, with a
- *    small 8dp white dot dead-center.
- *  - Active box (the next one to be filled): swaps the grey border for a
- *    lime one and pulses its opacity on a 0.5s cycle so the cursor reads
- *    even though the backing field is hidden.
+ * Renders [length] sharp 52dp boxes (default 6) reflecting the typed [value]:
+ *  - Empty box: 2dp [NeoPopColors.BorderStrong] border on a SurfaceHigher
+ *    fill (lighter than pure black) so the boxes read clearly against the
+ *    PIN section's accent card on dark backgrounds.
+ *  - Filled box: lime accent fill at 18% alpha + 2dp solid lime border,
+ *    with a 10dp white dot dead-centre.
+ *  - Active box (the next one to be filled): solid lime border + a softer
+ *    pulsing lime inner-glow ring so the user knows where the next digit
+ *    will land. The pulse lives on a separate inset ring rather than the
+ *    box's overall opacity, so the box itself always stays visible.
+ *
+ * Polish pass: the previous version pulsed the entire active box's alpha,
+ * which on dark backgrounds made it look like the box disappeared briefly
+ * each cycle — users reported "the PIN window isn't visible". Replaced
+ * with a fixed-opacity box + a separate animated inner ring that fades
+ * in and out without affecting the box's structure.
  *
  * No corner rounding — flat 90° NeoPOP corners. The component is purely
  * visual; input is owned by the caller (typically a hidden BasicTextField)
@@ -43,19 +51,19 @@ fun PinBoxes(
     length: Int = 6
 ) {
     val infiniteTransition = rememberInfiniteTransition(label = "pin_active")
-    val activeAlpha by infiniteTransition.animateFloat(
-        initialValue = 0.45f,
-        targetValue = 1f,
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.25f,
+        targetValue = 0.85f,
         animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 500),
+            animation = tween(durationMillis = 700),
             repeatMode = RepeatMode.Reverse
         ),
-        label = "pin_active_alpha"
+        label = "pin_pulse_alpha"
     )
 
     Row(
         modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(14.dp, alignment = Alignment.CenterHorizontally),
+        horizontalArrangement = Arrangement.spacedBy(12.dp, alignment = Alignment.CenterHorizontally),
         verticalAlignment = Alignment.CenterVertically
     ) {
         repeat(length) { index ->
@@ -70,28 +78,43 @@ fun PinBoxes(
                 label = "pin_border_$index"
             )
             val fillColor = when {
-                filled -> NeoPopColors.Accent.copy(alpha = 0.14f)
-                else -> NeoPopColors.Black
+                filled -> NeoPopColors.Accent.copy(alpha = 0.18f)
+                isActive -> NeoPopColors.SurfaceHigher
+                else -> NeoPopColors.SurfaceHigher
             }
-            val activeOpacity = if (isActive) activeAlpha else 1f
 
             Box(
                 Modifier
-                    .size(48.dp)
-                    .alpha(activeOpacity)
+                    .size(52.dp)
                     .background(fillColor)
                     .drawBehind {
+                        // Outer fixed border — always visible.
                         drawRect(
                             color = borderColor,
-                            style = Stroke(width = 1.5.dp.toPx())
+                            style = Stroke(width = 2.dp.toPx())
                         )
+                        // Active-state pulse: an inset ring inside the
+                        // box, alpha-pulsed, so the cursor reads without
+                        // ever making the whole box appear to vanish.
+                        if (isActive) {
+                            val inset = 4.dp.toPx()
+                            drawRect(
+                                color = NeoPopColors.Accent.copy(alpha = pulseAlpha),
+                                topLeft = androidx.compose.ui.geometry.Offset(inset, inset),
+                                size = androidx.compose.ui.geometry.Size(
+                                    size.width - inset * 2f,
+                                    size.height - inset * 2f
+                                ),
+                                style = Stroke(width = 1.dp.toPx())
+                            )
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
                 if (filled) {
                     Box(
                         Modifier
-                            .size(8.dp)
+                            .size(10.dp)
                             .background(NeoPopColors.TextPrimary)
                     )
                 }

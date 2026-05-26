@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Android 12+ splash-screen overrides.
+
+      Android 12 introduced a system-managed splash screen (SplashScreen
+      API). It composes a circular icon over the windowBackground colour
+      while the activity warms up. The icon must follow the same safe-zone
+      rules as the launcher icon, so we deliberately reuse the foreground
+      drawable produced by scripts/pack_launcher_icon.py — that's already
+      padded with the canonical 17-34% inset so the QR brackets don't get
+      clipped by the splash's circular crop.
+
+      Background is forced to pure black so the splash visually matches
+      the rest of the dark-only app instead of flashing white during cold
+      start.
+    -->
+    <style name="Theme.OffPay.Splash" parent="Theme.OffPay">
+        <item name="android:windowSplashScreenBackground">@android:color/black</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="android:windowSplashScreenIconBackgroundColor">@android:color/black</item>
+    </style>
+</resources>

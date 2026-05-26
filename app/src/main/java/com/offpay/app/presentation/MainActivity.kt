@@ -16,6 +16,12 @@ import com.offpay.app.presentation.ui.theme.OffPayTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Activity launched under Theme.OffPay.Splash; swap to the real
+        // theme so edge-to-edge colours and statusBar transparency apply.
+        // On API 31+ the system splash composes from windowSplashScreen*
+        // attributes in values-v31/themes.xml and dismisses itself once
+        // the first window is drawn — no extra library needed.
+        setTheme(com.offpay.app.R.style.Theme_OffPay)
         enableEdgeToEdge()
         setContent {
             OffPayTheme {

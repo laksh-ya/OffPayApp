@@ -65,7 +65,15 @@ class PayViewModel(
     private val carrierDetector: CarrierDetector,
     private val overlayController: OverlayController? = null,
     private val onDialerFallback: (String) -> Unit = {},
-    private val clipboardWriter: (String) -> Unit = {}
+    private val clipboardWriter: (String) -> Unit = {},
+    /**
+     * System-level Toast hook — shows over other apps, including the
+     * native dialer once we hand off in MANUAL mode. Snackbars only
+     * render inside our own activity, so they're useless once the user
+     * is on the carrier dialog. Wired in MainScaffold via the activity
+     * context.
+     */
+    private val systemToast: (String) -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PayUiState())
@@ -83,6 +91,27 @@ class PayViewModel(
 
     private var activeRun: ActionRun? = null
     private var sessionJob: Job? = null
+
+    /**
+     * Re-prefills the form from a past transaction (used by "Pay again"
+     * in the History screen). Drops any in-memory PIN so the user must
+     * re-enter it; we never silently re-execute payments.
+     */
+    fun prefillFromTransaction(
+        vpa: String,
+        amount: String,
+        note: String?
+    ) {
+        _uiState.update { current ->
+            current.copy(
+                vpa = vpa,
+                amount = amount,
+                note = note ?: "",
+                pin = "",
+                errors = emptyMap()
+            )
+        }
+    }
 
     /**
      * Parses QR scanned data and autofills form fields for all non-null values.
@@ -191,8 +220,20 @@ class PayViewModel(
             // dialer opens (most carriers' *99# UI accepts a paste into the
             // first prompt). Then fire the dialer with *99*1*3# prefilled.
             clipboardWriter(cleanedVpa)
-            _snackbar.value = "UPI ID copied to clipboard"
+            // In-app snackbar (visible only on the brief moment before the
+            // dialer takes the foreground).
+            _snackbar.value = "UPI ID copied — paste it on the *99# prompt"
             onDialerFallback("*99*1*3#")
+            // System-level Toast so the same nudge actually surfaces on
+            // top of the dialer, where the in-app snackbar can't reach.
+            // We fire two toasts in sequence so the user sees one when
+            // the dialer first appears, and one a couple seconds later
+            // in case they missed the first.
+            systemToast("UPI ID copied to clipboard")
+            viewModelScope.launch {
+                delay(1_800)
+                systemToast("Paste the UPI ID on the *99# prompt")
+            }
             // Reset transient session state — the user owns the dialer flow.
             _sessionState.value = SessionState.Idle
             return

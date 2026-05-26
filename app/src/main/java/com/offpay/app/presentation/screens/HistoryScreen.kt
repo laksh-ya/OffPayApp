@@ -30,6 +30,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
 import androidx.compose.material3.SwipeToDismissBox
@@ -64,11 +65,16 @@ import java.util.Locale
 /**
  * Transaction history with per-item delete via swipe-from-right or
  * long-press, and "CLEAR ALL" with a confirm sheet at the top.
+ *
+ * Tapping a row expands it to show the carrier reply plus a "Pay again"
+ * shortcut that navigates back to the Pay screen pre-filled with this
+ * transaction's recipient + amount + note.
  */
 @Composable
 fun HistoryScreen(
     viewModel: HistoryViewModel,
     onPay: () -> Unit,
+    onPayAgain: (TransactionEntity) -> Unit,
     onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -101,7 +107,8 @@ fun HistoryScreen(
                     SwipeableTransactionCard(
                         txn = txn,
                         onDelete = { viewModel.deleteTransaction(txn.id) },
-                        onLongPress = { pendingDelete = txn }
+                        onLongPress = { pendingDelete = txn },
+                        onPayAgain = { onPayAgain(txn) }
                     )
                 }
                 item { Spacer(Modifier.height(40.dp)) }
@@ -333,7 +340,8 @@ private fun EmptyState(onPay: () -> Unit, modifier: Modifier = Modifier) {
 private fun SwipeableTransactionCard(
     txn: TransactionEntity,
     onDelete: () -> Unit,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    onPayAgain: () -> Unit
 ) {
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
@@ -370,12 +378,16 @@ private fun SwipeableTransactionCard(
         enableDismissFromStartToEnd = false,
         enableDismissFromEndToStart = true
     ) {
-        TransactionCard(txn = txn, onLongPress = onLongPress)
+        TransactionCard(txn = txn, onLongPress = onLongPress, onPayAgain = onPayAgain)
     }
 }
 
 @Composable
-private fun TransactionCard(txn: TransactionEntity, onLongPress: () -> Unit) {
+private fun TransactionCard(
+    txn: TransactionEntity,
+    onLongPress: () -> Unit,
+    onPayAgain: () -> Unit
+) {
     var expanded by remember { mutableStateOf(false) }
     val view = LocalView.current
 
@@ -458,6 +470,12 @@ private fun TransactionCard(txn: TransactionEntity, onLongPress: () -> Unit) {
                         style = NeoPopType.BodyMedium,
                         color = NeoPopColors.TextSecondary
                     )
+                    Spacer(Modifier.height(14.dp))
+                    // "Pay again" — repeats this transaction by routing the
+                    // user back to the Pay screen with VPA + amount + note
+                    // pre-filled. The Pay flow then validates the form and
+                    // requests PIN as usual; we never resend money silently.
+                    PayAgainButton(onClick = onPayAgain)
                 }
             }
         }
@@ -486,4 +504,61 @@ private fun formatTimestamp(ts: Long): String {
     if (delta < 3_600_000) return "${delta / 60_000} min ago"
     val sdf = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
     return sdf.format(Date(ts))
+}
+
+/**
+ * Compact "Pay again" affordance shown inside an expanded transaction
+ * row. Lime accent border + replay icon + label, full-width, scales down
+ * on press. Triggers the host's onPayAgain callback which routes back to
+ * the Pay screen with the VPA / amount / note pre-filled.
+ */
+@Composable
+private fun PayAgainButton(onClick: () -> Unit) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.97f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "pay_again_scale"
+    )
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .background(NeoPopColors.Accent.copy(alpha = 0.10f))
+            .drawBehind {
+                drawRect(
+                    color = NeoPopColors.Accent,
+                    style = Stroke(width = 1.5.dp.toPx())
+                )
+            }
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+            .padding(vertical = 12.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.Replay,
+                contentDescription = null,
+                tint = NeoPopColors.Accent,
+                modifier = Modifier.size(16.dp)
+            )
+            Spacer(Modifier.size(8.dp))
+            Text(
+                text = "Pay again",
+                style = NeoPopType.LabelLarge,
+                color = NeoPopColors.Accent
+            )
+        }
+    }
 }
