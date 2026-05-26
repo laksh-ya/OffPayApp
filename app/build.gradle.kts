@@ -40,13 +40,18 @@ android {
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
                 keyPassword = keystoreProps.getProperty("keyPassword")
+                
+                // Ensure both signing versions are used for maximum compatibility
+                enableV1Signing = true
+                enableV2Signing = true
             }
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
+            // Temporarily set to false to diagnose if R8 is causing the crash
+            isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
