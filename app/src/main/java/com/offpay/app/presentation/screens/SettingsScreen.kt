@@ -38,11 +38,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -94,6 +96,8 @@ fun SettingsScreen(
     onClearAllData: () -> Unit,
     onOpenFaq: () -> Unit,
     onOpenHistory: () -> Unit,
+    onOpenPrivacy: () -> Unit,
+    onOpenTerms: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mode by prefsRepo.operationMode.collectAsState(initial = OperationMode.AUTO)
@@ -216,6 +220,27 @@ fun SettingsScreen(
             title = "OffPay Web (PWA)",
             subtitle = "Manual mode in any browser — useful on iPhone",
             onClick = { openUrl(context, "https://offpay.vercel.app/") }
+        )
+
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
+
+        // ── Legal — Privacy & Terms ──
+        SectionHeader("Legal")
+        Spacer(Modifier.height(12.dp))
+        ShortcutRow(
+            icon = Icons.Default.PrivacyTip,
+            title = "Privacy Policy",
+            subtitle = "What OffPay does and doesn't do with your data",
+            onClick = onOpenPrivacy
+        )
+        Spacer(Modifier.height(8.dp))
+        ShortcutRow(
+            icon = Icons.Default.Description,
+            title = "Terms of Use",
+            subtitle = "What you're agreeing to by using OffPay",
+            onClick = onOpenTerms
         )
 
         Spacer(Modifier.height(28.dp))
