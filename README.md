@@ -6,7 +6,7 @@
 
 **UPI payments that work without the internet.**
 
-Send money, check your bank balance, and scan UPI QR codes — all over plain *99# USSD on your SIM. No data plan, no Wi-Fi, no app server, no account.
+Send money, check your bank balance, and scan UPI QR codes all over plain *99# USSD on your SIM. No data plan, no Wi-Fi, no app server, no account.
 
 [![Platform](https://img.shields.io/badge/platform-Android-3DDC84?logo=android&logoColor=white)](https://www.android.com/)
 [![Min SDK](https://img.shields.io/badge/min%20SDK-26-blue)]()
@@ -14,6 +14,21 @@ Send money, check your bank balance, and scan UPI QR codes — all over plain *9
 [![Language](https://img.shields.io/badge/Kotlin-100%25-7F52FF?logo=kotlin&logoColor=white)]()
 [![License](https://img.shields.io/badge/license-MIT-success)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
+
+<br>
+
+<table>
+  <tr>
+    <td align="center">
+      <img src="docs/screenshots/pay-form.jpeg" alt="Pay screen" width="240" /><br/>
+      <sub><b>Pay anyone over *99#</b></sub>
+    </td>
+    <td align="center">
+      <img src="docs/screenshots/payment-success-alt.jpeg" alt="Payment complete" width="240" /><br/>
+      <sub><b>Real bank confirmation, fully offline</b></sub>
+    </td>
+  </tr>
+</table>
 
 </div>
 
@@ -23,7 +38,7 @@ Send money, check your bank balance, and scan UPI QR codes — all over plain *9
 
 Every UPI app on the Play Store assumes you have a working internet connection. In huge parts of India, that assumption breaks down: village outskirts, basements, packed railway stations, after a power cut, or the moment you cross a state border with a flaky data plan. The *99# USSD service has been sitting on every SIM card since 2012 specifically to solve this — but the user experience of dialling raw codes, navigating cryptic carrier menus, and typing UPI IDs on a number pad is so painful that almost nobody uses it.
 
-OffPay closes that gap. You use it the way you'd use any modern UPI app — type an amount, scan a QR, hit pay — and OffPay drives the *99# session for you in the background. The result is the same online-feel-good UX, with zero data usage.
+OffPay closes that gap. You use it the way you'd use any modern UPI app type an amount, scan a QR, hit pay — and OffPay drives the *99# session for you in the background. The result is the same online-feel-good UX, with zero data usage.
 
 > **Built by Lakshya & Harsh.** OffPay is a side project, not a registered payment service. We don't see your PIN, your balance, or your transactions. Every byte stays on your device.
 
@@ -31,7 +46,7 @@ OffPay closes that gap. You use it the way you'd use any modern UPI app — type
 
 ## Highlights
 
-- **Works fully offline.** Aeroplane mode, dead Wi-Fi, no cell data — none of it stops a payment. Only your SIM's voice channel is needed.
+- **Works fully offline.** Aeroplane mode, dead Wi-Fi, no cell data none of it stops a payment. Only your SIM's voice channel is needed.
 - **Send money to any UPI ID** with a clean, modern form. Type the VPA, the amount, your PIN, done.
 - **Scan UPI QR codes** with the camera or import any QR image from your gallery. Form fields are auto-filled instantly.
 - **Check your bank balance** without leaving the app or talking to a carrier menu.
@@ -57,22 +72,39 @@ You never have to read the system USSD dialog or type a single number into it. I
 ## Features in detail
 
 ### Pay anyone over *99#
+
 - Inline UPI PIN entry with masked boxes that fill as you type.
 - Amount range from ₹1 to ₹5,000 (the RBI cap on *99# transactions).
 - Optional payment note. UPI ID, amount, and note can all be auto-filled from a scanned QR.
 - Auto-fires the moment you finish typing a 6-digit PIN — no extra tap needed.
 - The session has a hard 25-second cap, so a stuck dialog never leaves you hanging.
-- The payment-complete screen has its own custom animation: a hero square draws in, the checkmark strokes itself onto the surface, and a small geometric burst confirms the success. The failure screen has its own tense entry shake plus an animated X.
+- Live progress card while the carrier walks through each prompt.
+- Dedicated success and failure screens with their own animations so you always know exactly what happened.
+
+<p align="center">
+  <img src="docs/screenshots/payment-failed.jpeg" alt="Payment failed state" width="240" />
+  <br/>
+  <sub>If something goes wrong, OffPay surfaces the carrier's exact error so you know whether to retry or contact your bank.</sub>
+</p>
 
 ### Check balance over *99#
+
 - Same flow as Pay, but for `*99*3#`.
-- The last successful balance is cached locally so you can glance at it later without re-running the check.
+- The last successful balance is cached locally and shown above the form so you can glance at it later without re-running the check.
 - 18-second timeout per balance session.
+- Recent transactions strip below the CTA for context.
+
+<p align="center">
+  <img src="docs/screenshots/balance-result.jpeg" alt="Balance result" width="240" />
+  <br/>
+  <sub>Live balance pulled straight from the bank — no internet involved.</sub>
+</p>
 
 ### QR scanning
+
 - Live rear-camera scanner with a viewfinder, animated scan beam, and zoom slider (1.0× to 3.0×).
-- Tap-to-focus, with on-screen feedback when a code is detected.
-- Gallery import — pick any image, OffPay decodes the QR and fills the form. Useful when somebody messages you a payment QR on WhatsApp or saves one as a screenshot.
+- Tap-to-focus, with on-screen feedback when a code is detected ("QR DETECTED" lock-on).
+- Gallery import pick any image, OffPay decodes the QR and fills the form. Useful when somebody messages you a payment QR on WhatsApp or saves one as a screenshot.
 - Validation up front: invalid or non-UPI codes are rejected with a clear error so you don't waste a session.
 
 ### Three operation modes
@@ -86,9 +118,17 @@ You can switch any time from Settings. The mode is saved across launches.
 
 Auto is the default and the most polished. Manual is a safety net for devices where granting the accessibility service is awkward.
 
+<p align="center">
+  <img src="docs/screenshots/settings.jpeg" alt="Settings — Mode and Permissions" width="240" />
+  <br/>
+  <sub>Mode toggle and permission status, all in one place.</sub>
+</p>
+
 ### Transaction history
+
 - Last 200 successful payments saved locally.
 - Reverse chronological order with VPA, amount, and date.
+- Tap any row to expand it and see the **carrier's verbatim confirmation** — the actual reference number your bank returned.
 - One-tap "Pay again" to pre-fill the form from any past entry (PIN is **never** kept — you re-enter it).
 - Stored in an encrypted SQLite database. The raw file on disk is unreadable without the app's key.
 
@@ -97,6 +137,7 @@ Auto is the default and the most polished. Manual is a safety net for devices wh
 - **No tracking.** No analytics SDK, no crash reporter, no advertising ID. The app makes zero outbound HTTP requests after install. You can verify this with a network monitor.
 - **Encrypted history.** Transaction records are stored in an encrypted SQLite database via SQLCipher. Inspecting the file directly shows random bytes, not your payment list.
 - **Bank-side security still applies.** *99# uses your operator's signalling channel and your bank's UPI infrastructure — exactly the same security path NPCI provides to BHIM, GPay, PhonePe, etc. OffPay just automates the UI on top.
+- **In-app Privacy Policy and Terms of Use** under Settings → Legal, so the rules are visible without opening a browser.
 
 ### Carrier handling
 - **Airtel, Vi (Vodafone Idea), and BSNL** are fully supported.
@@ -184,7 +225,7 @@ The carrier never debits you for an aborted USSD session. If the carrier confirm
 On your phone, in an encrypted SQLite database. Uninstalling the app deletes it. Nothing is uploaded anywhere.
 
 **Is there a daily limit?**  
-Yes — `*99#` itself caps each transaction at ₹5,000 and your bank may apply its own daily cap. OffPay enforces the per-transaction ₹1 to ₹5,000 range up front so you can't hit the cap by accident.
+Yes `*99#` itself caps each transaction at ₹5,000 and your bank may apply its own daily cap. OffPay enforces the per-transaction ₹1 to ₹5,000 range up front so you can't hit the cap by accident.
 
 ---
 

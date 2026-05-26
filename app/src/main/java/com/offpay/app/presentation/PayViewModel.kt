@@ -229,10 +229,10 @@ class PayViewModel(
             // We fire two toasts in sequence so the user sees one when
             // the dialer first appears, and one a couple seconds later
             // in case they missed the first.
-            systemToast("UPI ID copied to clipboard")
+            systemToast("UPI ID copied — please paste it from the clipboard on the *99# prompt")
             viewModelScope.launch {
                 delay(1_800)
-                systemToast("Paste the UPI ID on the *99# prompt")
+                systemToast("Paste the UPI ID from clipboard when the carrier asks for it")
             }
             // Reset transient session state — the user owns the dialer flow.
             _sessionState.value = SessionState.Idle

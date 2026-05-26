@@ -407,6 +407,12 @@ private fun AboutSection(
                         placeable.placeRelative(-sidePaddingPx, 0)
                     }
                 }
+                // Without fillMaxWidth() the Image wraps to its intrinsic
+                // (height-scaled) width and Crop just centers it, leaving
+                // black bars on either side. Forcing full width makes Crop
+                // do the right thing — fill the box edge-to-edge and crop
+                // the overflowing height instead.
+                .fillMaxWidth()
                 .height(180.dp)
         )
     }
