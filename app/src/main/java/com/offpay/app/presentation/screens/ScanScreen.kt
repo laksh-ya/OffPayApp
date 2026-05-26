@@ -183,6 +183,7 @@ private fun CameraScannerContent(
                 qrManager.decodeFromUri(context, uri)?.let { raw ->
                     view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                     detected = true
+                    delay(700)
                     onResult(raw)
                 }
             }
@@ -196,7 +197,14 @@ private fun CameraScannerContent(
             if (!detected) {
                 detected = true
                 view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                onResult(raw)
+                // Hold the "QR DETECTED" state visible for ~700ms before
+                // navigating away so the corner-snap and success colour
+                // actually register — the camera was finishing so fast
+                // the user would hit Pay before realising what happened.
+                scope.launch {
+                    delay(700)
+                    onResult(raw)
+                }
             }
         }
         onDispose { qrManager.unbind() }

@@ -128,7 +128,7 @@ fun HistoryScreen(
                     }
                 ) {
                     Text(
-                        text = "CLEAR ALL",
+                        text = "Clear all",
                         style = NeoPopType.LabelLarge,
                         color = NeoPopColors.Danger,
                         modifier = Modifier.padding(12.dp)
@@ -140,7 +140,7 @@ fun HistoryScreen(
                     Modifier.clickable { showClearAllDialog = false }
                 ) {
                     Text(
-                        text = "CANCEL",
+                        text = "Cancel",
                         style = NeoPopType.LabelLarge,
                         color = NeoPopColors.TextSecondary,
                         modifier = Modifier.padding(12.dp)
@@ -171,7 +171,7 @@ fun HistoryScreen(
                     }
                 ) {
                     Text(
-                        text = "DELETE",
+                        text = "Delete",
                         style = NeoPopType.LabelLarge,
                         color = NeoPopColors.Danger,
                         modifier = Modifier.padding(12.dp)
@@ -183,7 +183,7 @@ fun HistoryScreen(
                     Modifier.clickable { pendingDelete = null }
                 ) {
                     Text(
-                        text = "CANCEL",
+                        text = "Cancel",
                         style = NeoPopType.LabelLarge,
                         color = NeoPopColors.TextSecondary,
                         modifier = Modifier.padding(12.dp)
@@ -212,7 +212,7 @@ private fun Header(count: Int, onClose: () -> Unit, onClearAll: () -> Unit) {
         Spacer(Modifier.size(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
-                text = "RECENT",
+                text = "Recent",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.Accent
             )
@@ -233,7 +233,7 @@ private fun Header(count: Int, onClose: () -> Unit, onClearAll: () -> Unit) {
                     .padding(horizontal = 12.dp, vertical = 6.dp)
             ) {
                 Text(
-                    text = "CLEAR ALL",
+                    text = "Clear all",
                     style = NeoPopType.LabelMedium,
                     color = NeoPopColors.Danger
                 )
@@ -321,7 +321,7 @@ private fun EmptyState(onPay: () -> Unit, modifier: Modifier = Modifier) {
                 .padding(horizontal = 16.dp, vertical = 10.dp)
         ) {
             Text(
-                text = "MAKE A PAYMENT",
+                text = "Make a payment",
                 style = NeoPopType.LabelLarge,
                 color = NeoPopColors.Accent
             )
@@ -349,24 +349,21 @@ private fun SwipeableTransactionCard(
     SwipeToDismissBox(
         state = dismissState,
         backgroundContent = {
+            // Clean reveal: surface-coloured row that just shows a trash
+            // icon at the trailing edge — no full-width red wash.
             Row(
                 Modifier
                     .fillMaxWidth()
-                    .background(NeoPopColors.Danger)
-                    .padding(horizontal = 24.dp),
+                    .background(NeoPopColors.SurfaceHigh)
+                    .padding(horizontal = 20.dp),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.End
             ) {
                 Icon(
                     imageVector = Icons.Default.Delete,
                     contentDescription = "Delete",
-                    tint = NeoPopColors.TextPrimary
-                )
-                Spacer(Modifier.size(8.dp))
-                Text(
-                    text = "DELETE",
-                    style = NeoPopType.LabelLarge,
-                    color = NeoPopColors.TextPrimary
+                    tint = NeoPopColors.Danger,
+                    modifier = Modifier.size(22.dp)
                 )
             }
         },
@@ -451,7 +448,7 @@ private fun TransactionCard(txn: TransactionEntity, onLongPress: () -> Unit) {
                     )
                     Spacer(Modifier.height(12.dp))
                     Text(
-                        text = "CARRIER REPLY",
+                        text = "Carrier reply",
                         style = NeoPopType.LabelSmall,
                         color = NeoPopColors.TextMuted
                     )

@@ -149,7 +149,15 @@ private fun MainScaffold(app: OffPayApplication) {
                     )
                 }
                 composable(Screen.Balance.route) {
-                    BalanceScreen(viewModel = balanceViewModel)
+                    BalanceScreen(
+                        viewModel = balanceViewModel,
+                        historyViewModel = historyViewModel,
+                        onOpenHistory = {
+                            navController.navigate(Screen.History.route) {
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 }
                 composable(Screen.History.route) {
                     HistoryScreen(

@@ -42,10 +42,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -94,6 +98,30 @@ fun PayScreen(
     val mode by viewModel.operationMode.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
 
+    // ── OffPay-wordmark easter egg ────────────────────────────────────
+    // Five quick taps on the wordmark trigger a falling-money rain across
+    // the screen. The counter resets if the user pauses for >1.4s.
+    var wordmarkTaps by remember { mutableStateOf(0) }
+    var lastWordmarkTap by remember { mutableStateOf(0L) }
+    var showMoneyRain by remember { mutableStateOf(false) }
+    LaunchedEffect(wordmarkTaps) {
+        if (wordmarkTaps in 1..4) {
+            delay(1_500)
+            if (System.currentTimeMillis() - lastWordmarkTap > 1_400) {
+                wordmarkTaps = 0
+            }
+        }
+    }
+    val onWordmarkTap: () -> Unit = {
+        val now = System.currentTimeMillis()
+        wordmarkTaps = if (now - lastWordmarkTap < 1_400) wordmarkTaps + 1 else 1
+        lastWordmarkTap = now
+        if (wordmarkTaps >= 5) {
+            showMoneyRain = true
+            wordmarkTaps = 0
+        }
+    }
+
     Box(
         modifier
             .fillMaxSize()
@@ -111,7 +139,8 @@ fun PayScreen(
                 onVpa = { v -> viewModel.onFormFieldChanged(vpa = v) },
                 onAmount = { v -> viewModel.onFormFieldChanged(amount = v) },
                 onNote = { v -> viewModel.onFormFieldChanged(note = v) },
-                onPinChanged = viewModel::onPinChanged
+                onPinChanged = viewModel::onPinChanged,
+                onWordmarkTap = onWordmarkTap
             )
             is SessionState.Running -> SessionRunningCard(s, onCancel = viewModel::cancelSession)
             is SessionState.Success -> SessionSuccessCard(s, onDone = viewModel::dismissSession)
@@ -130,6 +159,15 @@ fun PayScreen(
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 24.dp)
         )
+
+        // Money-rain easter egg layer.
+        AnimatedVisibility(
+            visible = showMoneyRain,
+            enter = fadeIn(),
+            exit = fadeOut()
+        ) {
+            MoneyRainOverlay(onDone = { showMoneyRain = false })
+        }
     }
 }
 
@@ -188,7 +226,8 @@ private fun PayForm(
     onVpa: (String) -> Unit,
     onAmount: (String) -> Unit,
     onNote: (String) -> Unit,
-    onPinChanged: (String) -> Unit
+    onPinChanged: (String) -> Unit,
+    onWordmarkTap: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val launchers = rememberPermissionLaunchers()
@@ -205,11 +244,23 @@ private fun PayForm(
         runCatching { amountFocus.requestFocus() }
     }
 
-    // Auto-focus the PIN field once the user has filled in a plausibly-valid
-    // VPA (contains "@" + non-empty trailing chars) AND a non-zero amount.
+    // The PIN section only appears AFTER the user taps the primary Pay
+    // button (and the form's VPA + amount validate cleanly). Auto-popping
+    // it while the user was still typing the UPI ID was confusing — the
+    // section would flicker in and out as they fixed typos.
+    var showPinSection by remember { mutableStateOf(false) }
+
+    // If the user edits the form back into an invalid state, hide the
+    // section again so the next "Pay" tap re-validates cleanly.
     val vpaLooksValid = ui.vpa.contains('@') && ui.vpa.substringAfter('@').isNotEmpty()
     val amountLooksValid = ui.amount.toDoubleOrNull()?.let { it > 0.0 } == true
-    val pinSectionVisible = mode != OperationMode.MANUAL && vpaLooksValid && amountLooksValid
+    LaunchedEffect(vpaLooksValid, amountLooksValid, mode) {
+        if (!vpaLooksValid || !amountLooksValid || mode == OperationMode.MANUAL) {
+            showPinSection = false
+        }
+    }
+
+    val pinSectionVisible = showPinSection && mode != OperationMode.MANUAL
 
     LaunchedEffect(pinSectionVisible) {
         if (pinSectionVisible && ui.pin.isEmpty()) {
@@ -218,6 +269,7 @@ private fun PayForm(
             withFrameNanos { /* wait one frame */ }
             delay(50)
             runCatching { pinFocus.requestFocus() }
+            keyboard?.show()
         }
     }
 
@@ -230,6 +282,29 @@ private fun PayForm(
         }
     }
 
+    // Click handler for the primary Pay button. In MANUAL mode it falls
+    // straight through to the ViewModel (clipboard + dialer fallback).
+    // Otherwise: validate first, and if everything checks out, reveal the
+    // inline PIN section. If the PIN's already filled in, fire off the
+    // payment immediately.
+    val onPayClicked: () -> Unit = handler@{
+        keyboard?.hide()
+        if (mode == OperationMode.MANUAL) {
+            onPay()
+            return@handler
+        }
+        if (!vpaLooksValid || !amountLooksValid) {
+            // Surface the field-level errors via the ViewModel's normal path.
+            onPay()
+            return@handler
+        }
+        if (!showPinSection) {
+            showPinSection = true
+            return@handler
+        }
+        onPay()
+    }
+
     Box(Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -237,13 +312,11 @@ private fun PayForm(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            // ── Header with history shortcut ──
+            // ── Header: wordmark + history shortcut ──
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = "Pay",
-                    style = NeoPopType.DisplayLarge,
-                    color = NeoPopColors.TextPrimary,
-                    modifier = Modifier.weight(1f)
+                OffPayWordmark(
+                    modifier = Modifier.weight(1f),
+                    onClick = onWordmarkTap
                 )
                 HistoryShortcut(onClick = onHistory)
             }
@@ -269,7 +342,7 @@ private fun PayForm(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "TO",
+                text = "to",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.TextSecondary
             )
@@ -304,7 +377,10 @@ private fun PayForm(
                 ) {
                     InlinePinSection(
                         value = ui.pin,
-                        onTap = { runCatching { pinFocus.requestFocus() } },
+                        onTap = {
+                            runCatching { pinFocus.requestFocus() }
+                            keyboard?.show()
+                        },
                         error = ui.errors[FormField.PIN]
                     )
                 }
@@ -312,17 +388,15 @@ private fun PayForm(
 
             Spacer(Modifier.height(24.dp))
 
-            val payButtonText = when (mode) {
-                OperationMode.MANUAL -> "Open Dialer"
+            val payButtonText = when {
+                mode == OperationMode.MANUAL -> "Open Dialer"
+                !showPinSection -> "Continue"
                 else -> "Pay ₹${ui.amount.ifBlank { "0" }}"
             }
             NeoPopPrimaryButton(
                 text = payButtonText,
                 leadingIcon = Icons.Default.Lock,
-                onClick = {
-                    keyboard?.hide()
-                    onPay()
-                },
+                onClick = onPayClicked,
                 enabled = permissions.readyForDialerPay,
                 modifier = Modifier.fillMaxWidth()
             )
@@ -404,7 +478,7 @@ private fun InlinePinSection(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "ENTER UPI PIN",
+                text = "Enter UPI PIN",
                 style = NeoPopType.LabelLarge,
                 color = NeoPopColors.Accent
             )
@@ -448,12 +522,14 @@ private fun HistoryShortcut(onClick: () -> Unit) {
     )
     Box(
         Modifier
-            .size(44.dp)
+            .size(40.dp)
             .graphicsLayer { scaleX = scale; scaleY = scale }
+            .clip(CircleShape)
             .background(NeoPopColors.SurfaceHigh)
             .drawBehind {
-                drawRect(
-                    color = NeoPopColors.Accent.copy(alpha = 0.30f),
+                drawCircle(
+                    color = NeoPopColors.TextPrimary.copy(alpha = 0.10f),
+                    radius = size.minDimension / 2f - 0.5f,
                     style = androidx.compose.ui.graphics.drawscope.Stroke(width = 1f)
                 )
             }
@@ -469,8 +545,59 @@ private fun HistoryShortcut(onClick: () -> Unit) {
         Icon(
             imageVector = Icons.Default.History,
             contentDescription = "History",
-            tint = NeoPopColors.TextPrimary,
-            modifier = Modifier.size(20.dp)
+            tint = NeoPopColors.TextSecondary,
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+/**
+ * "OffPay" wordmark — "Off" in lime, "Pay" in white. Used as the title on
+ * the Pay screen header (and reusable from anywhere else that needs the
+ * brand mark instead of a literal page title).
+ *
+ * Tappable: passing a non-null [onClick] makes the wordmark react to taps
+ * (with haptic + scale feedback). Used on the Pay screen for the money-
+ * drop easter egg that fires after 5 quick taps.
+ */
+@Composable
+fun OffPayWordmark(modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
+    val view = LocalView.current
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed && onClick != null) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioLowBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "wordmark_scale"
+    )
+    val tap = if (onClick != null) {
+        Modifier.clickable(
+            interactionSource = interactionSource,
+            indication = null
+        ) {
+            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+            onClick()
+        }
+    } else Modifier
+
+    Row(
+        modifier
+            .graphicsLayer { scaleX = scale; scaleY = scale }
+            .then(tap),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = "Off",
+            style = NeoPopType.DisplayLarge,
+            color = NeoPopColors.Accent
+        )
+        Text(
+            text = "Pay",
+            style = NeoPopType.DisplayLarge,
+            color = NeoPopColors.TextPrimary
         )
     }
 }
@@ -528,7 +655,7 @@ private fun AmountInput(
     val borderColor = if (error != null) NeoPopColors.Danger else NeoPopColors.Accent
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "PAY ₹",
+            text = "you pay",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.TextSecondary
         )
@@ -600,7 +727,7 @@ private fun SessionRunningCard(state: SessionState.Running, onCancel: () -> Unit
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "PAYMENT IN PROGRESS",
+            text = "Payment in progress",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.Accent
         )
@@ -663,7 +790,7 @@ private fun SessionSuccessCard(state: SessionState.Success, onDone: () -> Unit) 
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "PAYMENT COMPLETE",
+                    text = "Payment complete",
                     style = NeoPopType.LabelMedium,
                     color = NeoPopColors.Success
                 )
@@ -709,7 +836,7 @@ private fun SessionFailedCard(
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "PAYMENT FAILED",
+                    text = "Payment failed",
                     style = NeoPopType.LabelMedium,
                     color = NeoPopColors.Danger
                 )
@@ -738,5 +865,53 @@ private fun SessionFailedCard(
         }
         Spacer(Modifier.height(20.dp))
         NeoPopPrimaryButton(text = "Try Again", onClick = onRetry, modifier = Modifier.fillMaxWidth())
+    }
+}
+
+/**
+ * Money-rain easter egg. Drops 💸/💰/💵 emojis from the top of the screen
+ * for ~2.8 seconds. Triggered by tapping the OffPay wordmark 5+ times in
+ * quick succession. The "ch-chingg" SFX is approximated with a CONFIRM
+ * haptic — no audio asset is bundled.
+ */
+@Composable
+private fun MoneyRainOverlay(onDone: () -> Unit) {
+    val view = LocalView.current
+    val density = androidx.compose.ui.platform.LocalDensity.current
+    val configuration = androidx.compose.ui.platform.LocalConfiguration.current
+    val screenHeightPx = with(density) { configuration.screenHeightDp.dp.toPx() }
+    val screenWidthPx = with(density) { configuration.screenWidthDp.dp.toPx() }
+
+    data class Drop(val emoji: String, val xFraction: Float, val delayMs: Long, val durationMs: Int, val size: Int)
+    val drops = remember {
+        val pool = listOf("💸", "💰", "💵", "🪙")
+        List(28) {
+            Drop(
+                emoji = pool[kotlin.random.Random.nextInt(pool.size)],
+                xFraction = kotlin.random.Random.nextFloat(),
+                delayMs = kotlin.random.Random.nextLong(0, 900),
+                durationMs = kotlin.random.Random.nextInt(1_300, 2_300),
+                size = kotlin.random.Random.nextInt(30, 56)
+            )
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+        delay(2_800)
+        onDone()
+    }
+
+    Box(Modifier.fillMaxSize()) {
+        drops.forEach { d ->
+            com.offpay.app.presentation.ui.components.FallingEmoji(
+                emoji = d.emoji,
+                xPx = d.xFraction * screenWidthPx,
+                fallToPx = screenHeightPx + 64f,
+                durationMs = d.durationMs,
+                delayMs = d.delayMs,
+                sizeSp = d.size
+            )
+        }
     }
 }

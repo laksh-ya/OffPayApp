@@ -94,7 +94,7 @@ fun StatusBanner(
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
-                    text = title.uppercase(),
+                    text = title,
                     style = NeoPopType.LabelMedium,
                     color = accent
                 )
@@ -188,7 +188,7 @@ private fun NeoPopFixButton(text: String, color: Color, onClick: () -> Unit) {
                 .padding(horizontal = 14.dp, vertical = 8.dp)
         ) {
             Text(
-                text = text.uppercase(),
+                text = text,
                 style = NeoPopType.LabelSmall,
                 color = NeoPopColors.Black
             )

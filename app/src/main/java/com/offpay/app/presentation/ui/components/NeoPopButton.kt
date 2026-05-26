@@ -172,7 +172,7 @@ fun NeoPopButton(
                     Spacer(Modifier.width(10.dp))
                 }
                 Text(
-                    text = text.uppercase(),
+                    text = text,
                     style = NeoPopType.LabelLarge,
                     color = contentColor
                 )
@@ -282,7 +282,7 @@ fun NeoPopSecondaryButton(
                 Spacer(Modifier.width(10.dp))
             }
             Text(
-                text = text.uppercase(),
+                text = text,
                 style = NeoPopType.LabelLarge,
                 color = labelColor
             )
@@ -355,7 +355,7 @@ fun NeoPopDangerOutlinedButton(
             .padding(horizontal = 24.dp, vertical = 16.dp)
     ) {
         Text(
-            text = text.uppercase(),
+            text = text,
             style = NeoPopType.LabelLarge,
             color = NeoPopColors.Danger,
             modifier = Modifier.fillMaxWidth(),

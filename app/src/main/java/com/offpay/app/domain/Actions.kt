@@ -35,8 +35,17 @@ object Actions {
 
         // Wrong / invalid input — covers many phrasings
         Regex("\\b(invalid|incorrect|wrong|bad)\\s+(pin|upi|vpa|amount|input|entry|id|password|number|account)\\b", RegexOption.IGNORE_CASE),
+        // Mirror: noun-then-adjective phrasing (carriers commonly say "UPI
+        // PIN is incorrect or invalid"). The pattern above only catches
+        // "incorrect PIN"; this catches "PIN is incorrect/invalid/wrong"
+        // and "entered UPI PIN is incorrect/invalid" so AUTO mode actually
+        // bails out on a wrong-PIN reply instead of falling through to a
+        // raw carrier dialog.
+        Regex("\\b(pin|upi\\s*pin|upi\\s*id|vpa|password)\\s+(is\\s+)?(incorrect|invalid|wrong|mismatch)\\b", RegexOption.IGNORE_CASE),
+        Regex("entered\\s+(upi\\s+)?pin\\s+(is\\s+)?(incorrect|invalid|wrong)", RegexOption.IGNORE_CASE),
         Regex("enter\\s+(a\\s+)?(valid|correct)", RegexOption.IGNORE_CASE),
         Regex("please\\s+enter\\s+(correct|valid)", RegexOption.IGNORE_CASE),
+        Regex("please\\s+check\\s+and\\s+try\\s+again", RegexOption.IGNORE_CASE),
 
         // Specific UPI / PSP phrases — kept separately for clarity even though
         // the generic catch-all above usually matches them too.

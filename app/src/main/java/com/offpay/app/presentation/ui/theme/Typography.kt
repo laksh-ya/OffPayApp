@@ -81,26 +81,25 @@ object NeoPopType {
         fontFamily = Body,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
-        lineHeight = 17.sp,
-        letterSpacing = 0.08.em
+        lineHeight = 17.sp
     )
     val LabelLarge = TextStyle(
         fontFamily = Body,
-        fontWeight = FontWeight.Bold,
-        fontSize = 13.sp,
-        letterSpacing = 0.1.em
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 14.sp,
+        letterSpacing = 0.01.em
     )
     val LabelMedium = TextStyle(
         fontFamily = Body,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 11.sp,
-        letterSpacing = 0.12.em
+        fontWeight = FontWeight.Medium,
+        fontSize = 12.sp,
+        letterSpacing = 0.02.em
     )
     val LabelSmall = TextStyle(
         fontFamily = Body,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 10.sp,
-        letterSpacing = 0.14.em
+        fontWeight = FontWeight.Medium,
+        fontSize = 11.sp,
+        letterSpacing = 0.02.em
     )
     val Mono = TextStyle(
         fontFamily = MonoFamily,

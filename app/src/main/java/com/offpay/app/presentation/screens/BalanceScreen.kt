@@ -16,11 +16,15 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.Icon
@@ -45,10 +49,12 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.offpay.app.data.TransactionEntity
 import com.offpay.app.domain.OperationMode
 import com.offpay.app.domain.SessionState
 import com.offpay.app.presentation.BalanceResult
 import com.offpay.app.presentation.BalanceViewModel
+import com.offpay.app.presentation.HistoryViewModel
 import com.offpay.app.presentation.ui.components.NeoPopAccentCard
 import com.offpay.app.presentation.ui.components.NeoPopCard
 import com.offpay.app.presentation.ui.components.NeoPopDangerOutlinedButton
@@ -60,7 +66,6 @@ import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-
 /**
  * Bank balance check screen.
  *  - Page title at the top.
@@ -76,6 +81,8 @@ import java.util.Locale
 @Composable
 fun BalanceScreen(
     viewModel: BalanceViewModel,
+    historyViewModel: HistoryViewModel,
+    onOpenHistory: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val ui by viewModel.uiState.collectAsState()
@@ -83,6 +90,7 @@ fun BalanceScreen(
     val mode by viewModel.operationMode.collectAsState()
     val last by viewModel.lastResult.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
+    val txns by historyViewModel.transactions.collectAsState()
 
     val pinFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -93,9 +101,12 @@ fun BalanceScreen(
     // when the IME tries to bring the focused field into view.
     LaunchedEffect(session, mode) {
         if (session is SessionState.Idle && mode != OperationMode.MANUAL) {
+            // Wait for the layout pass + a small settle delay so the
+            // BasicTextField sibling is fully placed before focus lands.
             withFrameNanos { /* one frame: layout placement committed */ }
-            delay(50)
+            delay(120)
             runCatching { pinFocus.requestFocus() }
+            keyboard?.show()
         }
     }
     // Auto-fire when the user has tapped in 6 digits.
@@ -112,36 +123,49 @@ fun BalanceScreen(
             .fillMaxSize()
             .background(NeoPopColors.Black)
             .statusBarsPadding()
+            .imePadding()
     ) {
         Column(
             Modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
-            Text(
-                text = "Balance",
-                style = NeoPopType.DisplayLarge,
-                color = NeoPopColors.TextPrimary
-            )
+            Row(verticalAlignment = Alignment.Bottom) {
+                OffPayWordmark()
+                Spacer(Modifier.size(10.dp))
+                Text(
+                    text = "balance",
+                    style = NeoPopType.HeadlineLarge,
+                    color = NeoPopColors.TextSecondary,
+                    modifier = Modifier.padding(bottom = 2.dp)
+                )
+            }
 
             Spacer(Modifier.height(28.dp))
 
-            Box(Modifier.weight(1f)) {
-                when (val s = session) {
-                    is SessionState.Idle -> IdleHero(
-                        last = last,
-                        mode = mode,
-                        pin = ui.pin,
-                        pinError = ui.pinError,
-                        onTapPin = { runCatching { pinFocus.requestFocus() } }
-                    )
-                    is SessionState.Running -> SessionRunning(s)
-                    is SessionState.Success -> SuccessHero(s.resultText)
-                    is SessionState.Failed -> FailedCard(s.message, s.resultText) {
-                        viewModel.dismissSession()
+            // Idle/running/success/failed hero — content shrinks naturally
+            // inside the scroll container instead of being forced into a
+            // weight(1f) box that ignores IME insets.
+            when (val s = session) {
+                is SessionState.Idle -> IdleHero(
+                    last = last,
+                    mode = mode,
+                    pin = ui.pin,
+                    pinError = ui.pinError,
+                    onTapPin = {
+                        runCatching { pinFocus.requestFocus() }
+                        keyboard?.show()
                     }
+                )
+                is SessionState.Running -> SessionRunning(s)
+                is SessionState.Success -> SuccessHero(s.resultText)
+                is SessionState.Failed -> FailedCard(s.message, s.resultText) {
+                    viewModel.dismissSession()
                 }
             }
+
+            Spacer(Modifier.height(20.dp))
 
             when (val s = session) {
                 is SessionState.Idle -> {
@@ -175,7 +199,19 @@ fun BalanceScreen(
                 else -> Unit
             }
 
+            // Recent transactions preview — visible only when idle so the
+            // user gets a quick "what did I do recently" without leaving
+            // the page. Tapping the heading or any row jumps to History.
+            if (session is SessionState.Idle && txns.isNotEmpty()) {
+                Spacer(Modifier.height(36.dp))
+                RecentTransactionsSection(
+                    txns = txns.take(3),
+                    onOpenAll = onOpenHistory
+                )
+            }
+
             Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.navigationBarsPadding())
         }
 
         // Hidden PIN field rendered as a SIBLING of the main content Column,
@@ -273,7 +309,7 @@ private fun IdleHero(
 ) {
     Column(
         Modifier
-            .fillMaxSize(),
+            .fillMaxWidth(),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -285,7 +321,7 @@ private fun IdleHero(
             )
             Spacer(Modifier.size(8.dp))
             Text(
-                text = "BANK BALANCE",
+                text = "bank balance",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.TextSecondary
             )
@@ -303,7 +339,7 @@ private fun IdleHero(
             )
             Spacer(Modifier.height(6.dp))
             Text(
-                text = "LAST CHECKED · ${formatTimestamp(last.timestamp)}",
+                text = "last checked · ${formatTimestamp(last.timestamp)}",
                 style = NeoPopType.LabelSmall,
                 color = NeoPopColors.TextMuted
             )
@@ -331,7 +367,7 @@ private fun ManualHero() {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text(
-            text = "MANUAL MODE",
+            text = "Manual mode",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.Accent
         )
@@ -367,7 +403,7 @@ private fun BalancePinSection(
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Text(
-                text = "ENTER UPI PIN",
+                text = "Enter UPI PIN",
                 style = NeoPopType.LabelLarge,
                 color = NeoPopColors.Accent
             )
@@ -399,11 +435,11 @@ private fun BalancePinSection(
 @Composable
 private fun SessionRunning(state: SessionState.Running) {
     Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "BALANCE CHECK IN PROGRESS",
+            text = "Balance check in progress",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.Accent
         )
@@ -439,7 +475,7 @@ private fun SessionRunning(state: SessionState.Running) {
 private fun SuccessHero(resultText: String) {
     val parsed = parseBalance(resultText)
     Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
@@ -447,7 +483,7 @@ private fun SuccessHero(resultText: String) {
             Box(Modifier.size(10.dp).background(NeoPopColors.Success))
             Spacer(Modifier.size(8.dp))
             Text(
-                text = "BANK BALANCE",
+                text = "bank balance",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.Success
             )
@@ -471,7 +507,7 @@ private fun SuccessHero(resultText: String) {
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            text = "LAST CHECKED · just now",
+            text = "last checked · just now",
             style = NeoPopType.LabelSmall,
             color = NeoPopColors.TextMuted
         )
@@ -481,7 +517,7 @@ private fun SuccessHero(resultText: String) {
 @Composable
 private fun FailedCard(message: String, resultText: String, onRetry: () -> Unit) {
     Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.Center
     ) {
         NeoPopAccentCard(accent = NeoPopColors.Danger, modifier = Modifier.fillMaxWidth()) {
@@ -500,7 +536,7 @@ private fun FailedCard(message: String, resultText: String, onRetry: () -> Unit)
                 }
                 Spacer(Modifier.height(16.dp))
                 Text(
-                    text = "BALANCE CHECK FAILED",
+                    text = "Balance check failed",
                     style = NeoPopType.LabelMedium,
                     color = NeoPopColors.Danger
                 )
@@ -546,4 +582,86 @@ private fun formatTimestamp(ts: Long): String {
     if (delta < 86_400_000) return "${delta / 3_600_000}h ago"
     val sdf = SimpleDateFormat("d MMM, h:mm a", Locale.getDefault())
     return sdf.format(Date(ts))
+}
+
+/**
+ * Compact "Recent transactions" preview for the Balance screen — at most
+ * 3 most-recent rows, tapping the heading or any row jumps to the full
+ * History screen. Gives the page something to scroll into instead of
+ * leaving dead black space below the PIN section.
+ */
+@Composable
+private fun RecentTransactionsSection(
+    txns: List<TransactionEntity>,
+    onOpenAll: () -> Unit
+) {
+    val view = LocalView.current
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    onOpenAll()
+                }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "recent",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Accent,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "see all →",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.TextSecondary
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            txns.forEach { txn ->
+                NeoPopCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                            onOpenAll()
+                        }
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier
+                                .size(8.dp)
+                                .background(NeoPopColors.Success.copy(alpha = 0.7f))
+                        )
+                        Spacer(Modifier.size(12.dp))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = txn.vpa,
+                                style = NeoPopType.Mono.copy(
+                                    color = NeoPopColors.TextPrimary,
+                                    fontSize = 13.sp
+                                )
+                            )
+                            Spacer(Modifier.height(2.dp))
+                            Text(
+                                text = formatTimestamp(txn.timestamp),
+                                style = NeoPopType.BodySmall,
+                                color = NeoPopColors.TextMuted
+                            )
+                        }
+                        Text(
+                            text = "₹${txn.amount}",
+                            style = NeoPopType.MonoAmount.copy(
+                                color = NeoPopColors.TextPrimary,
+                                fontSize = 15.sp
+                            )
+                        )
+                    }
+                }
+            }
+        }
+    }
 }

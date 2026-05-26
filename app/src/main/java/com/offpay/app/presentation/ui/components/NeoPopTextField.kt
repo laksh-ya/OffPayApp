@@ -108,7 +108,7 @@ fun NeoPopTextField(
             Column {
                 // Floating label
                 Text(
-                    text = label.uppercase(),
+                    text = label,
                     style = if (labelFloating) NeoPopType.LabelSmall else NeoPopType.LabelMedium,
                     color = labelColor
                 )

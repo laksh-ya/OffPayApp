@@ -6,6 +6,10 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -32,8 +36,11 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
@@ -181,6 +188,10 @@ fun FaqScreen(
             Spacer(Modifier.height(16.dp))
 
             VideoTutorialCard(context = context)
+
+            Spacer(Modifier.height(16.dp))
+
+            CookieEasterEgg()
 
             Spacer(Modifier.height(40.dp))
         }
@@ -513,5 +524,66 @@ private fun CornerCloseButton(onClick: () -> Unit) {
             contentDescription = "Close",
             tint = NeoPopColors.TextPrimary
         )
+    }
+}
+
+/**
+ * Easter egg sitting at the bottom of the FAQ. Reads as a small "here's a
+ * cookie for you :)" link; tapping it pops a 🍪 emoji that bounces in
+ * with a spring-back scale animation, plus a haptic chirp. Stays put
+ * until the user taps it again to put it away.
+ */
+@Composable
+private fun CookieEasterEgg() {
+    val view = LocalView.current
+    var taken by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (taken) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessLow
+        ),
+        label = "cookie_scale"
+    )
+    val rotation by animateFloatAsState(
+        targetValue = if (taken) 0f else -25f,
+        animationSpec = tween(durationMillis = 600),
+        label = "cookie_rot"
+    )
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            Modifier
+                .clickable {
+                    view.performHapticFeedback(
+                        if (!taken) HapticFeedbackConstants.CONFIRM
+                        else HapticFeedbackConstants.VIRTUAL_KEY
+                    )
+                    taken = !taken
+                }
+                .padding(horizontal = 16.dp, vertical = 12.dp)
+        ) {
+            Text(
+                text = if (taken) "(tap to put it back)" else "here's a cookie for you :)",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Accent
+            )
+        }
+        AnimatedVisibility(visible = taken, enter = fadeIn(), exit = fadeOut()) {
+            Box(
+                Modifier
+                    .padding(top = 8.dp)
+                    .graphicsLayer {
+                        scaleX = scale
+                        scaleY = scale
+                        rotationZ = rotation
+                    }
+            ) {
+                Text(text = "🍪", fontSize = androidx.compose.ui.unit.TextUnit(96f, androidx.compose.ui.unit.TextUnitType.Sp))
+            }
+        }
     }
 }

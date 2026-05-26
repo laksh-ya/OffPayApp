@@ -93,10 +93,10 @@ fun NeoPopBottomNav(
                     Box(
                         Modifier
                             .alpha(markerAlpha)
-                            .size(width = 18.dp, height = 3.dp)
+                            .size(width = 20.dp, height = 2.dp)
                             .background(NeoPopColors.Accent)
                     )
-                    Spacer(Modifier.height(6.dp))
+                    Spacer(Modifier.height(8.dp))
                     Icon(
                         imageVector = item.icon,
                         contentDescription = item.label,
@@ -105,7 +105,7 @@ fun NeoPopBottomNav(
                     )
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        text = item.label.uppercase(),
+                        text = item.label,
                         style = NeoPopType.LabelSmall,
                         color = tint
                     )
