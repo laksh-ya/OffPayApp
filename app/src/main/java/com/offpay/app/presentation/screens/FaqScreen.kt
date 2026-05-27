@@ -191,6 +191,10 @@ fun FaqScreen(
 
             Spacer(Modifier.height(16.dp))
 
+            NeedMoreHelpCard(context = context)
+
+            Spacer(Modifier.height(16.dp))
+
             CookieEasterEgg()
 
             Spacer(Modifier.height(40.dp))
@@ -337,6 +341,37 @@ private fun ThreeModesCard() {
             ModeRow(
                 name = "Manual",
                 desc = "Copies the UPI ID and opens the dialer. You enter the rest yourself. No accessibility needed."
+            )
+        }
+    }
+}
+
+@Composable
+private fun NeedMoreHelpCard(context: android.content.Context) {
+    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            Text(
+                text = "NEED MORE HELP?",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Accent
+            )
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = "For more information on USSD payments and setup, visit the official BHIM guide.",
+                style = NeoPopType.BodyLarge,
+                color = NeoPopColors.TextSecondary
+            )
+            Spacer(Modifier.height(14.dp))
+            NeoPopSecondaryButton(
+                text = "BHIM *99# Setup Guide",
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://www.bhimupi.org.in/steps-to-use-99")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(intent) }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
         }
     }
