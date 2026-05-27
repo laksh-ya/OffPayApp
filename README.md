@@ -15,6 +15,8 @@ All over plain `*99#` USSD on your SIM. No data, no Wi-Fi, no account.
 [![License](https://img.shields.io/badge/license-MIT-success)](LICENSE)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen)](CONTRIBUTING.md)
 
+**[Website](https://offpayapp.vercel.app/)** · **[PWA](https://offpay.vercel.app/)** · **[Download APK](https://github.com/laksh-ya/)**
+
 <br/>
 
 <table>
