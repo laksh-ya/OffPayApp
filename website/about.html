@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>About — OffPay</title>
+  <meta name="description" content="Why we built OffPay, who built it, what's under the hood." />
+  <meta name="theme-color" content="#0d0d0d" />
+
+  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
+  <link rel="apple-touch-icon" href="assets/logos/icon.png" />
+
+  <link rel="preconnect" href="https://web-assets.cred.club" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<header class="nav">
+  <a href="index.html" class="brand" aria-label="OffPay home">
+    <img src="assets/logos/icon.png" alt="" />
+    <span class="wordmark"><span class="lime">Off</span>Pay</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="index.html#features">features</a>
+    <a href="index.html#modes">modes</a>
+    <a href="index.html#how">how</a>
+    <a href="index.html#pwa">pwa</a>
+    <a href="about.html" class="active">about</a>
+  </nav>
+  <a href="index.html#download" class="cta-mini" data-haptic="light">download</a>
+</header>
+
+<!-- ░░░ Hero ░░░ -->
+<section class="about-hero">
+  <div class="hero-logo">
+    <img src="assets/logos/icon.png" alt="OffPay" />
+  </div>
+  <div class="hero-eyebrow" style="margin: 18px auto 0">
+    <span class="dot"></span>
+    <span>THE STORY</span>
+  </div>
+  <h1>Why we built<br/><span class="lime">OffPay.</span></h1>
+  <p>
+    UPI changed everything in India. But it still needs the internet.
+    For 300 million people on the wrong side of a signal bar, that's a problem.
+  </p>
+</section>
+
+<!-- ░░░ Story + side card ░░░ -->
+<section class="section">
+  <div class="about-grid">
+    <div class="about-prose">
+      <h2>The gap.</h2>
+      <p>
+        UPI is everywhere — except when it isn't. Travel a few kilometres outside
+        a metro and the data disappears. The bank's app loads forever. The QR code
+        scans, then nothing.
+      </p>
+      <p>
+        Meanwhile, on the same SIM, on the same network, on the same phone — you can
+        always make a call. That cellular voice signal is reliable enough to carry
+        a payment. NPCI built <code>*99#</code> on top of it years ago. It works on
+        every Airtel / Vi / BSNL handset in the country. Nobody uses it.
+      </p>
+
+      <p class="pull">
+        Because dialling raw USSD codes and typing UPI IDs on a number pad is brutal.
+      </p>
+
+      <h2>The fix.</h2>
+      <p>
+        OffPay puts a clean, modern Android app on top of <code>*99#</code>. Same
+        feel as GPay or PhonePe — type, scan, tap. Auto mode drives the carrier's
+        dialog start to finish; manual mode opens the dialer with the USSD code
+        prefilled. Either way, the bytes-of-data counter never moves.
+      </p>
+      <p>
+        We don't run servers. We don't have an account. Your PIN never leaves
+        volatile memory; it's wiped within 500 milliseconds of the session ending.
+        Open source, MIT, on GitHub.
+      </p>
+
+      <h2>The pitch.</h2>
+      <p>
+        It's a side project. It is not a registered payment service. It is a small,
+        sharp tool that does one thing — UPI without the internet — and stays out
+        of your way.
+      </p>
+      <p>
+        We made it because the gap was annoying us. We're keeping it open source
+        because the people who need it most don't need a startup behind it.
+      </p>
+    </div>
+
+    <aside class="about-side">
+      <div class="card">
+        <h4>UNDER THE HOOD</h4>
+        <ul>
+          <li><b>Kotlin</b> · 100%</li>
+          <li><b>Jetpack Compose</b> · UI</li>
+          <li><b>AccessibilityService</b> · drives *99#</li>
+          <li><b>Room + SQLCipher</b> · encrypted history</li>
+          <li><b>CameraX + ML Kit</b> · QR scanner</li>
+          <li><b>Min SDK</b> · 26 (Android 8)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4>NUMBERS</h4>
+        <ul>
+          <li><b>0</b> · servers we run</li>
+          <li><b>0</b> · outbound network requests</li>
+          <li><b>0</b> · accounts you create</li>
+          <li><b>0 ms</b> · PIN persistence (volatile only)</li>
+          <li><b>200</b> · transactions kept locally</li>
+          <li><b>~6 MB</b> · APK size</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<!-- ░░░ Makers ░░░ -->
+<section class="section">
+  <div class="section-head">
+    <div class="kicker">MAKERS</div>
+    <h2>Built by<br/><span class="lime">two of us.</span></h2>
+  </div>
+
+  <div class="maker-row">
+    <article class="maker">
+      <span class="name">Lakshya</span>
+      <a class="handle" href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a>
+      <p>Started the prototype as a PWA, then ported the runtime to native Android. Wrote the USSD action runner and the accessibility plumbing.</p>
+    </article>
+    <article class="maker">
+      <span class="name">Harsh</span>
+      <a class="handle" href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+      <p>Designed the screens, the NeoPOP polish, and the onboarding flow. Owns the FAQ + carrier-detection edge cases.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ░░░ Cat outro ░░░ -->
+<section class="cat-strip" aria-hidden="true">
+  <img class="cat-strip-img" src="assets/cat_aesthetic.png" alt="" loading="lazy" />
+  <div class="cat-caption">
+    <div class="kicker">THANKS FOR READING</div>
+    <p class="display">now go pay<br/>without the <span class="lime">internet.</span></p>
+  </div>
+</section>
+
+<!-- ░░░ Final CTA ░░░ -->
+<section class="section download">
+  <div class="download-card">
+    <div class="kicker">GET IT</div>
+    <h2>Try <span class="lime">OffPay</span>.</h2>
+
+    <div class="download-row">
+      <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/" target="_blank" rel="noopener" data-haptic="strong">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="stack">
+            <small>Latest release</small>
+            OffPay.apk <span class="lite">· Android 8+</span>
+          </span>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="stack">
+            <small>Browser · iOS · Android</small>
+            offpay.vercel.app
+          </span>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="assets/logos/icon.png" alt="" />
+      <div>
+        <div class="wordmark"><span class="lime">Off</span>Pay</div>
+        <div class="footer-tag">UPI without the internet.</div>
+      </div>
+    </div>
+
+    <div class="footer-cols">
+      <div>
+        <h5>PRODUCT</h5>
+        <a href="index.html#features">Features</a>
+        <a href="index.html#modes">Modes</a>
+        <a href="index.html#how">How</a>
+        <a href="index.html#download">Download</a>
+      </div>
+      <div>
+        <h5>STORY</h5>
+        <a href="about.html">About</a>
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
+        <a href="index.html#carriers">Carriers</a>
+      </div>
+      <div>
+        <h5>CODE</h5>
+        <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a>
+        <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>Side project. Not a registered payment service.</span>
+    <span>Built by <b>Lakshya & Harsh</b>.</span>
+  </div>
+</footer>
+
+<script src="haptics.js" defer></script>
+<script src="main.js" defer></script>
+
+</body>
+</html>

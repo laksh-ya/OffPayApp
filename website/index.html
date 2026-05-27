@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>OffPay — UPI without the internet</title>
+  <meta name="description" content="Send UPI. Check balance. Scan QR. Over plain *99# on your SIM. No data, no Wi-Fi, no account." />
+  <meta name="theme-color" content="#0d0d0d" />
+
+  <meta property="og:title" content="OffPay — UPI without the internet" />
+  <meta property="og:description" content="Send UPI. Check balance. Scan QR. Over plain *99# on your SIM. No data, no Wi-Fi, no account." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://offpay.vercel.app/" />
+  <meta property="og:image" content="assets/logos/icon.png" />
+
+  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
+  <link rel="apple-touch-icon" href="assets/logos/icon.png" />
+
+  <link rel="preconnect" href="https://web-assets.cred.club" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<!-- ░░░ Top nav ░░░ -->
+<header class="nav">
+  <a href="#top" class="brand" aria-label="OffPay home">
+    <img src="assets/logos/icon.png" alt="" />
+    <span class="wordmark"><span class="lime">Off</span>Pay</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="#features">features</a>
+    <a href="#modes">modes</a>
+    <a href="#how">how</a>
+    <a href="#pwa">pwa</a>
+    <a href="about.html">about</a>
+  </nav>
+  <a href="#download" class="cta-mini" data-haptic="light">download</a>
+</header>
+
+<!-- ░░░ Hero — logo-led, centered ░░░ -->
+<section id="top" class="hero">
+  <canvas id="hero-shader" aria-hidden="true"></canvas>
+  <div class="hero-vignette" aria-hidden="true"></div>
+
+  <div class="hero-inner">
+
+    <div class="hero-logo">
+      <img src="assets/logos/icon.png" alt="OffPay" />
+    </div>
+
+    <div class="hero-eyebrow">
+      <span class="dot"></span>
+      <span>UPI · OFFLINE · *99#</span>
+    </div>
+
+    <h1 class="hero-wordmark"><span class="lime">Off</span>Pay</h1>
+
+    <p class="hero-title">
+      UPI without the <span class="lime">internet.</span>
+    </p>
+
+    <p class="hero-sub">
+      Pay, check balance, scan QR — over plain <code>*99#</code> on your SIM.
+      Zero data. Zero login. Zero servers.
+    </p>
+
+    <div class="hero-ctas">
+      <a class="neopop neopop-primary" href="#download" data-haptic="medium">
+        <span class="neopop-face">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span>Download APK</span>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+      <a class="neopop neopop-secondary" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
+        <span class="neopop-face">
+          <span>Try the PWA</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+    </div>
+
+    <div class="hero-phones" aria-hidden="true">
+      <div class="hp"><img src="assets/screenshots/balance-result.jpeg" alt="" loading="lazy" /></div>
+      <div class="hp"><img src="assets/screenshots/pay-form.jpeg" alt="" loading="lazy" /></div>
+      <div class="hp"><img src="assets/screenshots/qr-scanner.jpeg" alt="" loading="lazy" /></div>
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ Marquee belt ░░░ -->
+<section class="belt" aria-hidden="true">
+  <div class="belt-track">
+    <span>OFFLINE UPI</span><span class="bullet">●</span>
+    <span>NO DATA NEEDED</span><span class="bullet">●</span>
+    <span>*99# OVER SIM</span><span class="bullet">●</span>
+    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
+    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
+    <span>OFFLINE UPI</span><span class="bullet">●</span>
+    <span>NO DATA NEEDED</span><span class="bullet">●</span>
+    <span>*99# OVER SIM</span><span class="bullet">●</span>
+    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
+    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
+  </div>
+</section>
+
+<!-- ░░░ Features ░░░ -->
+<section id="features" class="section">
+  <div class="section-head">
+    <div class="kicker">FEATURES</div>
+    <h2>Everything UPI.<br/><span class="lime">None of the internet.</span></h2>
+  </div>
+
+  <div class="grid features">
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 12h6l2-3 2 6 2-3h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h3>Pay</h3>
+      <p>Type, scan, tap. Inline 6-box PIN auto-fires on the sixth digit.</p>
+    </article>
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6M5 9v11h14V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <h3>Balance</h3>
+      <p>Live from the bank. Last value cached for offline glances.</p>
+    </article>
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Scan</h3>
+      <p>Pinch-to-zoom camera with lime brackets. Or pick from gallery.</p>
+    </article>
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>History</h3>
+      <p>200 payments encrypted on-device. Swipe to delete, tap to retry.</p>
+    </article>
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-7a2 2 0 00-2-2H6a2 2 0 00-2 2v7a2 2 0 002 2zm10-12V7a4 4 0 00-8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>PIN never persists</h3>
+      <p>Volatile memory only. Wiped within 500 ms. Never logged.</p>
+    </article>
+    <article class="card">
+      <div class="card-icon">
+        <svg viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <h3>Zero tracking</h3>
+      <p>No analytics. No servers. No outbound network. Open source.</p>
+    </article>
+  </div>
+</section>
+
+<!-- ░░░ Two modes — compact, small screenshots ░░░ -->
+<section id="modes" class="section">
+  <div class="section-head">
+    <div class="kicker">TWO MODES</div>
+    <h2>Auto for the believers.<br/><span class="lime">Manual for the rest.</span></h2>
+  </div>
+
+  <div class="modes-row">
+    <article class="mode mode-auto">
+      <header>
+        <span class="mode-pill">DEFAULT</span>
+        <h3>Auto</h3>
+      </header>
+      <p>OffPay drives the carrier dialog start to finish. You stay in OffPay throughout — branded overlay, real-time progress.</p>
+      <figure class="mode-shot">
+        <img src="assets/screenshots/payment-running.jpeg" alt="" loading="lazy" />
+      </figure>
+    </article>
+
+    <article class="mode mode-manual">
+      <header>
+        <span class="mode-pill mode-pill-alt">FALLBACK</span>
+        <h3>Manual</h3>
+      </header>
+      <p>Copies the UPI ID, opens the dialer with <code>*99*1*3#</code> prefilled. You drive the rest. Works on any Android.</p>
+      <figure class="mode-shot">
+        <img src="assets/screenshots/settings.jpeg" alt="" loading="lazy" />
+      </figure>
+    </article>
+  </div>
+</section>
+
+<!-- ░░░ Showcase carousel ░░░ -->
+<section class="section showcase">
+  <div class="section-head">
+    <div>
+      <div class="kicker">EVERY SCREEN</div>
+      <h2>The whole app.<br/><span class="lime">Six taps.</span></h2>
+    </div>
+    <div class="scroll-hint">SWIPE →</div>
+  </div>
+
+  <div class="phone-row">
+    <figure class="screen-card">
+      <img src="assets/screenshots/pay-form.jpeg" alt="OffPay Pay screen" loading="lazy" />
+      <figcaption>Pay</figcaption>
+    </figure>
+    <figure class="screen-card">
+      <img src="assets/screenshots/balance-form.jpeg" alt="OffPay Balance entry" loading="lazy" />
+      <figcaption>Balance</figcaption>
+    </figure>
+    <figure class="screen-card">
+      <img src="assets/screenshots/qr-scanner.jpeg" alt="OffPay QR scanner" loading="lazy" />
+      <figcaption>Scan</figcaption>
+    </figure>
+    <figure class="screen-card">
+      <img src="assets/screenshots/history-list.jpeg" alt="OffPay History list" loading="lazy" />
+      <figcaption>History</figcaption>
+    </figure>
+    <figure class="screen-card">
+      <img src="assets/screenshots/settings.jpeg" alt="OffPay Settings" loading="lazy" />
+      <figcaption>Settings</figcaption>
+    </figure>
+    <figure class="screen-card">
+      <img src="assets/screenshots/faq.jpeg" alt="OffPay FAQ" loading="lazy" />
+      <figcaption>FAQ</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- ░░░ How it works ░░░ -->
+<section id="how" class="section how">
+  <div class="section-head">
+    <div class="kicker">HOW IT WORKS · AUTO</div>
+    <h2>Type, tap, done.<br/><span class="lime">In about five seconds.</span></h2>
+  </div>
+
+  <div class="how-shots">
+    <figure class="how-shot">
+      <img src="assets/screenshots/pay-form.jpeg" alt="" loading="lazy" />
+      <figcaption>01 · Type</figcaption>
+    </figure>
+    <figure class="how-shot">
+      <img src="assets/screenshots/pay-form-alt.jpeg" alt="" loading="lazy" />
+      <figcaption>02 · PIN</figcaption>
+    </figure>
+    <figure class="how-shot">
+      <img src="assets/screenshots/payment-running.jpeg" alt="" loading="lazy" />
+      <figcaption>03 · Running</figcaption>
+    </figure>
+    <figure class="how-shot">
+      <img src="assets/screenshots/payment-success.jpeg" alt="" loading="lazy" />
+      <figcaption>04 · Done</figcaption>
+    </figure>
+  </div>
+
+  <ol class="how-steps">
+    <li class="how-step">
+      <span class="step-num">01</span>
+      <div>
+        <h3>Type or scan</h3>
+        <p>UPI ID + amount, or scan the merchant's QR.</p>
+      </div>
+    </li>
+    <li class="how-step">
+      <span class="step-num">02</span>
+      <div>
+        <h3>Inline PIN</h3>
+        <p>Six lime boxes. Auto-fires on the sixth digit.</p>
+      </div>
+    </li>
+    <li class="how-step">
+      <span class="step-num">03</span>
+      <div>
+        <h3>OffPay handles it</h3>
+        <p>Branded overlay covers the carrier dialog. Live progress.</p>
+      </div>
+    </li>
+    <li class="how-step">
+      <span class="step-num">04</span>
+      <div>
+        <h3>Bank confirmation</h3>
+        <p>NPCI's success message + reference number, encrypted history.</p>
+      </div>
+    </li>
+  </ol>
+</section>
+
+<!-- ░░░ Failure & history detail ░░░ -->
+<section class="section detail">
+  <div class="detail-grid">
+    <div>
+      <div class="kicker">FAILURE, HONESTLY</div>
+      <h2 class="display">Carrier said no?<br/><span class="lime">You'll know exactly why.</span></h2>
+      <p class="lead">Wrong PIN, bank not linked, daily limit, wrong VPA — OffPay surfaces the carrier's exact reply. Tap "Why did this fail?" for FAQ-level guidance.</p>
+    </div>
+    <figure class="detail-shot">
+      <img src="assets/screenshots/payment-failed.jpeg" alt="OffPay payment failed screen" loading="lazy" />
+    </figure>
+  </div>
+
+  <div class="detail-grid alt">
+    <figure class="detail-shot">
+      <img src="assets/screenshots/history-detail.jpeg" alt="OffPay history detail" loading="lazy" />
+    </figure>
+    <div>
+      <div class="kicker">EVERY TRANSACTION, KEPT</div>
+      <h2 class="display">200 payments.<br/><span class="lime">Encrypted. On-device.</span></h2>
+      <p class="lead">Swipe a row to delete. Tap to expand the carrier's full reply. Hit "Pay again" to repeat with the same VPA, amount, note.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ PWA section — uses iPhone 14 Pro mockup ░░░ -->
+<section id="pwa" class="section pwa">
+  <div class="pwa-grid">
+    <div>
+      <div class="kicker">FOR iPHONES</div>
+      <h2 class="display">No Play Store?<br/><span class="lime">Use the PWA.</span></h2>
+      <p class="lead">
+        OffPay's web companion lives at
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener"><code>offpay.vercel.app</code></a>.
+        Same UI. Same scanner. Hands the *99# step off to your dialer.
+      </p>
+
+      <div class="install-blocks">
+        <div class="install-card">
+          <header><span class="install-pill">iOS · Safari</span></header>
+          <ol>
+            <li>Open <code>offpay.vercel.app</code></li>
+            <li>Tap <b>Share</b> → <b>Add to Home Screen</b></li>
+            <li>Launch from your home screen</li>
+          </ol>
+        </div>
+        <div class="install-card">
+          <header><span class="install-pill">Android · Chrome</span></header>
+          <ol>
+            <li>Open <code>offpay.vercel.app</code></li>
+            <li>Menu → <b>Install app</b></li>
+            <li>Or grab the autonomous APK below</li>
+          </ol>
+        </div>
+      </div>
+
+      <a class="neopop neopop-primary" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="medium">
+        <span class="neopop-face">
+          <span>Open the PWA</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+    </div>
+
+    <div class="pwa-mockup">
+      <img src="assets/pwa-mockup.png" alt="OffPay PWA on iPhone 14 Pro Max" loading="lazy" />
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ Carriers ░░░ -->
+<section id="carriers" class="section carriers">
+  <div class="section-head">
+    <div class="kicker">CARRIER REALITY</div>
+    <h2>Works on<br/><span class="lime">what works.</span></h2>
+  </div>
+
+  <div class="carrier-table">
+    <div class="carrier-row carrier-ok">
+      <span class="carrier-name">Airtel</span>
+      <span class="carrier-status">Works</span>
+    </div>
+    <div class="carrier-row carrier-ok">
+      <span class="carrier-name">Vi · Vodafone Idea</span>
+      <span class="carrier-status">Works</span>
+    </div>
+    <div class="carrier-row carrier-ok">
+      <span class="carrier-name">BSNL</span>
+      <span class="carrier-status">Works</span>
+    </div>
+    <div class="carrier-row carrier-bad">
+      <span class="carrier-name">Jio</span>
+      <span class="carrier-status">No *99# on network</span>
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ Cat outro art ░░░ -->
+<section class="cat-strip" aria-hidden="true">
+  <img class="cat-strip-img" src="assets/cat_aesthetic.png" alt="" loading="lazy" />
+  <div class="cat-caption">
+    <div class="kicker">PS</div>
+    <p class="display">made with care<br/>by <span class="lime">Lakshya & Harsh</span></p>
+  </div>
+</section>
+
+<!-- ░░░ Download ░░░ -->
+<section id="download" class="section download">
+  <div class="download-card">
+    <div class="kicker">GET IT</div>
+    <h2>Two ways to <span class="lime">OffPay</span>.</h2>
+
+    <div class="download-row">
+      <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/" target="_blank" rel="noopener" data-haptic="strong">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="stack">
+            <small>Latest release</small>
+            OffPay.apk <span class="lite">· Android 8+</span>
+          </span>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="stack">
+            <small>Browser · iOS · Android</small>
+            offpay.vercel.app
+          </span>
+        </span>
+        <span class="neopop-edge right"></span>
+        <span class="neopop-edge bottom"></span>
+      </a>
+    </div>
+
+    <div class="download-meta">
+      Read the <a href="about.html">story</a> · Source · <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a> · <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+    </div>
+  </div>
+</section>
+
+<!-- ░░░ Footer ░░░ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="assets/logos/icon.png" alt="" />
+      <div>
+        <div class="wordmark"><span class="lime">Off</span>Pay</div>
+        <div class="footer-tag">UPI without the internet.</div>
+      </div>
+    </div>
+
+    <div class="footer-cols">
+      <div>
+        <h5>PRODUCT</h5>
+        <a href="#features">Features</a>
+        <a href="#modes">Modes</a>
+        <a href="#how">How</a>
+        <a href="#download">Download</a>
+      </div>
+      <div>
+        <h5>STORY</h5>
+        <a href="about.html">About</a>
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
+        <a href="#carriers">Carriers</a>
+      </div>
+      <div>
+        <h5>CODE</h5>
+        <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a>
+        <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer-bottom">
+    <span>Side project. Not a registered payment service.</span>
+    <span>Built by <b>Lakshya & Harsh</b>.</span>
+  </div>
+</footer>
+
+<script src="shader.js" defer></script>
+<script src="haptics.js" defer></script>
+<script src="main.js" defer></script>
+
+</body>
+</html>
