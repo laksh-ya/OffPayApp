@@ -356,6 +356,30 @@ private fun BhimSetupPage(onSkip: () -> Unit) {
         }
 
         Spacer(Modifier.height(20.dp))
+
+        // Official BHIM guide link
+        val bhimContext = LocalContext.current
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .padding(vertical = 8.dp)
+                .clickable {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://www.bhimupi.org.in/steps-to-use-99")
+                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { bhimContext.startActivity(intent) }
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "Official BHIM *99# Setup Guide →",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Accent
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
         Box(
             Modifier
                 .fillMaxWidth()
