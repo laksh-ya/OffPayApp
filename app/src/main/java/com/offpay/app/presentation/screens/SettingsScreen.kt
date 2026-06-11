@@ -36,14 +36,17 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Camera
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Description
 import androidx.compose.material.icons.filled.Help
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.PrivacyTip
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -81,6 +84,7 @@ import com.offpay.app.presentation.permissions.rememberPermissionLaunchers
 import com.offpay.app.presentation.ui.components.FallingEmoji
 import com.offpay.app.presentation.ui.components.NeoPopCard
 import com.offpay.app.presentation.ui.components.NeoPopDangerOutlinedButton
+import com.offpay.app.presentation.ui.components.NeoPopSecondaryButton
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlin.random.Random
@@ -96,14 +100,16 @@ fun SettingsScreen(
     onClearAllData: () -> Unit,
     onOpenFaq: () -> Unit,
     onOpenHistory: () -> Unit,
-    onOpenPrivacy: () -> Unit,
-    onOpenTerms: () -> Unit,
+    onOpenLegal: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val mode by prefsRepo.operationMode.collectAsState(initial = OperationMode.AUTO)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val launchers = rememberPermissionLaunchers()
+    val allGranted = permissions.phoneBundle && permissions.camera &&
+        permissions.accessibility && permissions.overlay
+    var permissionsExpanded by remember { mutableStateOf(!allGranted) }
 
     Column(
         modifier
@@ -124,10 +130,6 @@ fun SettingsScreen(
         // ── Mode ──
         SectionHeader("Mode")
         Spacer(Modifier.height(12.dp))
-        // Two modes only — Auto (default, full overlay) and Manual (dialer
-        // fallback). The legacy ADVANCED enum value still exists so old
-        // preferences don't crash, but it's not user-selectable any more
-        // and is treated identically to AUTO across the runtime.
         ModeOption(
             label = "Auto",
             description = "Default. OffPay handles the carrier dialog automatically — you stay in OffPay throughout.",
@@ -146,58 +148,109 @@ fun SettingsScreen(
         Hairline()
         Spacer(Modifier.height(24.dp))
 
-        // ── Permissions ──
-        SectionHeader("Permissions")
-        Spacer(Modifier.height(12.dp))
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            PermissionRow(
-                icon = Icons.Default.Phone,
-                label = "Phone access",
-                description = "Dial *99# and read SIM info",
-                granted = permissions.phoneBundle,
-                onFix = { launchers.requestPhoneBundle() }
-            )
-            PermissionRow(
-                icon = Icons.Default.Camera,
-                label = "Camera",
-                description = "Scan UPI QR codes",
-                granted = permissions.camera,
-                onFix = { launchers.requestCamera() }
-            )
-            PermissionRow(
-                icon = Icons.Default.Settings,
-                label = "Accessibility",
-                description = "Read and reply to the carrier dialog",
-                granted = permissions.accessibility,
-                onFix = { openAccessibilitySettings(context) }
-            )
-            PermissionRow(
-                icon = Icons.Default.Layers,
-                label = "Display over other apps",
-                description = "Cover the system USSD dialog",
-                granted = permissions.overlay,
-                onFix = { openOverlaySettings(context) }
-            )
-        }
-
-        Spacer(Modifier.height(28.dp))
-        Hairline()
-        Spacer(Modifier.height(24.dp))
-
-        // ── Help & history shortcuts ──
-        SectionHeader("More")
-        Spacer(Modifier.height(12.dp))
+        // ── Transaction History — right below mode for quick access ──
         ShortcutRow(
             icon = Icons.Default.History,
             title = "Transaction History",
             subtitle = "Past payments",
             onClick = onOpenHistory
         )
-        Spacer(Modifier.height(8.dp))
+
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
+
+        // ── Permissions — collapsible when all granted ──
+        val view = LocalView.current
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .clickable {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    permissionsExpanded = !permissionsExpanded
+                }
+                .padding(vertical = 4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            SectionHeader("Permissions")
+            Spacer(Modifier.weight(1f))
+            if (allGranted) {
+                Icon(
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = null,
+                    tint = NeoPopColors.Success,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(Modifier.width(6.dp))
+                Text(
+                    text = "All granted",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.Success
+                )
+                Spacer(Modifier.width(4.dp))
+            }
+            val arrowRotation by animateFloatAsState(
+                targetValue = if (permissionsExpanded) 180f else 0f,
+                label = "perm_arrow"
+            )
+            Icon(
+                imageVector = Icons.Default.KeyboardArrowDown,
+                contentDescription = if (permissionsExpanded) "Collapse" else "Expand",
+                tint = NeoPopColors.TextMuted,
+                modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+
+        AnimatedVisibility(visible = permissionsExpanded) {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                PermissionRow(
+                    icon = Icons.Default.Phone,
+                    label = "Phone access",
+                    description = "Dial *99# and read SIM info",
+                    granted = permissions.phoneBundle,
+                    onFix = { launchers.requestPhoneBundle() }
+                )
+                PermissionRow(
+                    icon = Icons.Default.Camera,
+                    label = "Camera",
+                    description = "Scan UPI QR codes",
+                    granted = permissions.camera,
+                    onFix = { launchers.requestCamera() }
+                )
+                PermissionRow(
+                    icon = Icons.Default.Settings,
+                    label = "Accessibility",
+                    description = "Read and reply to the carrier dialog",
+                    granted = permissions.accessibility,
+                    onFix = { openAccessibilitySettings(context) }
+                )
+                PermissionRow(
+                    icon = Icons.Default.Layers,
+                    label = "Display over other apps",
+                    description = "Cover the system USSD dialog",
+                    granted = permissions.overlay,
+                    onFix = { openOverlaySettings(context) }
+                )
+
+                // Accessibility troubleshooting guide — shown when
+                // accessibility is not granted.
+                if (!permissions.accessibility) {
+                    Spacer(Modifier.height(2.dp))
+                    AccessibilityTroubleshootCard()
+                }
+            }
+        }
+
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
+
+        // ── Help & FAQ ──
         ShortcutRow(
             icon = Icons.Default.Help,
             title = "Help & FAQ",
-            subtitle = "How OffPay works, what to do when it fails",
+            subtitle = "Setup guides, troubleshooting & resources",
             onClick = onOpenFaq
         )
 
@@ -226,28 +279,19 @@ fun SettingsScreen(
         Hairline()
         Spacer(Modifier.height(24.dp))
 
-        // ── Legal — Privacy & Terms ──
-        SectionHeader("Legal")
-        Spacer(Modifier.height(12.dp))
+        // ── Legal — single merged screen ──
         ShortcutRow(
             icon = Icons.Default.PrivacyTip,
-            title = "Privacy Policy",
-            subtitle = "What OffPay does and doesn't do with your data",
-            onClick = onOpenPrivacy
-        )
-        Spacer(Modifier.height(8.dp))
-        ShortcutRow(
-            icon = Icons.Default.Description,
-            title = "Terms of Use",
-            subtitle = "What you're agreeing to by using OffPay",
-            onClick = onOpenTerms
+            title = "Legal",
+            subtitle = "Privacy Policy & Terms of Use",
+            onClick = onOpenLegal
         )
 
         Spacer(Modifier.height(28.dp))
         Hairline()
         Spacer(Modifier.height(24.dp))
 
-        // ── About — last on the page; ends with the aesthetic-cat footer.
+        // ── About ──
         AboutSection(
             versionName = versionName,
             onOpenLakshya = { openUrl(context, "https://github.com/laksh-ya/") },
@@ -325,8 +369,7 @@ private fun AboutSection(
 
         Spacer(Modifier.height(16.dp))
 
-        // Credit line — single tap opens the GitHub action sheet. No
-        // easter egg here; the cat lives on the OffPay header row above.
+        // Credit line — single tap opens the GitHub action sheet.
         Box(
             Modifier
                 .clickable {
@@ -649,6 +692,90 @@ private fun StatusPill(granted: Boolean, onFix: () -> Unit) {
                 color = NeoPopColors.Black
             )
         }
+    }
+}
+
+/**
+ * Accessibility troubleshooting card shown in Settings when the accessibility
+ * permission is not granted. Provides the same step-by-step guide as FAQ/onboarding
+ * so the user doesn't have to navigate away.
+ */
+@Composable
+private fun AccessibilityTroubleshootCard() {
+    val context = LocalContext.current
+    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+        Column {
+            Text(
+                text = "CAN'T ENABLE ACCESSIBILITY?",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Danger
+            )
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "Since OffPay is sideloaded (not from Play Store), Android 13+ blocks restricted settings by default. This is the same reason you had to disable Play Protect — it's a mandatory Google security measure.",
+                style = NeoPopType.BodySmall,
+                color = NeoPopColors.TextSecondary
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = "FIX:",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.Accent
+            )
+            Spacer(Modifier.height(8.dp))
+            SettingsStepRow(1, "Go to Settings → Apps → OffPay")
+            Spacer(Modifier.height(6.dp))
+            SettingsStepRow(2, "Tap the ⋮ three dots (top right)")
+            Spacer(Modifier.height(6.dp))
+            SettingsStepRow(3, "Select \"Allow restricted settings\" → confirm with PIN/fingerprint")
+            Spacer(Modifier.height(6.dp))
+            SettingsStepRow(4, "Open OffPay → enable Accessibility service")
+            Spacer(Modifier.height(14.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                NeoPopSecondaryButton(
+                    text = "Open Settings",
+                    onClick = { openAccessibilitySettings(context) },
+                    modifier = Modifier.weight(1f)
+                )
+                NeoPopSecondaryButton(
+                    text = "View Guide",
+                    leadingIcon = Icons.Default.PlayArrow,
+                    onClick = {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://cleanbrowsing.org/support/mobile/disable-restricted-settings-android")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(intent) }
+                    },
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsStepRow(index: Int, text: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier
+                .size(20.dp)
+                .background(NeoPopColors.Accent),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = index.toString(),
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.Black
+            )
+        }
+        Spacer(Modifier.width(10.dp))
+        Text(
+            text = text,
+            style = NeoPopType.BodySmall,
+            color = NeoPopColors.TextSecondary,
+            modifier = Modifier.weight(1f)
+        )
     }
 }
 

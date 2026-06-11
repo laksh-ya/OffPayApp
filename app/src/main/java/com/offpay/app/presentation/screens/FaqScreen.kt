@@ -3,11 +3,11 @@ package com.offpay.app.presentation.screens
 import android.content.Intent
 import android.net.Uri
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.Image
@@ -15,6 +15,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -32,11 +33,15 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -58,51 +63,39 @@ import androidx.compose.ui.unit.dp
 import com.offpay.app.R
 import com.offpay.app.presentation.permissions.openAccessibilitySettings
 import com.offpay.app.presentation.ui.components.NeoPopCard
+import com.offpay.app.presentation.ui.components.NeoPopPrimaryButton
 import com.offpay.app.presentation.ui.components.NeoPopSecondaryButton
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 
 // ─── Hooks for the user to drop in real assets later ──────────────────────────
 
-/**
- * BHIM walkthrough screenshots. Wired to the bundled drawables now —
- * tap-fingers from the original BHIM screenshots, 738×1600 portrait, drawn
- * scaled-to-fit so they stay readable at typical phone widths.
- */
 private val step1ImageRes: Int? = R.drawable.bhim_step1
 private val step2ImageRes: Int? = R.drawable.bhim_step2
 private val step3ImageRes: Int? = R.drawable.bhim_step3
 
-/**
- * Tutorial video URL. Tapping the "Watch the tutorial" CTA fires
- * `Intent.ACTION_VIEW` on this URL.
- */
-private val TUTORIAL_VIDEO_URL: String? = "https://youtube.com/playlist?list=PL6zhuU_l94t1y25MDt96Z-MltD3S6iPFj&si=GNlanTwR-IcfOBI"
+private val TUTORIAL_VIDEO_URL: String? =
+    "https://youtube.com/playlist?list=PL6zhuU_l94t1y25MDt96Z-MltD3S6iPFj&si=GNlanTwR-IcfOBI"
+
+private const val GITHUB_REPO_URL = "https://github.com/laksh-ya/OffPayApp/"
+private const val RESTRICTED_SETTINGS_GUIDE_URL =
+    "https://cleanbrowsing.org/support/mobile/disable-restricted-settings-android"
 
 /**
- * Help/FAQ screen. Reachable from:
- *  - Settings → "Help & FAQ".
- *  - Onboarding → "Need help?" link (future).
- *  - Error states → "Why did this fail?" link.
+ * Help/FAQ screen — clean, accordion-style Q&A layout.
  *
- * Sections (in order):
- *   1. What is *99# UPI
- *   2. Enable *99# in BHIM (the user's #1 setup blocker — 3-step walkthrough)
- *   3. Enable OffPay accessibility (with Android 13+ "Restricted Settings" workaround)
- *   4. Three modes
- *   5. Which carriers work
- *   6. How the overlay works
- *   7. Is my PIN safe
- *   8. What if it fails
- *   9. Video tutorial (placeholder embed)
+ * Each question is a tappable header that expands to reveal the answer.
+ * Links (GitHub, video tutorial, replay onboarding) sit at the bottom.
  */
 @Composable
 fun FaqScreen(
     onClose: () -> Unit,
+    onReplayOnboarding: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val scroll = rememberScrollState()
     val context = LocalContext.current
+    val view = LocalView.current
 
     Column(
         modifier
@@ -110,6 +103,7 @@ fun FaqScreen(
             .background(NeoPopColors.Black)
             .statusBarsPadding()
     ) {
+        // ── Top bar ──
         Row(
             Modifier
                 .fillMaxWidth()
@@ -119,7 +113,7 @@ fun FaqScreen(
             CornerCloseButton(onClick = onClose)
             Spacer(Modifier.width(12.dp))
             Text(
-                text = "HELP",
+                text = "HELP & FAQ",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.TextPrimary,
                 modifier = Modifier.weight(1f)
@@ -133,67 +127,274 @@ fun FaqScreen(
                 .verticalScroll(scroll)
                 .padding(horizontal = 20.dp, vertical = 12.dp)
         ) {
-            HeroBlurb()
+            // ── Hero blurb ──
+            val heroText = buildAnnotatedString {
+                append("we know USSD is weird. here's how ")
+                withStyle(SpanStyle(color = NeoPopColors.Accent)) { append("OffPay") }
+                append(" makes it work.")
+            }
+            Text(
+                text = heroText,
+                style = NeoPopType.DisplayMedium.copy(
+                    fontSize = androidx.compose.ui.unit.TextUnit(
+                        24f, androidx.compose.ui.unit.TextUnitType.Sp
+                    )
+                ),
+                color = NeoPopColors.TextPrimary
+            )
 
             Spacer(Modifier.height(24.dp))
 
-            FaqSection(
-                category = "WHAT IS *99# UPI",
-                body = "*99# is India's USSD-based UPI service. It works without internet — " +
-                    "you dial a code, your bank shows menus through SMS-style dialogs, and you " +
-                    "reply to send money. Works on any phone with a cellular signal."
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // ACCORDION Q&A ITEMS
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            // 1. Enable Banking (*99#) — one-time setup
+            ExpandableQuestion(
+                question = "How do I enable banking via *99#?",
+                badge = "ONE-TIME"
+            ) {
+                Text(
+                    text = "Before using OffPay, you need to enable your bank on the *99# USSD channel. This only needs to be done once.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+                Spacer(Modifier.height(12.dp))
+                NumberedStep(1, "Dial *99# from your phone's dialer")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(2, "Enter your bank name when prompted (e.g. SBI, HDFC)")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(3, "Follow on-screen prompts to link your bank account")
+                Spacer(Modifier.height(14.dp))
+                NeoPopPrimaryButton(
+                    text = "Dial *99#",
+                    leadingIcon = Icons.Default.Phone,
+                    onClick = {
+                        val i = Intent(
+                            Intent.ACTION_DIAL,
+                            Uri.parse("tel:*99${Uri.encode("#")}")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(i) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(8.dp))
+                NeoPopSecondaryButton(
+                    text = "Official *99# Guide",
+                    leadingIcon = Icons.Default.PlayArrow,
+                    onClick = {
+                        val i = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://www.bhimupi.org.in/steps-to-use-99#")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(i) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 2. BHIM walkthrough
+            ExpandableQuestion(question = "How do I enable *99# in the BHIM app?") {
+                Text(
+                    text = "If you use BHIM, toggle on the *99# USSD service in BHIM settings. Done once, you're set.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+                Spacer(Modifier.height(12.dp))
+
+                NumberedStep(1, "Open BHIM → tap your profile avatar (top-left).")
+                ImageSlot(res = step1ImageRes)
+                Spacer(Modifier.height(10.dp))
+
+                NumberedStep(2, "Scroll down → tap Settings.")
+                ImageSlot(res = step2ImageRes)
+                Spacer(Modifier.height(10.dp))
+
+                NumberedStep(3, "Find \"USSD service (*99#)\" → toggle ON.")
+                ImageSlot(res = step3ImageRes)
+            }
+
+            // 3. Supported carriers
+            ExpandableQuestion(question = "Which carriers are supported?") {
+                Text(
+                    text = "Airtel, Vodafone (Vi), and BSNL — yes. Jio — no. That's a technical limitation on Jio's network, not OffPay.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+                Spacer(Modifier.height(10.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    CarrierTag("AIRTEL", true)
+                    CarrierTag("VI", true)
+                    CarrierTag("BSNL", true)
+                    CarrierTag("JIO", false)
+                }
+            }
+
+            // 4. Accessibility
+            ExpandableQuestion(question = "How do I enable the accessibility service?") {
+                NumberedStep(1, "Open phone Settings → Accessibility → Installed apps.")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(2, "Find OffPay → toggle ON → confirm the dialog.")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(3, "Come back to OffPay. The tile should show GRANTED.")
+                Spacer(Modifier.height(14.dp))
+                NeoPopSecondaryButton(
+                    text = "Open Accessibility Settings",
+                    onClick = { openAccessibilitySettings(context) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 5. Can't enable accessibility
+            ExpandableQuestion(
+                question = "Can't enable accessibility?",
+                accentColor = NeoPopColors.Danger
+            ) {
+                Text(
+                    text = "Since OffPay is sideloaded (not from Play Store), Android 13+ blocks restricted settings by default. Same reason you had to disable Play Protect — it's a mandatory Google security measure.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    text = "THE FIX:",
+                    style = NeoPopType.LabelMedium,
+                    color = NeoPopColors.Accent
+                )
+                Spacer(Modifier.height(8.dp))
+                NumberedStep(1, "Settings → Apps → OffPay")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(2, "Tap the ⋮ three dots (top right)")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(3, "\"Allow restricted settings\" → confirm with PIN", emphasised = true)
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(4, "Open OffPay → enable Accessibility")
+                Spacer(Modifier.height(14.dp))
+                NeoPopSecondaryButton(
+                    text = "View Guide with Screenshots",
+                    leadingIcon = Icons.Default.PlayArrow,
+                    onClick = {
+                        val i = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse(RESTRICTED_SETTINGS_GUIDE_URL)
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(i) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            // 6. What is *99#
+            ExpandableQuestion(question = "What is *99# UPI?") {
+                Text(
+                    text = "*99# is India's USSD-based UPI service. It works without internet — you dial a code, your bank shows menus through SMS-style dialogs, and you reply to send money. Works on any phone with a cellular signal.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 7. Two modes
+            ExpandableQuestion(question = "What are the two modes?") {
+                ModeRow(
+                    name = "Auto",
+                    desc = "Default. OffPay handles the carrier dialog automatically — you stay in OffPay throughout."
+                )
+                Spacer(Modifier.height(10.dp))
+                ModeRow(
+                    name = "Manual",
+                    desc = "Copies the UPI ID and opens the dialer. You enter the rest yourself. No accessibility needed."
+                )
+            }
+
+            // 8. Overlay
+            ExpandableQuestion(question = "How does the overlay work?") {
+                Text(
+                    text = "OffPay drives the carrier's USSD dialog automatically using Android's accessibility service. We never see your PIN — it's typed locally on your device, never stored, and never sent to any server.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 9. PIN safety
+            ExpandableQuestion(question = "Is my PIN safe?") {
+                Text(
+                    text = "Yes. Your PIN is held in volatile memory only, masked as •••• in any logs, cleared within 500ms of session end, never persisted, and never shared.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 10. Failures
+            ExpandableQuestion(question = "What if it fails?") {
+                Text(
+                    text = "We surface the carrier's exact error message. If your bank isn't linked to *99#, we route you to setup instructions. A 25-second hard-cap timeout prevents stuck sessions.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // LINKS & ACTIONS
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            Spacer(Modifier.height(28.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(1.dp)
+                    .background(NeoPopColors.Border)
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
-            BhimWalkthroughCard()
-            Spacer(Modifier.height(16.dp))
+            // Video tutorial
+            val videoUrl = TUTORIAL_VIDEO_URL
+            if (videoUrl != null) {
+                NeoPopSecondaryButton(
+                    text = "Watch Video Tutorial",
+                    leadingIcon = Icons.Default.PlayArrow,
+                    onClick = {
+                        val i = Intent(Intent.ACTION_VIEW, Uri.parse(videoUrl))
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(i) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(Modifier.height(10.dp))
+            }
 
-            AccessibilitySetupCard(
-                onOpenSettings = { openAccessibilitySettings(context) }
+            // GitHub
+            NeoPopSecondaryButton(
+                text = "Source Code & Guides (GitHub)",
+                leadingIcon = Icons.Default.Code,
+                onClick = {
+                    val i = Intent(Intent.ACTION_VIEW, Uri.parse(GITHUB_REPO_URL))
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(i) }
+                },
+                modifier = Modifier.fillMaxWidth()
             )
-            Spacer(Modifier.height(16.dp))
-
-            ThreeModesCard()
-            Spacer(Modifier.height(16.dp))
-
-            FaqSection(
-                category = "WHICH CARRIERS WORK",
-                body = "Airtel, Vodafone (Vi), and BSNL — yes. Jio — no. That's a technical " +
-                    "limitation on Jio's network, not OffPay's fault."
-            )
-            Spacer(Modifier.height(16.dp))
-
-            FaqSection(
-                category = "HOW THE OVERLAY WORKS",
-                body = "OffPay drives the carrier's USSD dialog automatically using Android's " +
-                    "accessibility service. We never see your PIN — it's typed locally on your " +
-                    "device, never stored, and never sent to any server."
-            )
-            Spacer(Modifier.height(16.dp))
-
-            FaqSection(
-                category = "IS MY PIN SAFE?",
-                body = "Yes. Your PIN is held in volatile memory only, masked in any logs as " +
-                    "••••, cleared within 500ms of session end, never persisted, and never shared."
-            )
-            Spacer(Modifier.height(16.dp))
-
-            FaqSection(
-                category = "WHAT IF IT FAILS?",
-                body = "We surface the carrier's exact error message. If your bank isn't linked " +
-                    "to *99#, we route you to onboarding instructions. A 25-second hard-cap " +
-                    "timeout prevents stuck sessions."
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "Additional video guides, releases & source code are available on the GitHub repo.",
+                style = NeoPopType.BodySmall,
+                color = NeoPopColors.TextMuted,
+                modifier = Modifier.padding(horizontal = 4.dp)
             )
 
             Spacer(Modifier.height(16.dp))
 
-            VideoTutorialCard(context = context)
+            // Replay onboarding
+            NeoPopSecondaryButton(
+                text = "Play Onboarding Again",
+                leadingIcon = Icons.Default.Refresh,
+                onClick = {
+                    view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                    onReplayOnboarding()
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
 
-            Spacer(Modifier.height(16.dp))
-
-            NeedMoreHelpCard(context = context)
-
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(20.dp))
 
             CookieEasterEgg()
 
@@ -202,255 +403,104 @@ fun FaqScreen(
     }
 }
 
-@Composable
-private fun HeroBlurb() {
-    val text = buildAnnotatedString {
-        append("we know USSD is weird. here's how ")
-        withStyle(SpanStyle(color = NeoPopColors.Accent)) {
-            append("OffPay")
-        }
-        append(" makes it work.")
-    }
-    Text(
-        text = text,
-        style = NeoPopType.DisplayMedium.copy(fontSize = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp)),
-        color = NeoPopColors.TextPrimary
-    )
-}
-
-@Composable
-private fun FaqSection(category: String, body: String) {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = category,
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = body,
-                style = NeoPopType.BodyLarge,
-                color = NeoPopColors.TextSecondary
-            )
-        }
-    }
-}
+// ─── Expandable Q&A item ─────────────────────────────────────────────────────
 
 /**
- * BHIM walkthrough — the most-asked setup question. Three numbered steps
- * with a 16:9 image slot below each. Image slots fall back to a
- * lime-bordered "step image" placeholder until real screenshots are wired
- * via [step1ImageRes] / [step2ImageRes] / [step3ImageRes].
+ * Accordion-style question/answer row. Tapping the question toggles the
+ * answer visibility. An optional [badge] (e.g. "ONE-TIME") sits next to the
+ * question text.
  */
 @Composable
-private fun BhimWalkthroughCard() {
+private fun ExpandableQuestion(
+    question: String,
+    badge: String? = null,
+    accentColor: androidx.compose.ui.graphics.Color = NeoPopColors.Accent,
+    content: @Composable () -> Unit
+) {
+    val view = LocalView.current
+    var expanded by remember { mutableStateOf(false) }
+    val arrowRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        label = "qa_arrow"
+    )
+
     NeoPopCard(modifier = Modifier.fillMaxWidth()) {
         Column {
-            Text(
-                text = "ENABLE *99# IN BHIM",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "If *99# fails or your bank isn't found, this is the fix. Done it once? You're set.",
-                style = NeoPopType.BodyMedium,
-                color = NeoPopColors.TextSecondary
-            )
-            Spacer(Modifier.height(16.dp))
-
-            NumberedStep(
-                index = 1,
-                body = "Open BHIM app → tap your profile avatar (initials in top-left)."
-            )
-            ImageSlot(res = step1ImageRes)
-            Spacer(Modifier.height(14.dp))
-
-            NumberedStep(
-                index = 2,
-                body = "Scroll down → tap Settings."
-            )
-            ImageSlot(res = step2ImageRes)
-            Spacer(Modifier.height(14.dp))
-
-            NumberedStep(
-                index = 3,
-                body = "Find \"USSD service (*99#)\" under Account settings → toggle it ON."
-            )
-            ImageSlot(res = step3ImageRes)
-        }
-    }
-}
-
-@Composable
-private fun AccessibilitySetupCard(onOpenSettings: () -> Unit) {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "ENABLE OFFPAY ACCESSIBILITY",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(12.dp))
-            NumberedStep(
-                index = 1,
-                body = "Open phone Settings → Accessibility → Installed apps (or Downloaded services)."
-            )
-            Spacer(Modifier.height(10.dp))
-            NumberedStep(
-                index = 2,
-                body = "Find OffPay → toggle ON. Confirm the dialog."
-            )
-            Spacer(Modifier.height(10.dp))
-            NumberedStep(
-                index = 3,
-                body = "If toggle is greyed out (Android 13+): long-press OffPay icon → App info → tap the ⋮ menu top-right → Allow restricted settings. Then return and toggle.",
-                emphasised = true
-            )
-            Spacer(Modifier.height(10.dp))
-            NumberedStep(
-                index = 4,
-                body = "Come back to OffPay. The \"Accessibility\" tile in Settings should now show GRANTED."
-            )
-            Spacer(Modifier.height(16.dp))
-            NeoPopSecondaryButton(
-                text = "Open Accessibility Settings",
-                onClick = onOpenSettings,
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun ThreeModesCard() {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "TWO MODES",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(12.dp))
-            ModeRow(
-                name = "Auto",
-                desc = "Default. OffPay handles the carrier dialog automatically — you stay in OffPay throughout."
-            )
-            Spacer(Modifier.height(12.dp))
-            ModeRow(
-                name = "Manual",
-                desc = "Copies the UPI ID and opens the dialer. You enter the rest yourself. No accessibility needed."
-            )
-        }
-    }
-}
-
-@Composable
-private fun NeedMoreHelpCard(context: android.content.Context) {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "NEED MORE HELP?",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = "For more information on USSD payments and setup, visit the official BHIM guide.",
-                style = NeoPopType.BodyLarge,
-                color = NeoPopColors.TextSecondary
-            )
-            Spacer(Modifier.height(14.dp))
-            NeoPopSecondaryButton(
-                text = "BHIM *99# Setup Guide",
-                onClick = {
-                    val intent = Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("https://www.bhimupi.org.in/steps-to-use-99")
-                    ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { context.startActivity(intent) }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
-        }
-    }
-}
-
-@Composable
-private fun VideoTutorialCard(context: android.content.Context) {
-    NeoPopCard(modifier = Modifier.fillMaxWidth()) {
-        Column {
-            Text(
-                text = "VIDEO TUTORIAL",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Accent
-            )
-            Spacer(Modifier.height(12.dp))
-            val url = TUTORIAL_VIDEO_URL
-            if (url != null) {
+            // Question header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                        expanded = !expanded
+                    }
+                    .padding(vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Text(
-                    text = "Watch the 60-second walkthrough.",
-                    style = NeoPopType.BodyMedium,
-                    color = NeoPopColors.TextSecondary
+                    text = question,
+                    style = NeoPopType.TitleMedium,
+                    color = accentColor,
+                    modifier = Modifier.weight(1f)
                 )
-                Spacer(Modifier.height(12.dp))
-                NeoPopSecondaryButton(
-                    text = "Watch the tutorial",
-                    leadingIcon = Icons.Default.PlayArrow,
-                    onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
-                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        runCatching { context.startActivity(intent) }
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                if (badge != null) {
+                    Spacer(Modifier.width(8.dp))
+                    Box(
+                        Modifier
+                            .background(accentColor.copy(alpha = 0.14f))
+                            .padding(horizontal = 6.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = badge,
+                            style = NeoPopType.LabelSmall,
+                            color = accentColor
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = NeoPopColors.TextMuted,
+                    modifier = Modifier.graphicsLayer { rotationZ = arrowRotation }
                 )
-            } else {
-                Box(
-                    Modifier
-                        .fillMaxWidth()
-                        .aspectRatio(16f / 9f)
-                        .background(NeoPopColors.Surface)
-                        .drawBehind {
-                            drawRect(
-                                color = NeoPopColors.Accent.copy(alpha = 0.4f),
-                                style = Stroke(width = 1f)
-                            )
-                        },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "Video tutorial coming soon",
-                        style = NeoPopType.LabelMedium,
-                        color = NeoPopColors.TextMuted
-                    )
+            }
+
+            // Answer body
+            AnimatedVisibility(visible = expanded) {
+                Column(Modifier.padding(top = 12.dp)) {
+                    content()
                 }
             }
         }
     }
+
+    Spacer(Modifier.height(10.dp))
 }
+
+// ─── Small re-usable bits ────────────────────────────────────────────────────
 
 @Composable
 private fun ModeRow(name: String, desc: String) {
     Column {
-        Text(
-            text = name,
-            style = NeoPopType.TitleMedium,
-            color = NeoPopColors.TextPrimary
-        )
+        Text(name, style = NeoPopType.TitleMedium, color = NeoPopColors.TextPrimary)
         Spacer(Modifier.height(4.dp))
-        Text(
-            text = desc,
-            style = NeoPopType.BodyMedium,
-            color = NeoPopColors.TextSecondary
-        )
+        Text(desc, style = NeoPopType.BodyMedium, color = NeoPopColors.TextSecondary)
     }
 }
 
-/**
- * Numbered step row. The number sits in a small lime square; the body is
- * regular body text (or [NeoPopColors.TextPrimary] when [emphasised]).
- */
+@Composable
+private fun CarrierTag(name: String, supported: Boolean) {
+    val c = if (supported) NeoPopColors.Success else NeoPopColors.Danger
+    Box(
+        Modifier
+            .background(c.copy(alpha = 0.12f))
+            .padding(horizontal = 10.dp, vertical = 5.dp)
+    ) {
+        Text(name, style = NeoPopType.LabelSmall, color = c)
+    }
+}
+
 @Composable
 private fun NumberedStep(index: Int, body: String, emphasised: Boolean = false) {
     Row(verticalAlignment = Alignment.Top) {
@@ -480,8 +530,6 @@ private fun NumberedStep(index: Int, body: String, emphasised: Boolean = false) 
 private fun ImageSlot(res: Int?) {
     Spacer(Modifier.height(10.dp))
     if (res != null) {
-        // Real screenshot: scale-to-fit, capped at 480dp tall so the portrait
-        // BHIM screenshots don't dominate the screen on small devices.
         Image(
             painter = painterResource(id = res),
             contentDescription = null,
@@ -504,19 +552,11 @@ private fun ImageSlot(res: Int?) {
                 },
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = "step image",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.TextMuted
-            )
+            Text("step image", style = NeoPopType.LabelMedium, color = NeoPopColors.TextMuted)
         }
     }
 }
 
-/**
- * Corner X close button used by the FAQ header. 40dp tap target with a
- * subtle 12% white hover ring + 0.92 scale on press.
- */
 @Composable
 private fun CornerCloseButton(onClick: () -> Unit) {
     val view = LocalView.current
@@ -540,10 +580,7 @@ private fun CornerCloseButton(onClick: () -> Unit) {
                     style = Stroke(width = 1f)
                 )
             }
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null
-            ) {
+            .clickable(interactionSource = interactionSource, indication = null) {
                 view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
                 onClick()
             },
@@ -557,12 +594,6 @@ private fun CornerCloseButton(onClick: () -> Unit) {
     }
 }
 
-/**
- * Easter egg sitting at the bottom of the FAQ. Reads as a small "here's a
- * cookie for you :)" link; tapping it pops a 🍪 emoji that bounces in
- * with a spring-back scale animation, plus a haptic chirp. Stays put
- * until the user taps it again to put it away.
- */
 @Composable
 private fun CookieEasterEgg() {
     val view = LocalView.current
@@ -612,7 +643,12 @@ private fun CookieEasterEgg() {
                         rotationZ = rotation
                     }
             ) {
-                Text(text = "🍪", fontSize = androidx.compose.ui.unit.TextUnit(96f, androidx.compose.ui.unit.TextUnitType.Sp))
+                Text(
+                    text = "🍪",
+                    fontSize = androidx.compose.ui.unit.TextUnit(
+                        96f, androidx.compose.ui.unit.TextUnitType.Sp
+                    )
+                )
             }
         }
     }
