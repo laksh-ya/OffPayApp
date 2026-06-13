@@ -4,7 +4,6 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OffPay — UPI without the internet</title>
-<<<<<<< Updated upstream
   <meta name="description" content="Send UPI. Check balance. Scan QR. Over plain *99# on your SIM. No data, no Wi-Fi, no account." />
   <meta name="theme-color" content="#0d0d0d" />
 
@@ -27,39 +26,21 @@
 <body>
 
 <!-- ░░░ Top nav ░░░ -->
-=======
-  <meta name="description" content="Open-source Android app that automates *99# USSD so you can do UPI without mobile data. Sideload APK. Works on Airtel, Vi, BSNL." />
-  <meta name="theme-color" content="#0b0b0b" />
-  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
-  <link rel="apple-touch-icon" href="assets/logos/icon.png" />
-  <link rel="canonical" href="https://offpayapp.vercel.app/" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="site.css" />
-</head>
-<body>
-
-<!-- Ambient Glow Orbs -->
-<div class="ambient-glow-1"></div>
-<div class="ambient-glow-2"></div>
-
->>>>>>> Stashed changes
 <header class="nav">
-  <a href="index.html" class="nb"><img src="assets/logos/icon.png" alt=""><span class="lime">OffPay</span></a>
-  <nav class="nl">
-    <a href="setup.html" class="nl-h">setup</a>
-    <a href="faq.html" class="nl-h">faq</a>
-    <a href="about.html" class="nl-h">about</a>
-    <a href="#download" class="neopop neopop-primary mini">
-      <span class="neopop-edge right"></span>
-      <span class="neopop-edge bottom"></span>
-      <span class="neopop-face">get apk</span>
-    </a>
+  <a href="#top" class="brand" aria-label="OffPay home">
+    <img src="assets/logos/icon.png" alt="" />
+    <span class="wordmark"><span class="lime">Off</span>Pay</span>
+  </a>
+  <nav class="nav-links" aria-label="Primary">
+    <a href="#features">features</a>
+    <a href="#modes">modes</a>
+    <a href="#how">how</a>
+    <a href="#pwa">pwa</a>
+    <a href="about.html">about</a>
   </nav>
+  <a href="#download" class="cta-mini" data-haptic="light">download</a>
 </header>
 
-<<<<<<< Updated upstream
 <!-- ░░░ Hero — logo-led, centered ░░░ -->
 <section id="top" class="hero">
   <canvas id="hero-shader" aria-hidden="true"></canvas>
@@ -115,85 +96,25 @@
       <div class="hp"><img src="assets/screenshots/pay-form.jpeg" alt="" loading="lazy" /></div>
       <div class="hp"><img src="assets/screenshots/qr-scanner.jpeg" alt="" loading="lazy" /></div>
     </div>
-=======
-<!-- Hero -->
-<section class="hero">
-  <div class="ey"><span class="dot"></span> OPEN SOURCE · SIDELOAD · ANDROID</div>
-  <h1>UPI without<br>the <span class="lime">internet.</span></h1>
-  <p class="hero-sub">
-    Free Android app that puts a clean UI on top of <code>*99#</code> USSD.
-    Pay, check balance, scan QR — over your SIM signal alone.
-    No data. No account. No servers.
-  </p>
-  <div class="ctas">
-    <a class="neopop neopop-primary big" href="#download">
-      <span class="neopop-edge right"></span>
-      <span class="neopop-edge bottom"></span>
-      <span class="neopop-face">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-        Download APK
-      </span>
-    </a>
-    <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener">
-      <span class="neopop-edge right"></span>
-      <span class="neopop-edge bottom"></span>
-      <span class="neopop-face">
-        Try the PWA
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
-      </span>
-    </a>
->>>>>>> Stashed changes
   </div>
 </section>
 
-<!-- Screenshots -->
-<div class="shots">
-  <figure class="shot"><img src="assets/screenshots/pay-form.jpeg" alt="Pay" loading="lazy"><figcaption>Pay</figcaption></figure>
-  <figure class="shot"><img src="assets/screenshots/balance-result.jpeg" alt="Balance" loading="lazy"><figcaption>Balance</figcaption></figure>
-  <figure class="shot"><img src="assets/screenshots/qr-scanner.jpeg" alt="Scan" loading="lazy"><figcaption>Scan QR</figcaption></figure>
-  <figure class="shot"><img src="assets/screenshots/history-list.jpeg" alt="History" loading="lazy"><figcaption>History</figcaption></figure>
-  <figure class="shot"><img src="assets/screenshots/payment-success.jpeg" alt="Done" loading="lazy"><figcaption>Done</figcaption></figure>
-</div>
-
-<!-- Marquee Belt -->
-<div class="belt">
+<!-- ░░░ Marquee belt ░░░ -->
+<section class="belt" aria-hidden="true">
   <div class="belt-track">
-    <span>NO INTERNET <span class="bullet">✦</span> OPEN SOURCE <span class="bullet">✦</span> *99# UPI <span class="bullet">✦</span> SECURE &amp; PRIVATE <span class="bullet">✦</span> NO SERVERS <span class="bullet">✦</span> DIRECT BANK PAYMENTS <span class="bullet">✦</span></span>
-    <span>NO INTERNET <span class="bullet">✦</span> OPEN SOURCE <span class="bullet">✦</span> *99# UPI <span class="bullet">✦</span> SECURE &amp; PRIVATE <span class="bullet">✦</span> NO SERVERS <span class="bullet">✦</span> DIRECT BANK PAYMENTS <span class="bullet">✦</span></span>
-  </div>
-</div>
-
-<!-- Features -->
-<section class="sec" id="features">
-  <div class="sl rv">KEY FEATURES</div>
-  <div class="fg">
-    <div class="fc rv">
-      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 015.19 12a19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.13.96.36 1.9.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.91.34 1.85.57 2.81.7A2 2 0 0122 16.92z"/></svg></div>
-      <div class="ft">Auto Mode</div>
-      <p class="fd">Accessibility Service drives the carrier USSD dialog. You stay in OffPay with a branded overlay.</p>
-    </div>
-    <div class="fc rv">
-      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg></div>
-      <div class="ft">PIN Never Stored</div>
-      <p class="fd">Volatile memory only. Wiped within 500ms. Never logged, never persisted, never sent anywhere.</p>
-    </div>
-    <div class="fc rv">
-      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/></svg></div>
-      <div class="ft">Offline QR</div>
-      <p class="fd">Scan UPI QR codes with your camera — ML Kit decodes locally, no network needed.</p>
-    </div>
-    <div class="fc rv">
-      <div class="fi"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 00-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0020 4.77 5.07 5.07 0 0019.91 1S18.73.65 16 2.48a13.38 13.38 0 00-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 005 4.77a5.44 5.44 0 00-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 009 18.13V22"/></svg></div>
-      <div class="ft">Open Source</div>
-      <p class="fd">MIT licensed. Full source on GitHub. No internet permission in the manifest.</p>
-    </div>
-  </div>
-  <div style="margin-top:20px">
-    <a href="setup.html" style="font-size:13px;font-weight:700;color:var(--lime)">See how it works →</a>
+    <span>OFFLINE UPI</span><span class="bullet">●</span>
+    <span>NO DATA NEEDED</span><span class="bullet">●</span>
+    <span>*99# OVER SIM</span><span class="bullet">●</span>
+    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
+    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
+    <span>OFFLINE UPI</span><span class="bullet">●</span>
+    <span>NO DATA NEEDED</span><span class="bullet">●</span>
+    <span>*99# OVER SIM</span><span class="bullet">●</span>
+    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
+    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
   </div>
 </section>
 
-<<<<<<< Updated upstream
 <!-- ░░░ Features ░░░ -->
 <section id="features" class="section">
   <div class="section-head">
@@ -491,67 +412,77 @@
 
     <div class="download-row">
       <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/" target="_blank" rel="noopener" data-haptic="strong">
-=======
-<!-- Cat -->
-<section class="cat-strip" aria-hidden="true">
-  <img src="assets/cat_aesthetic.png" alt="" loading="lazy" />
-  <div class="cat-caption">
-    <div class="sl">THANKS FOR SCROLLING</div>
-    <p>now go pay<br>without the <span class="lime">internet.</span></p>
-  </div>
-</section>
-
-<!-- Download -->
-<section class="sec" id="download">
-  <div class="db rv">
-    <div class="sl">GET IT</div>
-    <h2>Two ways to <span class="lime">OffPay.</span></h2>
-    <p style="color:var(--t2);font-size:13px;margin-top:6px;line-height:1.6">Sideloaded APK from GitHub. Not on the Play Store.</p>
-    <div class="dbs">
-      <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <span class="stack">
+            <small>Latest release</small>
+            OffPay.apk <span class="lite">· Android 8+</span>
+          </span>
+        </span>
         <span class="neopop-edge right"></span>
         <span class="neopop-edge bottom"></span>
->>>>>>> Stashed changes
-        <span class="neopop-face">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
-          Download APK
-        </span>
       </a>
-      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener">
+      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
+        <span class="neopop-face">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+          <span class="stack">
+            <small>Browser · iOS · Android</small>
+            offpay.vercel.app
+          </span>
+        </span>
         <span class="neopop-edge right"></span>
         <span class="neopop-edge bottom"></span>
-        <span class="neopop-face">
-          Open PWA
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M7 17L17 7M17 7H8M17 7v9"/></svg>
-        </span>
       </a>
     </div>
-    <p class="dm">
-      New to OffPay? <a href="setup.html">Setup guide & video tutorials</a> ·
-      <a href="faq.html">FAQ</a> ·
-      <a href="https://github.com/laksh-ya/OffPayApp/" target="_blank" rel="noopener">Source on GitHub</a>
-    </p>
+
+    <div class="download-meta">
+      Read the <a href="about.html">story</a> · Source · <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a> · <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+    </div>
   </div>
 </section>
 
-<footer class="ft-wrap">
-  <div class="ft-in">
-    <div class="ft-b"><img src="assets/logos/icon.png" alt=""><span class="lime">OffPay</span></div>
-    <nav class="ft-l">
-      <a href="setup.html">Setup</a>
-      <a href="faq.html">FAQ</a>
-      <a href="about.html">About</a>
-      <a href="https://github.com/laksh-ya/OffPayApp/" target="_blank" rel="noopener">GitHub</a>
-    </nav>
+<!-- ░░░ Footer ░░░ -->
+<footer class="footer">
+  <div class="footer-inner">
+    <div class="footer-brand">
+      <img src="assets/logos/icon.png" alt="" />
+      <div>
+        <div class="wordmark"><span class="lime">Off</span>Pay</div>
+        <div class="footer-tag">UPI without the internet.</div>
+      </div>
+    </div>
+
+    <div class="footer-cols">
+      <div>
+        <h5>PRODUCT</h5>
+        <a href="#features">Features</a>
+        <a href="#modes">Modes</a>
+        <a href="#how">How</a>
+        <a href="#download">Download</a>
+      </div>
+      <div>
+        <h5>STORY</h5>
+        <a href="about.html">About</a>
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
+        <a href="#carriers">Carriers</a>
+      </div>
+      <div>
+        <h5>CODE</h5>
+        <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a>
+        <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
+      </div>
+    </div>
   </div>
-  <div class="ft-bt">
+
+  <div class="footer-bottom">
     <span>Side project. Not a registered payment service.</span>
-    <span>Built by <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener" style="color:var(--lime)">@laksh-ya</a> &amp; <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener" style="color:var(--lime)">@harshtripathi272</a></span>
+    <span>Built by <b>Lakshya & Harsh</b>.</span>
   </div>
 </footer>
 
-<script>
-(function(){var e=document.querySelectorAll('.rv');var io=new IntersectionObserver(function(entries){entries.forEach(function(en){if(en.isIntersecting){en.target.classList.add('v');io.unobserve(en.target)}})},{threshold:.08,rootMargin:'0px 0px -30px 0px'});e.forEach(function(el){io.observe(el)})})();
-</script>
+<script src="shader.js" defer></script>
+<script src="haptics.js" defer></script>
+<script src="main.js" defer></script>
+
 </body>
 </html>
