@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Setup — OffPay</title>
+  <meta name="description" content="Setup guide for OffPay — Android APK and PWA." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #000000; --surface: #0E0F12; --surface-hi: #16181D;
+      --border: #2A2D34; --border-s: #3A3E47;
+      --text-1: #FFFFFF; --text-2: #9BA1A8; --text-3: #5A6068;
+      --lime: #C5F542; --lime-dim: #8AAB2C;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --max: 960px; --pad: clamp(16px, 4.5vw, 48px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--black); color: var(--text-1); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: var(--lime); color: var(--black); }
+    .w { max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+    .divider { border: none; border-top: 1px solid var(--border); }
+    .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--lime); text-transform: uppercase; display: block; margin-bottom: 14px; }
+    .lime { color: var(--lime); }
+
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      display: flex; align-items: center;
+      padding: 0 var(--pad); height: 54px;
+      background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .nav-brand img { width: 26px; height: 26px; }
+    .nav-links { display: flex; gap: 24px; margin: 0 auto; font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .nav-links a:hover { color: var(--text-1); } .nav-links a.active { color: var(--lime); }
+    .nav-dl { font-size: 12px; font-weight: 700; background: var(--lime); color: var(--black); padding: 10px 16px; min-height: 40px; box-shadow: 2px 2px 0 var(--lime-dim); transition: box-shadow 80ms, transform 80ms; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    @media (max-width: 620px) { .nav-links { display: none; } }
+
+    .page-hero { padding: clamp(64px, 9vw, 104px) 0 clamp(36px, 5vw, 56px); }
+    .page-hero h1 { font-size: clamp(36px, 7vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); margin-bottom: 12px; }
+    .page-hero p { font-size: 15px; color: var(--text-2); max-width: 50ch; line-height: 1.7; }
+
+    .setup-section { padding: clamp(36px, 5vw, 64px) 0; }
+    .section-title { font-size: clamp(20px, 3vw, 32px); font-weight: 800; letter-spacing: -0.03em; color: var(--text-1); margin-bottom: 20px; }
+
+    .video-wrap {
+      border: 1px solid var(--border); box-shadow: 5px 5px 0 var(--border);
+      background: var(--surface); aspect-ratio: 16/9;
+      position: relative; cursor: pointer; overflow: hidden;
+    }
+    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+    .video-facade { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface); z-index: 2; transition: opacity 180ms; }
+    .video-facade.gone { opacity: 0; pointer-events: none; }
+    .video-facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.28; }
+    .play-ring { position: relative; width: 68px; height: 68px; border: 1.5px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; color: var(--text-1); transition: border-color 140ms, color 140ms; }
+    .video-facade:hover .play-ring { border-color: var(--lime); color: var(--lime); }
+    .play-label { position: relative; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px var(--pad); }
+    .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .foot-brand { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
+    .foot-brand img { width: 22px; height: 22px; }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-3); font-weight: 500; }
+    .foot-links a:hover { color: var(--text-1); }
+  </style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav>
+  <a href="index.html" class="nav-brand">
+    <img src="assets/logos/icon.png" alt="OffPay" />
+    <span><span class="lime">Off</span>Pay</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html#demo">demo</a>
+    <a href="index.html#features">features</a>
+    <a href="index.html#pwa">pwa</a>
+    <a href="setup.html" class="active">setup</a>
+    <a href="faq.html">faq</a>
+    <a href="about.html">about</a>
+  </div>
+  <a href="index.html#download" class="nav-dl">Download</a>
+</nav>
+
+<!-- Hero -->
+<section class="page-hero">
+  <div class="w">
+    <span class="label">Setup</span>
+    <h1>Get it<br/><span class="lime">running.</span></h1>
+    <p>Watch the guide for your platform. Android takes about 2 minutes.</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- Android setup video -->
+<section class="setup-section">
+  <div class="w">
+    <span class="label">Android</span>
+    <div class="section-title">Android setup guide</div>
+    <div class="video-wrap" data-yt="0OeFCC7kwXc">
+      <div class="video-facade">
+        <img src="https://img.youtube.com/vi/0OeFCC7kwXc/maxresdefault.jpg" alt="" loading="lazy" />
+        <div class="play-ring">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <span class="play-label">Android setup · watch</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- PWA setup video -->
+<section class="setup-section">
+  <div class="w">
+    <span class="label">PWA</span>
+    <div class="section-title">PWA setup guide</div>
+    <div class="video-wrap" data-yt="77hXVXdOT78">
+      <div class="video-facade">
+        <img src="https://img.youtube.com/vi/77hXVXdOT78/maxresdefault.jpg" alt="" loading="lazy" />
+        <div class="play-ring">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+        </div>
+        <span class="play-label">PWA setup · watch</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- Footer -->
+<footer>
+  <div class="foot-in">
+    <a href="index.html" class="foot-brand">
+      <img src="assets/logos/icon.png" alt="" />
+      <span><span class="lime">Off</span>Pay</span>
+    </a>
+    <div class="foot-links">
+      <a href="faq.html">FAQ</a>
+      <a href="about.html">About</a>
+      <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.video-wrap[data-yt]').forEach(wrap => {
+    wrap.querySelector('.video-facade').addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${wrap.dataset.yt}?autoplay=1&rel=0`;
+      iframe.title = 'OffPay setup guide'; iframe.allowFullscreen = true;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      wrap.appendChild(iframe);
+      wrap.querySelector('.video-facade').classList.add('gone');
+    }, { once: true });
+  });
+</script>
+
+</body>
+</html>
