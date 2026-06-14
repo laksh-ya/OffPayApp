@@ -48,6 +48,29 @@
     .nav-links a:hover { color: var(--text-1); } .nav-links a.active { color: var(--lime); }
     .nav-dl { font-size: 12px; font-weight: 700; background: var(--lime); color: var(--black); padding: 10px 16px; min-height: 40px; box-shadow: 2px 2px 0 var(--lime-dim); transition: box-shadow 80ms, transform 80ms, opacity 180ms ease; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+
+    .nav-star {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      background: var(--surface-hi);
+      transition: border-color 150ms, background-color 150ms, transform 80ms;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .nav-star:hover {
+      border-color: #ffb300;
+      background: rgba(255,179,0,0.08);
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0 rgba(255,179,0,0.2);
+    }
+    .nav-star:active {
+      transform: translate(1px, 1px);
+      box-shadow: none;
+    }
     
     .nav-right {
       display: flex;
@@ -208,6 +231,9 @@
     <a href="about.html">About</a>
   </div>
   <div class="nav-right">
+    <a href="https://github.com/laksh-ya/offpayapp" target="_blank" rel="noopener" class="nav-star" aria-label="Star on GitHub">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffb300;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/></svg>
+    </a>
     <a href="index.html#download" class="nav-dl">Download</a>
     <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
       <span class="bar"></span>

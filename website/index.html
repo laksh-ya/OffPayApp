@@ -145,6 +145,15 @@
     .btn-setup:hover { box-shadow: 4px 4px 0 rgba(197, 245, 66, 0.25); transform: translate(-1px,-1px); }
     .btn-setup:active { box-shadow: none; transform: translate(3px,3px); }
 
+    .btn-git {
+      background: #24292e;
+      color: #ffffff;
+      border: 1px solid #3f4448;
+      box-shadow: 3px 3px 0 #1b1f23;
+    }
+    .btn-git:hover { box-shadow: 4px 4px 0 #1b1f23; transform: translate(-1px,-1px); }
+    .btn-git:active { box-shadow: none; transform: translate(3px,3px); }
+
     @media (max-width: 520px) {
       .btn { width: 100%; }
       .hero-btns { flex-direction: column; }
@@ -186,6 +195,29 @@
     }
     .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
     .nav-dl:active { box-shadow: none; transform: translate(2px,2px); }
+
+    .nav-star {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      background: var(--surface-hi);
+      transition: border-color 150ms, background-color 150ms, transform 80ms;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .nav-star:hover {
+      border-color: #ffb300;
+      background: rgba(255,179,0,0.08);
+      transform: translate(-1px, -1px);
+      box-shadow: 2px 2px 0 rgba(255,179,0,0.2);
+    }
+    .nav-star:active {
+      transform: translate(1px, 1px);
+      box-shadow: none;
+    }
     
     .nav-right {
       display: flex;
@@ -611,6 +643,9 @@
     <a href="about.html">About</a>
   </div>
   <div class="nav-right">
+    <a href="https://github.com/laksh-ya/offpayapp" target="_blank" rel="noopener" class="nav-star" aria-label="Star on GitHub">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: #ffb300;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/></svg>
+    </a>
     <a href="#download" class="nav-dl">Download</a>
     <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
       <span class="bar"></span>
@@ -648,6 +683,11 @@
       <a href="setup.html" class="btn btn-setup">Setup Guide →</a>
 
       <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-outline">Try PWA</a>
+
+      <a href="https://github.com/laksh-ya/offpayapp" target="_blank" rel="noopener" class="btn btn-git">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; color: #ffb300;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/></svg>
+        Star on GitHub
+      </a>
     </div>
   </div>
 </section>
@@ -907,6 +947,10 @@
         </a>
         <a href="setup.html" class="btn btn-setup">Setup Guide</a>
         <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-outline">Open PWA</a>
+        <a href="https://github.com/laksh-ya/offpayapp" target="_blank" rel="noopener" class="btn btn-git">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; color: #ffb300;"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" fill="currentColor"/></svg>
+          Star on GitHub
+        </a>
       </div>
       <p class="dl-note">
         <a href="setup.html">Setup guide</a> ·
