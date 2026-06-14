@@ -4,24 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OffPay — UPI without the internet</title>
-<<<<<<< Updated upstream
-  <meta name="description" content="Send UPI. Check balance. Scan QR. Over plain *99# on your SIM. No data, no Wi-Fi, no account." />
-  <meta name="theme-color" content="#0d0d0d" />
 
-  <meta property="og:title" content="OffPay — UPI without the internet" />
-  <meta property="og:description" content="Send UPI. Check balance. Scan QR. Over plain *99# on your SIM. No data, no Wi-Fi, no account." />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://offpayapp.vercel.app/" />
-  <meta property="og:image" content="assets/logos/icon.png" />
-
-  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
-  <link rel="apple-touch-icon" href="assets/logos/icon.png" />
-
-  <link rel="preconnect" href="https://web-assets.cred.club" crossorigin />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
-=======
   <meta name="description" content="OffPay sends UPI payments over *99# — no internet, no account, no servers. Android app + PWA." />
   <meta name="theme-color" content="#000000" />
   <meta property="og:title" content="OffPay" />
@@ -53,7 +36,6 @@
       --max:          960px;
       --pad:          clamp(16px, 4.5vw, 48px);
     }
->>>>>>> Stashed changes
 
     /* ─── reset ─── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -423,13 +405,7 @@
 </head>
 <body>
 
-<<<<<<< Updated upstream
-<!-- ░░░ Top nav ░░░ -->
-<header class="nav">
-  <a href="#top" class="brand" aria-label="OffPay home">
-    <img src="assets/logos/icon.png" alt="" />
-    <span class="wordmark"><span class="lime">Off</span>Pay</span>
-=======
+
 <!-- Modal -->
 <div id="modal" role="dialog" aria-modal="true">
   <div class="modal-card">
@@ -448,7 +424,6 @@
   <a href="index.html" class="nav-brand">
     <img src="assets/logos/icon.png" alt="OffPay" />
     <span><span class="lime">Off</span>Pay</span>
->>>>>>> Stashed changes
   </a>
   <div class="nav-links">
     <a href="#demo">demo</a>
@@ -471,103 +446,15 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
         Download APK
       </a>
-<<<<<<< Updated upstream
-      <a class="neopop neopop-secondary" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
-        <span class="neopop-face">
-          <span>Try the PWA</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-    </div>
 
-    <div class="hero-phones" aria-hidden="true">
-      <div class="hp"><img src="assets/screenshots/balance-result.jpeg" alt="" loading="lazy" /></div>
-      <div class="hp"><img src="assets/screenshots/pay-form.jpeg" alt="" loading="lazy" /></div>
-      <div class="hp"><img src="assets/screenshots/qr-scanner.jpeg" alt="" loading="lazy" /></div>
-=======
       <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-outline">Try PWA →</a>
->>>>>>> Stashed changes
     </div>
   </div>
 </section>
 
 <hr class="divider" />
 
-<<<<<<< Updated upstream
-<!-- ░░░ Features ░░░ -->
-<section id="features" class="section">
-  <div class="section-head">
-    <div class="kicker">FEATURES</div>
-    <h2>Everything UPI.<br/><span class="lime">None of the internet.</span></h2>
-  </div>
 
-  <div class="grid features">
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 12h6l2-3 2 6 2-3h6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <h3>Pay</h3>
-      <p>Type, scan, tap. Inline 6-box PIN auto-fires on the sixth digit.</p>
-    </article>
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 9l9-6 9 6M5 9v11h14V9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      </div>
-      <h3>Balance</h3>
-      <p>Live from the bank. Last value cached for offline glances.</p>
-    </article>
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-      <h3>Scan</h3>
-      <p>Pinch-to-zoom camera with lime brackets. Or pick from gallery.</p>
-    </article>
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 8v4l2 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-      <h3>History</h3>
-      <p>200 payments encrypted on-device. Swipe to delete, tap to retry.</p>
-    </article>
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-7a2 2 0 00-2-2H6a2 2 0 00-2 2v7a2 2 0 002 2zm10-12V7a4 4 0 00-8 0v3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-      <h3>PIN never persists</h3>
-      <p>Volatile memory only. Wiped within 500 ms. Never logged.</p>
-    </article>
-    <article class="card">
-      <div class="card-icon">
-        <svg viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-      </div>
-      <h3>Zero tracking</h3>
-      <p>No analytics. No servers. No outbound network. Open source.</p>
-    </article>
-  </div>
-</section>
-
-<!-- ░░░ Two modes — compact, small screenshots ░░░ -->
-<section id="modes" class="section">
-  <div class="section-head">
-    <div class="kicker">TWO MODES</div>
-    <h2>Auto for the believers.<br/><span class="lime">Manual for the rest.</span></h2>
-  </div>
-
-  <div class="modes-row">
-    <article class="mode mode-auto">
-      <header>
-        <span class="mode-pill">DEFAULT</span>
-        <h3>Auto</h3>
-      </header>
-      <p>OffPay drives the carrier dialog start to finish. You stay in OffPay throughout — branded overlay, real-time progress.</p>
-      <figure class="mode-shot">
-        <img src="assets/screenshots/payment-running.jpeg" alt="" loading="lazy" />
-=======
 <!-- ─── Demo ─── -->
 <section id="demo">
   <div class="w">
@@ -589,7 +476,6 @@
       <figure class="shot">
         <img src="assets/screenshots/pay-form.jpeg" alt="Pay screen" loading="lazy" />
         <div class="shot-cap">Pay</div>
->>>>>>> Stashed changes
       </figure>
       <figure class="shot">
         <img src="assets/screenshots/pay-form-alt.jpeg" alt="PIN entry" loading="lazy" />
@@ -840,83 +726,11 @@
   </div>
 </div>
 
-<<<<<<< Updated upstream
-  <div class="carrier-table">
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">Airtel</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">Vi · Vodafone Idea</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">BSNL</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-bad">
-      <span class="carrier-name">Jio</span>
-      <span class="carrier-status">No *99# on network</span>
-    </div>
-  </div>
-</section>
 
-<!-- ░░░ Cat outro art ░░░ -->
-<section class="cat-strip" aria-hidden="true">
-  <img class="cat-strip-img" src="assets/cat_aesthetic.png" alt="" loading="lazy" />
-  <div class="cat-caption">
-    <div class="kicker">PS</div>
-    <p class="display">made with care<br/>by <span class="lime">Lakshya & Harsh</span></p>
-  </div>
-</section>
-
-<!-- ░░░ Download ░░░ -->
-<section id="download" class="section download">
-  <div class="download-card">
-    <div class="kicker">GET IT</div>
-    <h2>Two ways to <span class="lime">OffPay</span>.</h2>
-
-    <div class="download-row">
-      <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/" target="_blank" rel="noopener" data-haptic="strong">
-        <span class="neopop-face">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="stack">
-            <small>Latest release</small>
-            OffPay.apk <span class="lite">· Android 8+</span>
-          </span>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
-        <span class="neopop-face">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span class="stack">
-            <small>Browser · iOS · Android</small>
-            offpay.vercel.app
-          </span>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-    </div>
-
-    <div class="download-meta">
-      Read the <a href="about.html">story</a> · Source · <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a> · <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
-    </div>
-  </div>
-</section>
-
-<!-- ░░░ Footer ░░░ -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
-=======
 <!-- ─── Footer ─── -->
 <footer>
   <div class="foot-in">
     <a href="index.html" class="foot-brand">
->>>>>>> Stashed changes
       <img src="assets/logos/icon.png" alt="" />
       <span><span class="lime">Off</span>Pay</span>
     </a>
