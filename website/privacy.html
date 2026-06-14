@@ -3,10 +3,11 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Setup | OffPay</title>
-  <meta name="description" content="Setup guide for OffPay: Android APK and PWA." />
-  <meta name="theme-color" content="#0a0a0a" />
+  <title>Privacy Policy | OffPay</title>
+  <meta name="description" content="OffPay does not collect, transmit, sell, share or back up any of your data to us or any third party. Read our full privacy policy here." />
+  <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="assets/logos/icon.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
@@ -25,6 +26,7 @@
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
     ::selection { background: var(--lime); color: var(--black); }
+
     .w { max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
     .divider { border: none; border-top: 1px solid var(--border); }
     .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--lime); text-transform: uppercase; display: block; margin-bottom: 14px; }
@@ -98,7 +100,6 @@
       font-size: 24px;
       font-weight: 700;
       color: var(--text-2);
-      text-transform: capitalize;
       letter-spacing: -0.02em;
       transition: color 0.2s ease;
     }
@@ -114,26 +115,53 @@
       .menu-toggle.active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
     }
 
-    .page-hero { padding: clamp(64px, 9vw, 104px) 0 clamp(36px, 5vw, 56px); }
-    .page-hero h1 { font-size: clamp(28px, 7vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); margin-bottom: 12px; }
-    .page-hero p { font-size: 15px; color: var(--text-2); max-width: 50ch; line-height: 1.7; }
+    /* Hero */
+    .legal-hero { padding: clamp(60px, 10vw, 110px) 0 clamp(36px, 5vw, 60px); }
+    .legal-hero h1 { font-size: clamp(32px, 7vw, 72px); font-weight: 800; letter-spacing: -0.04em; line-height: 1.0; color: var(--text-1); }
+    .legal-hero .effective-date { font-family: var(--mono); font-size: 11px; color: var(--text-3); text-transform: uppercase; margin-top: 10px; display: block; }
+    .legal-hero .intro { font-size: clamp(14px, 1.2vw, 16px); color: var(--text-2); line-height: 1.6; max-width: 65ch; margin-top: 16px; }
 
-    .setup-section { padding: clamp(36px, 5vw, 64px) 0; }
-    .section-title { font-size: clamp(20px, 3vw, 32px); font-weight: 800; letter-spacing: -0.03em; color: var(--text-1); margin-bottom: 20px; }
-
-    .video-wrap {
-      border: 1px solid var(--border); box-shadow: 5px 5px 0 var(--border);
-      background: var(--surface); aspect-ratio: 16/9;
-      position: relative; cursor: pointer; overflow: hidden;
+    /* Legal Content / Cards */
+    .legal-wrap { padding: clamp(36px, 5vw, 60px) 0; }
+    .legal-grid { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+    
+    .legal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: 3px 3px 0 var(--border);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
-    .video-facade { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--surface); z-index: 2; transition: opacity 180ms; }
-    .video-facade.gone { opacity: 0; pointer-events: none; }
-    .video-facade img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.28; }
-    .play-ring { position: relative; width: 68px; height: 68px; border: 1.5px solid rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; color: var(--text-1); transition: border-color 140ms, color 140ms; }
-    .video-facade:hover .play-ring { border-color: var(--lime); color: var(--lime); }
-    .play-label { position: relative; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; }
+    .legal-card:hover {
+      border-color: var(--lime);
+      box-shadow: 3px 3px 0 rgba(197, 245, 66, 0.2);
+    }
+    .legal-card h3 {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--lime);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .legal-card p {
+      font-size: 14.5px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+    .legal-card a {
+      color: var(--lime);
+      text-decoration: underline;
+    }
 
+    /* Cat */
+    .cat { position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+    .cat-img { width: 100%; height: clamp(160px, 26vw, 300px); object-fit: cover; object-position: center 35%; filter: brightness(0.4); }
+    .cat-copy { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: var(--pad); }
+    .cat-by { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--lime); margin-bottom: 12px; text-transform: uppercase; }
+    .cat-line { font-size: clamp(22px, 4.5vw, 44px); font-weight: 800; letter-spacing: -0.03em; color: var(--text-1); line-height: 1.08; }
+
+    /* Footer */
     footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px var(--pad); }
     .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
     .foot-brand { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
@@ -153,7 +181,7 @@
     <a href="index.html#demo">Demo</a>
     <a href="index.html#features">Features</a>
     <a href="index.html#pwa">PWA</a>
-    <a href="setup.html" class="active">Setup</a>
+    <a href="setup.html">Setup</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
   </div>
@@ -173,62 +201,84 @@
     <a href="index.html#demo">Demo</a>
     <a href="index.html#features">Features</a>
     <a href="index.html#pwa">PWA</a>
-    <a href="setup.html" class="active">Setup</a>
+    <a href="setup.html">Setup</a>
     <a href="faq.html">FAQ</a>
     <a href="about.html">About</a>
   </div>
 </div>
 
-<!-- Hero -->
-<section class="page-hero">
+<section class="legal-hero">
   <div class="w">
-    <span class="label">Setup</span>
-    <h1>Get it<br/><span class="lime">running.</span></h1>
-    <p>Watch the guide for your platform. Android takes about 2 minutes.</p>
+    <span class="label">Legal</span>
+    <h1>Privacy Policy</h1>
+    <span class="effective-date">Effective 26 May 2026</span>
+    <p class="intro">Plain-language version. Read this in full: it covers what we do and don't do with your data, and what you're agreeing to when you use OffPay.</p>
   </div>
 </section>
 
 <hr class="divider" />
 
-<!-- Android setup video -->
-<section class="setup-section">
+<div class="legal-wrap">
   <div class="w">
-    <span class="label">Android</span>
-    <div class="section-title">Android setup guide</div>
-    <div class="video-wrap" data-yt="0OeFCC7kwXc">
-      <div class="video-facade">
-        <img src="https://img.youtube.com/vi/0OeFCC7kwXc/maxresdefault.jpg" alt="" loading="lazy" />
-        <div class="play-ring">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <span class="play-label">Android setup · watch</span>
+    <div class="legal-grid">
+      
+      <div class="legal-card">
+        <h3>The short version</h3>
+        <p>OffPay does not collect, transmit, sell, share or back up any of your data to us or any third party. There is no OffPay account, no analytics, no advertising. Everything you do in OffPay stays on your device. After install, the app makes zero outbound network requests.</p>
       </div>
+
+      <div class="legal-card">
+        <h3>What OffPay handles</h3>
+        <p>OffPay needs a few pieces of information to dial *99# on your behalf and answer the carrier's prompts. Your UPI ID, payment amount and optional note live in app memory during a session, and on success are saved to an encrypted on-device history. The carrier's reply text is shown to you and recorded for successful payments. Your active SIM's carrier name is read once on launch to detect Jio (which doesn't reliably support *99#). Your operation-mode preference and last balance are saved in a private on-device key-value store. Scanned or imported QR codes are decoded in memory only, they are never stored.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>What OffPay does NOT collect</h3>
+        <p>We do not read your name, email, phone number, contacts, location, IMEI, IMSI, advertising ID, or device ID. We do not have access to your bank account. The accessibility service is restricted by configuration to the system USSD dialog packages and ignores every other app and screen on your device.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Your UPI PIN</h3>
+        <p>Your UPI PIN lives only in volatile memory and is wiped within 500 milliseconds of any session ending (success, failure, timeout or cancel) and on app backgrounding. It is never written to storage, never logged, never sent over the network, and is masked as four bullets in any UI surface that might display it. The carrier-side handling of your PIN is the same path BHIM, GPay and your bank's own app use.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Encrypted history</h3>
+        <p>Successful payments are saved to a local SQLite database encrypted with SQLCipher. The raw file on disk is unreadable without the app's key. The database is capped at 200 most-recent records and you can clear it any time from the History screen. Uninstalling OffPay deletes everything.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Permissions</h3>
+        <p>Phone (CALL_PHONE): only ever used to dial *99# codes, never regular numbers. Camera: live QR scanning, processed on-device by ML Kit, frames are not stored or uploaded. Phone state (READ_PHONE_STATE): reads the carrier name to apply the Jio fail-fast rule. Accessibility service: reads the carrier USSD dialog and types replies for you, restricted to known carrier dialog packages. Display over other apps (SYSTEM_ALERT_WINDOW): paints the OffPay UI over the carrier dialog in Auto mode. Denying any optional permission still leaves Manual mode fully usable.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Children</h3>
+        <p>OffPay is intended for users old enough to operate a personal UPI account. We do not knowingly direct OffPay at children, and we do not collect any data that would let us identify a child or anyone else.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Changes</h3>
+        <p>If we ever change how OffPay handles data, this screen will be updated, the effective date will be bumped and the change will be highlighted in the corresponding release notes. The repository's git history is the canonical record of every revision.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Contact</h3>
+        <p>Questions or concerns about privacy? Open an issue on the project's repository on <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">GitHub</a>.</p>
+      </div>
+
     </div>
   </div>
-</section>
+</div>
 
-<hr class="divider" />
-
-<!-- PWA setup video -->
-<section class="setup-section">
-  <div class="w">
-    <span class="label">PWA</span>
-    <div class="section-title">PWA setup guide</div>
-    <div class="video-wrap" data-yt="77hXVXdOT78">
-      <div class="video-facade">
-        <img src="https://img.youtube.com/vi/77hXVXdOT78/maxresdefault.jpg" alt="" loading="lazy" />
-        <div class="play-ring">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-        </div>
-        <span class="play-label">PWA setup · watch</span>
-      </div>
-    </div>
+<div class="cat" aria-hidden="true">
+  <img class="cat-img" src="assets/cat_aesthetic.png" alt="" loading="lazy" />
+  <div class="cat-copy">
+    <div class="cat-by">Made by Lakshya &amp; Harsh</div>
+    <div class="cat-line">now go pay<br/>without the <span class="lime">internet.</span></div>
   </div>
-</section>
+</div>
 
-<hr class="divider" />
-
-<!-- Footer -->
 <footer>
   <div class="foot-in">
     <a href="index.html" class="foot-brand">
@@ -248,17 +298,6 @@
 </footer>
 
 <script>
-  document.querySelectorAll('.video-wrap[data-yt]').forEach(wrap => {
-    wrap.querySelector('.video-facade').addEventListener('click', () => {
-      const iframe = document.createElement('iframe');
-      iframe.src = `https://www.youtube.com/embed/${wrap.dataset.yt}?autoplay=1&rel=0`;
-      iframe.title = 'OffPay setup guide'; iframe.allowFullscreen = true;
-      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
-      wrap.appendChild(iframe);
-      wrap.querySelector('.video-facade').classList.add('gone');
-    }, { once: true });
-  });
-
   // Mobile menu toggle logic
   const menuToggle = document.getElementById('menu-toggle');
   const mobileMenu = document.getElementById('mobile-menu');
@@ -277,6 +316,5 @@
     });
   }
 </script>
-
 </body>
 </html>
