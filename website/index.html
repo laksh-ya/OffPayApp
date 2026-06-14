@@ -39,14 +39,15 @@
 
     /* ─── reset ─── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    html, body {
+    html { overflow-x: hidden; width: 100%; scroll-behavior: smooth; }
+    body {
       background: var(--black);
       color: var(--text-1);
       font-family: var(--sans);
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
-      max-width: 100%;
+      width: 100%;
+      position: relative;
     }
     body::before {
       content: "";
@@ -154,8 +155,8 @@
     nav {
       position: sticky; top: 0; left: 0; right: 0; z-index: 200;
       display: flex; align-items: center; justify-content: space-between;
-      padding: 0 var(--pad); height: 54px;
-      height: calc(54px + env(safe-area-inset-top, 0px));
+      padding: 0 var(--pad); height: 60px;
+      height: calc(60px + env(safe-area-inset-top, 0px));
       padding-top: env(safe-area-inset-top, 0px);
       background: rgba(0,0,0,0.88);
       backdrop-filter: blur(20px);
@@ -163,10 +164,10 @@
       border-bottom: 1px solid var(--border);
     }
     .nav-brand {
-      display: flex; align-items: center; gap: 8px;
-      font-size: 16px; font-weight: 800; letter-spacing: -0.02em;
+      display: flex; align-items: center; gap: 10px;
+      font-size: 20px; font-weight: 800; letter-spacing: -0.02em;
     }
-    .nav-brand img { width: 26px; height: 26px; }
+    .nav-brand img { width: 56px; height: 56px; }
     .nav-links {
       display: flex; gap: 24px; margin: 0 auto;
       font-size: 13px; font-weight: 500; color: var(--text-2);
@@ -179,7 +180,7 @@
       padding: 10px 16px;
       min-height: 40px;
       box-shadow: 2px 2px 0 var(--lime-dim);
-      transition: box-shadow 80ms, transform 80ms;
+      transition: box-shadow 80ms, transform 80ms, opacity 180ms ease;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
@@ -211,10 +212,10 @@
     }
     .mobile-menu {
       position: fixed;
-      top: calc(54px + env(safe-area-inset-top, 0px));
+      top: calc(60px + env(safe-area-inset-top, 0px));
       left: 0;
       width: 100%;
-      height: calc(100vh - (54px + env(safe-area-inset-top, 0px)));
+      height: calc(100vh - (60px + env(safe-area-inset-top, 0px)));
       background: rgba(13,13,13,0.98);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -252,6 +253,25 @@
       .menu-toggle.active .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
       .menu-toggle.active .bar:nth-child(2) { opacity: 0; }
       .menu-toggle.active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+      .nav-dl {
+        font-size: 11px;
+        padding: 8px 12px;
+        min-height: 34px;
+      }
+      body.menu-open .nav-dl {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .foot-in {
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        gap: 20px;
+      }
+      .foot-links {
+        justify-content: center;
+        gap: 16px 20px;
+      }
     }
 
     /* ─── Hero ─── */
@@ -355,13 +375,19 @@
     }
     .play-ring {
       position: relative;
-      width: 68px; height: 68px;
-      border: 1.5px solid rgba(255,255,255,0.25);
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: rgba(0,0,0,0.76);
+      border: 2px solid var(--lime);
       display: flex; align-items: center; justify-content: center;
-      color: var(--text-1); transition: border-color 140ms, color 140ms;
+      color: var(--lime);
+      transition: transform 150ms ease, background-color 150ms ease, color 150ms ease;
     }
-    .video-facade:hover .play-ring { border-color: var(--lime); color: var(--lime); }
-    .play-label { position: relative; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; }
+    .video-facade:hover .play-ring {
+      transform: scale(1.1);
+      background: var(--lime);
+      color: var(--black);
+    }
 
     /* ─── Screenshots strip ─── */
     .shots {
@@ -521,10 +547,10 @@
     .cat-line { font-size: clamp(22px, 4.5vw, 44px); font-weight: 800; letter-spacing: -0.03em; color: var(--text-1); line-height: 1.08; }
 
     /* ─── Footer ─── */
-    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px var(--pad); }
-    .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
-    .foot-brand { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
-    .foot-brand img { width: 22px; height: 22px; }
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 32px var(--pad); }
+    .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 20px; }
+    .foot-brand { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 800; letter-spacing: -0.02em; }
+    .foot-brand img { width: 30px; height: 30px; }
     .foot-links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-3); font-weight: 500; }
     .foot-links a:hover { color: var(--text-1); }
 
@@ -642,7 +668,6 @@
         <div class="play-ring">
           <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <span class="play-label">Watch · 2 min</span>
       </div>
     </div>
 
@@ -950,12 +975,19 @@
     menuToggle.addEventListener('click', () => {
       menuToggle.classList.toggle('active');
       mobileMenu.classList.toggle('active');
-      document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+      const isActive = mobileMenu.classList.contains('active');
+      document.body.style.overflow = isActive ? 'hidden' : '';
+      if (isActive) {
+        document.body.classList.add('menu-open');
+      } else {
+        document.body.classList.remove('menu-open');
+      }
     });
     mobileMenu.querySelectorAll('a').forEach(link => {
       link.addEventListener('click', () => {
         menuToggle.classList.remove('active');
         mobileMenu.classList.remove('active');
+        document.body.classList.remove('menu-open');
         document.body.style.overflow = '';
       });
     });
