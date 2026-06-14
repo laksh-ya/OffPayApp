@@ -3,6 +3,7 @@ package com.offpay.app.presentation.screens.onboarding
 import android.content.Intent
 import android.net.Uri
 import android.view.HapticFeedbackConstants
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -11,6 +12,10 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -31,11 +36,14 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Camera
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.HelpOutline
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.PlayArrow
@@ -53,6 +61,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -60,7 +69,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.offpay.app.R
 import com.offpay.app.presentation.permissions.PermissionStatus
@@ -70,6 +83,7 @@ import com.offpay.app.presentation.permissions.rememberPermissionLaunchers
 import com.offpay.app.presentation.permissions.rememberPermissionStatus
 import com.offpay.app.presentation.ui.components.NeoPopCard
 import com.offpay.app.presentation.ui.components.NeoPopPrimaryButton
+import com.offpay.app.presentation.ui.components.NeoPopSecondaryButton
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlinx.coroutines.launch
@@ -93,7 +107,7 @@ private val TUTORIAL_VIDEO_URL: String? = "https://youtube.com/playlist?list=PL6
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun OnboardingFlow(onComplete: () -> Unit) {
-    val totalPages = 5
+    val totalPages = 6
     val pagerState = rememberPagerState(pageCount = { totalPages })
     val scope = rememberCoroutineScope()
 
@@ -113,11 +127,12 @@ fun OnboardingFlow(onComplete: () -> Unit) {
             when (page) {
                 0 -> WelcomePage()
                 1 -> Star99ExplainerPage()
-                2 -> BhimSetupPage(onSkip = {
-                    scope.launch { pagerState.animateScrollToPage(3) }
+                2 -> Star99BankingSetupPage()
+                3 -> BhimSetupPage(onSkip = {
+                    scope.launch { pagerState.animateScrollToPage(4) }
                 })
-                3 -> PermissionsPage(permissions = permissions)
-                4 -> ReadyPage()
+                4 -> PermissionsPage(permissions = permissions)
+                5 -> ReadyPage()
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -129,8 +144,9 @@ fun OnboardingFlow(onComplete: () -> Unit) {
                 text = when (pagerState.currentPage) {
                     0 -> "Continue"
                     1 -> "Got It"
-                    2 -> "Continue"
-                    3 -> if (permissions.readyForOverlayPay) "Looks Good" else "Continue Anyway"
+                    2 -> "Next"
+                    3 -> "Continue"
+                    4 -> if (permissions.readyForOverlayPay) "Looks Good" else "Continue Anyway"
                     else -> "Let's Pay"
                 },
                 onClick = {
@@ -319,7 +335,120 @@ private fun CarrierPill(name: String, supported: Boolean, modifier: Modifier = M
     }
 }
 
-// ── Page 3: BHIM setup ──
+// ── Page 3: *99# Banking Setup (NEW) ──
+
+@Composable
+private fun Star99BankingSetupPage() {
+    val context = LocalContext.current
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        // ── One-time badge ──
+        Box(
+            Modifier
+                .background(NeoPopColors.Accent.copy(alpha = 0.14f))
+                .padding(horizontal = 10.dp, vertical = 4.dp)
+        ) {
+            Text(
+                text = "⚡ ONE-TIME SETUP",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.Accent
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = "ENABLE BANKING",
+            style = NeoPopType.LabelMedium,
+            color = NeoPopColors.Accent
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Make sure you have enabled banking via *99#",
+            style = NeoPopType.DisplayMedium,
+            color = NeoPopColors.TextPrimary
+        )
+        Spacer(Modifier.height(20.dp))
+
+        // ── Instructions card ──
+        NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+            Column {
+                Text(
+                    text = "This needs to be done once. After this, OffPay handles everything.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+                Spacer(Modifier.height(16.dp))
+
+                NumberedStep(1, "Go to your phone's dialer and dial *99#")
+                Spacer(Modifier.height(12.dp))
+                NumberedStep(2, "Enter your bank name when prompted (e.g. SBI, HDFC, ICICI)")
+                Spacer(Modifier.height(12.dp))
+                NumberedStep(3, "Follow the on-screen prompts to link your bank account")
+            }
+        }
+
+        Spacer(Modifier.height(20.dp))
+
+        // ── Dial *99# button ──
+        NeoPopPrimaryButton(
+            text = "Dial *99#",
+            leadingIcon = Icons.Default.Phone,
+            onClick = {
+                val dialIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:*99${Uri.encode("#")}"))
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { context.startActivity(dialIntent) }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        // ── Video guide link ──
+        NeoPopSecondaryButton(
+            text = "Watch Official *99# Guide",
+            leadingIcon = Icons.Default.PlayArrow,
+            onClick = {
+                val intent = Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("https://www.bhimupi.org.in/steps-to-use-99#")
+                ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                runCatching { context.startActivity(intent) }
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(20.dp))
+
+        // ── Info note ──
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .background(NeoPopColors.SurfaceHigh)
+                .padding(14.dp)
+        ) {
+            Row(verticalAlignment = Alignment.Top) {
+                Icon(
+                    imageVector = Icons.Default.Info,
+                    contentDescription = null,
+                    tint = NeoPopColors.Accent,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(Modifier.width(10.dp))
+                Text(
+                    text = "This is a one-time process to enable your bank on the *99# USSD channel. Once done, you won't need to do this again.",
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextMuted
+                )
+            }
+        }
+    }
+}
+
+// ── Page 4: BHIM setup (screenshots) ──
 
 @Composable
 private fun BhimSetupPage(onSkip: () -> Unit) {
@@ -330,15 +459,21 @@ private fun BhimSetupPage(onSkip: () -> Unit) {
             .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
         Text(
-            text = "FIRST, LINK *99# IN BHIM",
+            text = "LINK *99# IN BHIM APP",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.Accent
         )
         Spacer(Modifier.height(8.dp))
         Text(
-            text = "First, link *99# in BHIM",
+            text = "Enable USSD in BHIM",
             style = NeoPopType.DisplayMedium,
             color = NeoPopColors.TextPrimary
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = "If you use BHIM as your UPI app, enable the *99# toggle inside BHIM settings.",
+            style = NeoPopType.BodyMedium,
+            color = NeoPopColors.TextSecondary
         )
         Spacer(Modifier.height(16.dp))
 
@@ -654,14 +789,10 @@ private fun PermissionCard(info: PermissionInfo, onHelp: () -> Unit) {
                 Spacer(Modifier.width(10.dp))
                 StatusButton(granted = info.granted, onGrant = info.onGrant)
             }
-            // Inline "Stuck? See FAQ → Enable Accessibility" hint.
+            // Inline "Can't enable?" expandable fix for restricted settings.
             if (info.showFaqHint && !info.granted) {
                 Spacer(Modifier.height(10.dp))
-                Text(
-                    text = "Stuck? See FAQ → Enable Accessibility",
-                    style = NeoPopType.LabelSmall,
-                    color = NeoPopColors.Accent
-                )
+                RestrictedSettingsFix()
             }
         }
     }
@@ -710,7 +841,97 @@ private fun StatusButton(granted: Boolean, onGrant: () -> Unit) {
     }
 }
 
-// ── Page 5: Ready ──
+/**
+ * Expandable inline fix for Android 13+ "Restricted Settings" that prevents
+ * enabling accessibility for sideloaded apps. Shows a tappable "Can't enable?"
+ * label that expands to reveal step-by-step instructions + guide link.
+ */
+@Composable
+private fun RestrictedSettingsFix() {
+    val context = LocalContext.current
+    var expanded by remember { mutableStateOf(false) }
+
+    Column {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .clickable { expanded = !expanded }
+                .padding(vertical = 4.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Build,
+                contentDescription = null,
+                tint = NeoPopColors.Accent,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(Modifier.width(6.dp))
+            Text(
+                text = if (expanded) "Hide fix ▲" else "Can't enable? Tap for fix ▼",
+                style = NeoPopType.LabelSmall,
+                color = NeoPopColors.Accent
+            )
+        }
+
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Column(
+                Modifier
+                    .padding(top = 8.dp)
+                    .background(NeoPopColors.Surface)
+                    .padding(14.dp)
+            ) {
+                // Explanation
+                Text(
+                    text = "Why does this happen?",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.TextPrimary
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = "Since OffPay is sideloaded (not from Play Store), Android 13+ blocks restricted settings like Accessibility by default. This is the same reason you had to disable Play Protect — it's a mandatory Google security measure for sideloaded apps.",
+                    style = NeoPopType.BodySmall,
+                    color = NeoPopColors.TextMuted
+                )
+                Spacer(Modifier.height(12.dp))
+
+                // Steps
+                Text(
+                    text = "FIX:",
+                    style = NeoPopType.LabelSmall,
+                    color = NeoPopColors.Accent
+                )
+                Spacer(Modifier.height(8.dp))
+                NumberedStep(1, "Go to your phone's Settings → Apps → OffPay")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(2, "Tap the ⋮ three dots in the top right corner")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(3, "Select \"Allow restricted settings\" and confirm with your PIN/fingerprint")
+                Spacer(Modifier.height(6.dp))
+                NumberedStep(4, "Now open OffPay and enable the Accessibility service — it will work cleanly")
+
+                Spacer(Modifier.height(14.dp))
+
+                // Guide link
+                NeoPopSecondaryButton(
+                    text = "View Guide with Screenshots",
+                    onClick = {
+                        val intent = Intent(
+                            Intent.ACTION_VIEW,
+                            Uri.parse("https://cleanbrowsing.org/support/mobile/disable-restricted-settings-android")
+                        ).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(intent) }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+    }
+}
+
+// ── Page 6: Ready ──
 
 @Composable
 private fun ReadyPage() {

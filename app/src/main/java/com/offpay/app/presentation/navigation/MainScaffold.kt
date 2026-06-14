@@ -36,11 +36,10 @@ import com.offpay.app.presentation.permissions.rememberPermissionStatus
 import com.offpay.app.presentation.screens.BalanceScreen
 import com.offpay.app.presentation.screens.FaqScreen
 import com.offpay.app.presentation.screens.HistoryScreen
+import com.offpay.app.presentation.screens.LegalScreen
 import com.offpay.app.presentation.screens.PayScreen
-import com.offpay.app.presentation.screens.PrivacyScreen
 import com.offpay.app.presentation.screens.ScanScreen
 import com.offpay.app.presentation.screens.SettingsScreen
-import com.offpay.app.presentation.screens.TermsScreen
 import com.offpay.app.presentation.screens.onboarding.OnboardingFlow
 import com.offpay.app.presentation.ui.components.NeoPopBottomNav
 import com.offpay.app.presentation.ui.components.NeoPopNavItem
@@ -76,12 +75,17 @@ fun OffPayApp() {
             scope.launch { app.prefsRepo.setFirstLaunchComplete(true) }
         })
     } else {
-        MainScaffold(app = app)
+        MainScaffold(
+            app = app,
+            onReplayOnboarding = {
+                scope.launch { app.prefsRepo.setFirstLaunchComplete(false) }
+            }
+        )
     }
 }
 
 @Composable
-private fun MainScaffold(app: OffPayApplication) {
+private fun MainScaffold(app: OffPayApplication, onReplayOnboarding: () -> Unit) {
     val navController = rememberNavController()
     val backstackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backstackEntry?.destination?.route ?: Screen.Pay.route
@@ -101,8 +105,7 @@ private fun MainScaffold(app: OffPayApplication) {
         currentRoute == Screen.Scan.route ||
         currentRoute == Screen.Faq.route ||
         currentRoute == Screen.History.route ||
-        currentRoute == Screen.Privacy.route ||
-        currentRoute == Screen.Terms.route
+        currentRoute == Screen.Legal.route
 
     Column(
         Modifier
@@ -194,7 +197,7 @@ private fun MainScaffold(app: OffPayApplication) {
                         prefsRepo = app.prefsRepo,
                         historyViewModel = historyViewModel,
                         permissions = permissions,
-                        versionName = "1.0.0",
+                        versionName = "1.0.1",
                         onClearAllData = { /* historyViewModel.clearHistory already wired */ },
                         onOpenFaq = {
                             navController.navigate(Screen.Faq.route) {
@@ -206,26 +209,28 @@ private fun MainScaffold(app: OffPayApplication) {
                                 launchSingleTop = true
                             }
                         },
-                        onOpenPrivacy = {
-                            navController.navigate(Screen.Privacy.route) {
-                                launchSingleTop = true
-                            }
-                        },
-                        onOpenTerms = {
-                            navController.navigate(Screen.Terms.route) {
+                        onOpenLegal = {
+                            navController.navigate(Screen.Legal.route) {
                                 launchSingleTop = true
                             }
                         }
                     )
                 }
                 composable(Screen.Faq.route) {
-                    FaqScreen(onClose = { navController.popBackStack() })
+                    FaqScreen(
+                        onClose = { navController.popBackStack() },
+                        onReplayOnboarding = onReplayOnboarding
+                    )
                 }
+                composable(Screen.Legal.route) {
+                    LegalScreen(onClose = { navController.popBackStack() })
+                }
+                // Legacy routes kept for deep-link compat
                 composable(Screen.Privacy.route) {
-                    PrivacyScreen(onClose = { navController.popBackStack() })
+                    LegalScreen(onClose = { navController.popBackStack() })
                 }
                 composable(Screen.Terms.route) {
-                    TermsScreen(onClose = { navController.popBackStack() })
+                    LegalScreen(onClose = { navController.popBackStack() })
                 }
             }
         }
