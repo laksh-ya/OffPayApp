@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>About | OffPay</title>
-  <meta name="description" content="Why OffPay exists." />
+  <title>Terms of Use | OffPay</title>
+  <meta name="description" content="Read our terms of use. OffPay is a free, open-source project to use UPI without internet. Liability is disclaimed to the maximum extent permitted by law." />
   <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="assets/logos/icon.png" />
 
@@ -100,7 +100,6 @@
       font-size: 24px;
       font-weight: 700;
       color: var(--text-2);
-      text-transform: capitalize;
       letter-spacing: -0.02em;
       transition: color 0.2s ease;
     }
@@ -117,21 +116,43 @@
     }
 
     /* Hero */
-    .about-hero { padding: clamp(72px, 12vw, 130px) 0 clamp(48px, 7vw, 80px); }
-    .about-hero h1 { font-size: clamp(32px, 9vw, 100px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); }
+    .legal-hero { padding: clamp(60px, 10vw, 110px) 0 clamp(36px, 5vw, 60px); }
+    .legal-hero h1 { font-size: clamp(32px, 7vw, 72px); font-weight: 800; letter-spacing: -0.04em; line-height: 1.0; color: var(--text-1); }
+    .legal-hero .effective-date { font-family: var(--mono); font-size: 11px; color: var(--text-3); text-transform: uppercase; margin-top: 10px; display: block; }
+    .legal-hero .intro { font-size: clamp(14px, 1.2vw, 16px); color: var(--text-2); line-height: 1.6; max-width: 65ch; margin-top: 16px; }
 
-    /* Prose */
-    .prose-wrap { padding: clamp(48px, 7vw, 80px) 0; }
-    .prose { max-width: 62ch; }
-    .prose p { font-size: clamp(15px, 1.4vw, 17px); color: var(--text-2); line-height: 1.8; margin-bottom: 22px; }
-    .prose p:last-child { margin-bottom: 0; }
-    .prose .pull {
-      font-size: clamp(17px, 2vw, 22px); font-weight: 700; color: var(--text-1);
-      line-height: 1.4; padding-left: 18px; border-left: 2px solid var(--lime);
-      margin: 32px 0;
+    /* Legal Content / Cards */
+    .legal-wrap { padding: clamp(36px, 5vw, 60px) 0; }
+    .legal-grid { display: flex; flex-direction: column; gap: 16px; max-width: 760px; }
+    
+    .legal-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      padding: 24px;
+      box-shadow: 3px 3px 0 var(--border);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .prose a { color: var(--lime); }
-    .prose code { font-family: var(--mono); font-size: 13px; color: var(--lime); background: rgba(197,245,66,0.07); padding: 1px 5px; }
+    .legal-card:hover {
+      border-color: var(--lime);
+      box-shadow: 3px 3px 0 rgba(197, 245, 66, 0.2);
+    }
+    .legal-card h3 {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      color: var(--lime);
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+    .legal-card p {
+      font-size: 14.5px;
+      color: var(--text-2);
+      line-height: 1.7;
+    }
+    .legal-card a {
+      color: var(--lime);
+      text-decoration: underline;
+    }
 
     /* Cat */
     .cat { position: relative; overflow: hidden; border-top: 1px solid var(--border); }
@@ -151,7 +172,6 @@
 </head>
 <body>
 
-
 <nav>
   <a href="index.html" class="nav-brand">
     <img src="assets/logos/icon.png" alt="OffPay" />
@@ -163,7 +183,7 @@
     <a href="index.html#pwa">PWA</a>
     <a href="setup.html">Setup</a>
     <a href="faq.html">FAQ</a>
-    <a href="about.html" class="active">About</a>
+    <a href="about.html">About</a>
   </div>
   <div class="nav-right">
     <a href="index.html#download" class="nav-dl">Download</a>
@@ -183,41 +203,80 @@
     <a href="index.html#pwa">PWA</a>
     <a href="setup.html">Setup</a>
     <a href="faq.html">FAQ</a>
-    <a href="about.html" class="active">About</a>
+    <a href="about.html">About</a>
   </div>
 </div>
 
-<section class="about-hero">
+<section class="legal-hero">
   <div class="w">
-    <span class="label">About</span>
-    <h1>Why<br/><span class="lime">OffPay</span><br/>exists.</h1>
+    <span class="label">Legal</span>
+    <h1>Terms of Use</h1>
+    <span class="effective-date">Effective 26 May 2026</span>
+    <p class="intro">Plain-language version. Read this in full: it covers what we do and don't do with your data, and what you're agreeing to when you use OffPay.</p>
   </div>
 </section>
 
 <hr class="divider" />
 
-<div class="prose-wrap">
+<div class="legal-wrap">
   <div class="w">
-    <div class="prose">
-      <p>
-        UPI works everywhere in India, except when it doesn't. Go a few kilometres outside a city and the data drops. The bank app spins. The QR code scans, then nothing happens. You're stuck.
-      </p>
+    <div class="legal-grid">
+      
+      <div class="legal-card">
+        <h3>About OffPay</h3>
+        <p>OffPay is a side project published by Lakshya and Harsh. It is a free, unofficial Android client that automates India's *99# USSD service so you can use UPI without an internet connection. OffPay is NOT a registered payment service and is NOT affiliated with NPCI, your bank, your telecom carrier, or any payment service provider. Every transaction is processed by your bank and your carrier through the same *99# infrastructure that powers BHIM and other licensed apps. OffPay only automates the on-screen interaction.</p>
+      </div>
 
-      <p class="pull">
-        Meanwhile, on the same phone, on the same SIM, you can always make a call.
-      </p>
+      <div class="legal-card">
+        <h3>Eligibility</h3>
+        <p>By using OffPay you confirm that you are old enough to operate a personal bank account in India (typically 18+), that you own and control the SIM in the device, that the UPI ID and PIN you enter are yours, and that you are using OffPay in compliance with applicable laws and your bank's terms.</p>
+      </div>
 
-      <p>
-        That voice channel is reliable enough to carry a payment. NPCI built <code>*99#</code> on exactly that: it routes UPI over a GSM USSD session, no data required. It works on any Airtel, Vi, or BSNL SIM. Barely anyone uses it, because dialling raw codes and typing UPI IDs on a number pad is genuinely painful.
-      </p>
+      <div class="legal-card">
+        <h3>What you can expect</h3>
+        <p>OffPay is provided AS IS, on a best-effort basis. We try to make it work reliably across carriers, devices and Android versions, but we cannot guarantee that every payment will succeed every time. Carrier networks, bank PSPs and Android device makers can change behaviour without notice. If a payment fails for any reason, the carrier will surface the error and OffPay will pass it on to you verbatim, but we have no ability to reverse, refund or compensate any transaction.</p>
+      </div>
 
-      <p>
-        OffPay puts a clean interface on top of <code>*99#</code>. Scan a QR or type a UPI ID. Hit pay. The app drives the carrier dialog in the background using Android's Accessibility Service, letting you watch a progress screen while it handles the menus. No data moves. No account. No server.
-      </p>
+      <div class="legal-card">
+        <h3>Your responsibilities</h3>
+        <p>You are solely responsible for the accuracy of every UPI ID and amount you enter. *99# transactions are typically irreversible once your bank confirms them. Always double-check the recipient before tapping Pay. You are also responsible for keeping your UPI PIN private and your device secure. Do not share screenshots that show a PIN being entered.</p>
+      </div>
 
-      <p>
-        We built it because the gap was annoying us on trips. It's open source under MIT because the people who need it most don't need a company behind it. Built by <a href="https://github.com/laksh-ya" target="_blank" rel="noopener">Lakshya</a> and <a href="https://github.com/harshtripathi272" target="_blank" rel="noopener">Harsh</a>. Source on <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">GitHub</a>.
-      </p>
+      <div class="legal-card">
+        <h3>Carrier and bank charges</h3>
+        <p>Your telecom carrier may charge a small per-session fee for *99# usage as defined by TRAI tariffs (typically up to ₹0.50 per session). OffPay does not see, control or share in any such fee. Your bank's UPI transaction limits and rules apply unchanged.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Things you must not do</h3>
+        <p>You must not use OffPay to send payments to anyone other than the intended recipient, to attempt fraud, money laundering, or any activity that violates Indian law or your bank's terms. You must not reverse-engineer, repackage or redistribute OffPay in modified form without complying with the project's open-source licence (MIT). You must not use the accessibility service for anything other than the intended USSD automation flow within the app itself.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Limitation of liability</h3>
+        <p>To the maximum extent permitted by law, OffPay's authors are not liable for any direct, indirect, incidental or consequential loss arising from your use of the app, including lost funds, missed payments, carrier downtime, locked PINs, device-specific quirks, or third-party fees. Your sole remedy if you are unhappy with OffPay is to stop using it and uninstall it.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Open source and warranty</h3>
+        <p>OffPay is open source under the MIT licence. The full source is published on GitHub. The MIT licence text governs your right to copy, modify and redistribute the code, and explicitly disclaims warranties on the software.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Changes to these terms</h3>
+        <p>We may update these terms over time. Material changes will be reflected here, with the effective date bumped, and called out in release notes. Continued use of the app after a change means you accept the updated terms.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Governing law</h3>
+        <p>These terms are governed by the laws of India. Any disputes arising from the use of OffPay will be subject to the courts of competent jurisdiction in India.</p>
+      </div>
+
+      <div class="legal-card">
+        <h3>Contact</h3>
+        <p>For questions about these terms, open an issue on the project's GitHub repository or email the maintainers via the contact info on the repo.</p>
+      </div>
+
     </div>
   </div>
 </div>

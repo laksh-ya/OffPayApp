@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>FAQ | OffPay</title>
+  <meta name="description" content="Frequently asked questions about OffPay." />
+  <meta name="theme-color" content="#000000" />
+  <link rel="icon" type="image/png" href="assets/logos/icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --black: #000000; --surface: #0E0F12; --surface-hi: #16181D; --surface-hir: #1F2229;
+      --border: #2A2D34; --border-s: #3A3E47;
+      --text-1: #FFFFFF; --text-2: #9BA1A8; --text-3: #5A6068;
+      --lime: #C5F542; --lime-dim: #8AAB2C;
+      --danger: #FF4D4D; --success: #00D26A;
+      --mono: 'JetBrains Mono', monospace;
+      --sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --max: 960px; --pad: clamp(16px, 4.5vw, 48px);
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: var(--black); color: var(--text-1); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; max-width: 100%; }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    ::selection { background: var(--lime); color: var(--black); }
+
+    .w { max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+    .divider { border: none; border-top: 1px solid var(--border); }
+    .label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.22em; color: var(--lime); text-transform: uppercase; display: block; margin-bottom: 14px; }
+    .lime { color: var(--lime); }
+
+    nav {
+      position: sticky; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--pad); height: 54px;
+      height: calc(54px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
+      background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+    .nav-brand img { width: 26px; height: 26px; }
+    .nav-links { display: flex; gap: 24px; margin: 0 auto; font-size: 13px; font-weight: 500; color: var(--text-2); }
+    .nav-links a:hover { color: var(--text-1); } .nav-links a.active { color: var(--lime); }
+    .nav-dl { font-size: 12px; font-weight: 700; background: var(--lime); color: var(--black); padding: 10px 16px; min-height: 40px; box-shadow: 2px 2px 0 var(--lime-dim); transition: box-shadow 80ms, transform 80ms; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+    .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 22px;
+      height: 14px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 210;
+    }
+    .menu-toggle .bar {
+      width: 100%;
+      height: 2px;
+      background-color: var(--text-1);
+      transition: all 0.2s ease-in-out;
+    }
+    .mobile-menu {
+      position: fixed;
+      top: calc(54px + env(safe-area-inset-top, 0px));
+      left: 0;
+      width: 100%;
+      height: calc(100vh - (54px + env(safe-area-inset-top, 0px)));
+      background: rgba(13,13,13,0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 190;
+      display: flex;
+      flex-direction: column;
+      padding: 40px var(--pad);
+      transform: translateY(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-bottom: 1px solid var(--border);
+    }
+    .mobile-menu.active {
+      transform: translateY(0);
+    }
+    .mobile-menu-links {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .mobile-menu-links a {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-2);
+      text-transform: capitalize;
+      letter-spacing: -0.02em;
+      transition: color 0.2s ease;
+    }
+    .mobile-menu-links a:hover,
+    .mobile-menu-links a.active {
+      color: var(--lime);
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .menu-toggle { display: flex; }
+      .menu-toggle.active .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+      .menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+      .menu-toggle.active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+    }
+
+    .page-hero { padding: clamp(64px, 9vw, 104px) 0 clamp(36px, 5vw, 56px); }
+    .page-hero h1 { font-size: clamp(28px, 7vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); margin-bottom: 12px; }
+    .page-hero p { font-size: 15px; color: var(--text-2); max-width: 50ch; line-height: 1.7; }
+
+    .faq-section { padding: clamp(40px, 6vw, 64px) 0; }
+
+    .cat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.2em; color: var(--text-3); text-transform: uppercase; margin: 32px 0 8px; }
+    .faq-group { display: flex; flex-direction: column; gap: 4px; }
+
+    details { border: 1px solid var(--border); background: var(--surface); }
+    details:hover { border-color: var(--border-s); }
+    details[open] { border-left: 2px solid var(--lime); }
+    summary {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 12px; padding: 16px 18px;
+      font-size: 14px; font-weight: 600; color: var(--text-1);
+      cursor: pointer; list-style: none; user-select: none;
+      min-height: 52px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .chev { color: var(--text-3); flex-shrink: 0; transition: transform 200ms; }
+    details[open] .chev { transform: rotate(180deg); color: var(--lime); }
+    .faq-body {
+      padding: 12px 18px 16px; border-top: 1px solid var(--border);
+      font-size: 13.5px; color: var(--text-2); line-height: 1.72;
+    }
+    .faq-body a { color: var(--lime); }
+    .faq-body code { font-family: var(--mono); font-size: 12px; color: var(--lime); background: rgba(197,245,66,0.07); padding: 1px 5px; }
+    .faq-body strong { color: var(--text-1); font-weight: 600; }
+
+    .steps-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .step-row { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num { width: 22px; height: 22px; background: var(--lime); color: var(--black); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+    .step-body { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+    .step-body strong { color: var(--text-1); }
+
+    .carrier-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .carrier-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 5px 10px; font-weight: 500; }
+    .tag-yes { background: rgba(0,210,106,0.12); color: var(--success); border: 1px solid rgba(0,210,106,0.25); }
+    .tag-no  { background: rgba(255,77,77,0.1);  color: var(--danger);  border: 1px solid rgba(255,77,77,0.2); }
+
+    .modes-row { display: flex; flex-direction: column; gap: 8px; margin-top: 6px; }
+    .mode-card { background: var(--surface-hir); border: 1px solid var(--border); padding: 12px 14px; }
+    .mode-card b { color: var(--text-1); font-size: 13px; font-weight: 700; }
+    .mode-card p { font-size: 12.5px; color: var(--text-2); margin-top: 4px; line-height: 1.5; }
+
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px var(--pad); }
+    .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .foot-brand { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
+    .foot-brand img { width: 22px; height: 22px; }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-3); font-weight: 500; }
+    .foot-links a:hover { color: var(--text-1); }
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="index.html" class="nav-brand">
+    <img src="assets/logos/icon.png" alt="OffPay" />
+    <span><span class="lime">Off</span>Pay</span>
+  </a>
+  <div class="nav-links">
+    <a href="index.html#demo">Demo</a>
+    <a href="index.html#features">Features</a>
+    <a href="index.html#pwa">PWA</a>
+    <a href="setup.html">Setup</a>
+    <a href="faq.html" class="active">FAQ</a>
+    <a href="about.html">About</a>
+  </div>
+  <div class="nav-right">
+    <a href="index.html#download" class="nav-dl">Download</a>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-links">
+    <a href="index.html#demo">Demo</a>
+    <a href="index.html#features">Features</a>
+    <a href="index.html#pwa">PWA</a>
+    <a href="setup.html">Setup</a>
+    <a href="faq.html" class="active">FAQ</a>
+    <a href="about.html">About</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="w">
+    <span class="label">FAQ</span>
+    <h1>Questions<br/><span class="lime">answered.</span></h1>
+    <p>Everything about how OffPay works, what it can and can't do, sourced from the app itself.</p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<section class="faq-section">
+  <div class="w">
+
+    <div class="cat-label">What is it</div>
+    <div class="faq-group">
+      <details open>
+        <summary>What is *99# UPI? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">*99# is India's USSD-based UPI service built by NPCI. It works without internet. You dial a code, your bank responds through SMS-style menus over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
+      </details>
+      <details>
+        <summary>Is OffPay on the Play Store? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">Not currently. Download the APK from <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener">GitHub releases</a>, or use the <a href="https://offpay.vercel.app" target="_blank" rel="noopener">PWA</a> on any phone (Android or iOS) without sideloading.</div>
+      </details>
+      <details>
+        <summary>Do I need an account? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">No account, no email, no sign-up. Your bank account is already linked to *99# by NPCI when you set up UPI. OffPay is just the interface.</div>
+      </details>
+    </div>
+
+    <div class="cat-label">The two modes</div>
+    <div class="faq-group">
+      <details>
+        <summary>What are Auto and Manual mode? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">
+          <div class="modes-row">
+            <div class="mode-card"><b>Auto</b><p>OffPay handles the carrier USSD dialog automatically using Accessibility Service. You stay in the app the whole time.</p></div>
+            <div class="mode-card"><b>Manual</b><p>Opens your dialer pre-filled with the *99# code. You navigate the menus yourself. No Accessibility Service needed.</p></div>
+          </div>
+        </div>
+      </details>
+    </div>
+
+    <div class="cat-label">Carriers & limits</div>
+    <div class="faq-group">
+      <details>
+        <summary>Which carriers work? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">
+          Airtel, Vodafone (Vi), and BSNL: yes. Jio: no. That's a Jio network-level constraint, not an OffPay limitation.
+          <div class="carrier-tags">
+            <span class="carrier-tag tag-yes">AIRTEL ✓</span>
+            <span class="carrier-tag tag-yes">VI ✓</span>
+            <span class="carrier-tag tag-yes">BSNL ✓</span>
+            <span class="carrier-tag tag-no">JIO ✗</span>
+          </div>
+        </div>
+      </details>
+      <details>
+        <summary>What are the transaction limits? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">₹5,000 per transaction and ₹10,000 per day. These are NPCI-level limits for the *99# channel, not set by OffPay.</div>
+      </details>
+    </div>
+
+    <div class="cat-label">Setup & permissions</div>
+    <div class="faq-group">
+      <details>
+        <summary>How do I enable banking on *99# first? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">
+          One-time setup to link your bank to the *99# channel. After this, OffPay handles everything.
+          <div class="steps-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-body">Open your phone's dialer and call *99#</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-body">Enter your bank name when prompted (SBI, HDFC, ICICI…)</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-body">Follow on-screen prompts to link your bank account</div></div>
+          </div>
+          Done once, never again.
+        </div>
+      </details>
+      <details>
+        <summary>How do I enable *99# in BHIM app? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">
+          If you use BHIM as your UPI app, toggle on the *99# service in BHIM settings once.
+          <div class="steps-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-body">Open BHIM → tap your profile avatar (top-left initials)</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-body">Scroll down → tap Settings</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-body">Find "USSD service (*99#)" under Account settings → toggle ON</div></div>
+          </div>
+        </div>
+      </details>
+      <details>
+        <summary>Why does it need Accessibility Service? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">Android's only public USSD API can't navigate multi-step menus. Accessibility Service lets OffPay automatically type your amount, UPI ID, and PIN into the carrier's dialog so you don't have to. If you'd rather not, use Manual mode: it just opens your dialer instead.</div>
+      </details>
+      <details>
+        <summary>Why does it need Call Phone permission? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">To programmatically initiate USSD calls to *99#. OffPay never places regular phone calls, only USSD requests to the carrier. It also reads the active SIM's carrier name to warn you if you're on Jio (where *99# is unsupported).</div>
+      </details>
+      <details>
+        <summary>Android 13+ won't let me enable Accessibility <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">
+          Since OffPay is sideloaded, Android 13+ blocks restricted settings like Accessibility by default. The fix:
+          <div class="steps-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-body">Settings → Apps → OffPay</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-body">Tap the ⋮ three-dot menu (top right)</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-body"><strong>Allow restricted settings</strong> → confirm with your PIN or fingerprint</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility. It works now.</div></div>
+          </div>
+          The <a href="setup.html">setup video</a> shows exactly where.
+        </div>
+      </details>
+    </div>
+
+    <div class="cat-label">Payments & failures</div>
+    <div class="faq-group">
+      <details>
+        <summary>Is my PIN safe? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">Your PIN is held in volatile memory only, masked as •••• in any logs, cleared within 500ms of session end, never persisted, and never shared. The app has no INTERNET permission and is structurally incapable of sending anything anywhere.</div>
+      </details>
+      <details>
+        <summary>What if a payment fails? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">OffPay surfaces the carrier's exact error message. Common causes: wrong PIN, bank not linked to *99#, daily limit exceeded, wrong UPI ID, or weak signal. Tap the failed transaction in history to see the full reply and retry in one tap. A 25-second timeout prevents stuck sessions.</div>
+      </details>
+      <details>
+        <summary>How does the overlay work? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">In Auto mode, OffPay paints a branded overlay over the system USSD dialog so you only ever see OffPay's UI during a session. We never see your PIN, as it's typed locally on your device, never stored, and never sent anywhere.</div>
+      </details>
+    </div>
+
+    <div class="cat-label">PWA</div>
+    <div class="faq-group">
+      <details>
+        <summary>What is the PWA and how is it different? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">The web app at <a href="https://offpay.vercel.app" target="_blank" rel="noopener">offpay.vercel.app</a> has the same UI and QR scanner. It generates a <code>tel:</code> link that opens your native dialer pre-filled with the *99# code, and you complete the menus there. No Accessibility Service needed, works on Android and iOS.</div>
+      </details>
+      <details>
+        <summary>Does the PWA work offline? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">Yes. After the first load the PWA caches itself and runs fully offline. The *99# call goes over your SIM, with no internet needed for the transaction itself.</div>
+      </details>
+    </div>
+
+  </div>
+</section>
+
+<footer>
+  <div class="foot-in">
+    <a href="index.html" class="foot-brand">
+      <img src="assets/logos/icon.png" alt="" />
+      <span><span class="lime">Off</span>Pay</span>
+    </a>
+    <div class="foot-links">
+      <a href="setup.html">Setup</a>
+      <a href="faq.html">FAQ</a>
+      <a href="about.html">About</a>
+      <a href="terms.html">Terms</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Mobile menu toggle logic
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      mobileMenu.classList.toggle('active');
+      document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    });
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuToggle.classList.remove('active');
+        mobileMenu.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+    });
+  }
+</script>
+</body>
+</html>

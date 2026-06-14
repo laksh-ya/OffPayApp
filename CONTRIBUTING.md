@@ -1,6 +1,6 @@
 # Contributing to OffPay
 
-Thank you for considering a contribution. OffPay is a small project with big ambitions — making offline UPI payments feel as smooth as online ones — and outside help on UX polish, device-quirk fixes, language coverage, and testing is genuinely valued.
+Thank you for considering a contribution. OffPay is a small project with big ambitions (making offline UPI payments feel as smooth as online ones) and outside help on UX polish, device-quirk fixes, language coverage, and testing is genuinely valued.
 
 This guide explains how to file an issue, set up the project, and get a pull request merged.
 
@@ -32,7 +32,7 @@ You don't have to write code to help. All of these are equally welcome:
 Before opening a new issue, please:
 
 1. Search [existing issues](../../issues) to make sure it isn't already filed.
-2. If it's a payment that went wrong, **double-check whether the bank actually debited you** — `*99#` does not debit on a failed session, but the in-app result might still confuse you. A screenshot of the carrier's exact reply (visible in OffPay's failure card) helps a lot.
+2. If it's a payment that went wrong, **double-check whether the bank actually debited you** (the `*99#` service does not debit on a failed session, but the in-app result might still confuse you). A screenshot of the carrier's exact reply (visible in OffPay's failure card) helps a lot.
 3. Open a new issue using the bug report template if available.
 
 A good bug report includes:
@@ -92,7 +92,7 @@ Open the root in Android Studio Ladybug or newer. JDK 17 is required.
    - List the user-visible impact.
    - Mention any new permission, dependency, or runtime cost.
    - Link the issue you are fixing (`Fixes #123`).
-6. **Be ready to iterate.** Reviewers might ask for renames, code restructure, or extra tests. That is normal — your contribution is welcome regardless.
+6. **Be ready to iterate.** Reviewers might ask for renames, code restructure, or extra tests. That is normal: your contribution is welcome regardless.
 
 Maintainers may rebase or squash your branch on merge. Please do not force-push to a PR after a reviewer has started looking at it; push fixup commits instead.
 
@@ -112,20 +112,20 @@ Maintainers may rebase or squash your branch on merge. Please do not force-push 
 - One screen Composable per file in `presentation/screens/`. Reusable widgets live in `presentation/ui/components/`.
 - State hoisting: pass `state` down and `events` (lambdas) up. ViewModels expose `StateFlow`s and a flat surface of intent functions.
 - Skip `Modifier.padding` chains where a single `padding` call suffices.
-- Avoid `LaunchedEffect(Unit) { … }` for anything that depends on dynamic state — key it on the inputs that should re-trigger it.
+- Avoid `LaunchedEffect(Unit) { … }` for anything that depends on dynamic state: key it on the inputs that should re-trigger it.
 
 ### Comments
 The existing codebase tends to comment **the why, not the what**. A good comment explains an unobvious decision, a known device quirk, or a non-trivial invariant. Please continue that style. Decorative dividers (`// ── header ──`) are welcome where they help skim a long file.
 
 ### Layered separation
-Anything in `domain/` must remain pure Kotlin — no `android.*` imports, no Compose, no Room, no Context. If your change introduces an Android dependency to `domain/`, refactor so the Android side lives in `platform/` or `data/`.
+Anything in `domain/` must remain pure Kotlin: no `android.*` imports, no Compose, no Room, and no Context. If your change introduces an Android dependency to `domain/`, refactor so the Android side lives in `platform/` or `data/`.
 
 ---
 
 ## Testing
 
 ### What to write tests for
-Anything in `domain/` should have a corresponding test in `app/src/test/java/com/offpay/app/domain/`. We strongly prefer **property-based tests** (Kotest's `checkAll`) for anything that takes string input — regex matchers, validators, parsers — because hand-written examples miss the long tail.
+Anything in `domain/` should have a corresponding test in `app/src/test/java/com/offpay/app/domain/`. We strongly prefer **property-based tests** (Kotest's `checkAll`) for anything that takes string input (such as regex matchers, validators, or parsers) because hand-written examples miss the long tail.
 
 For ViewModel logic that does not require Android, drop a unit test under `app/src/test/java/com/offpay/app/presentation/`.
 
@@ -153,10 +153,10 @@ If your PR changes anything in `domain/Action*`, `domain/FrameFilter`, or `platf
 - [ ] Successful payment in Advanced mode shows progress in the floating chip and the success card at the end.
 - [ ] Wrong PIN failure surfaces the carrier's exact "incorrect PIN" text.
 - [ ] Cancelling mid-session via the overlay's Cancel button or the back button cleanly aborts.
-- [ ] Two payments in a row work — no leftover dialog, no stale frames.
+- [ ] Two payments in a row work: no leftover dialog, no stale frames.
 - [ ] Pressing Pay twice in quick succession does not start two sessions.
 
-It is fine to skip this checklist on a PR that only touches UI styling or strings — but please call that out in the PR description.
+It is fine to skip this checklist on a PR that only touches UI styling or strings, but please call that out in the PR description.
 
 ---
 
@@ -190,4 +190,4 @@ By submitting a pull request you agree that your contribution is licensed under 
 
 ---
 
-Thanks again — every issue, fix, and translation makes OffPay more useful to people who can't always rely on a data connection.
+Thanks again: every issue, fix, and translation makes OffPay more useful to people who can't always rely on a data connection.

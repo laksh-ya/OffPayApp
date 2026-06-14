@@ -3,33 +3,552 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>OffPay — UPI without the internet. No data needed.</title>
-  <meta name="description" content="OffPay lets you send UPI payments, check balance, and scan QR codes over *99# USSD — using only your SIM card. No internet, no Wi-Fi, no account required. Works on Airtel, Vi, and BSNL." />
-  <meta name="keywords" content="offline UPI, *99#, NUUP, UPI without internet, OffPay, USSD payment India" />
-  <meta name="author" content="Lakshya & Harsh" />
-  <meta name="theme-color" content="#0d0d0d" />
-  <meta name="robots" content="index, follow" />
+  <title>OffPay — UPI without the internet</title>
 
-  <meta property="og:title" content="OffPay — UPI without the internet" />
-  <meta property="og:description" content="Send money, check balance, scan QR. Over *99# on your SIM. Zero data. Zero login. Zero servers." />
+  <meta name="description" content="OffPay sends UPI payments over *99#: no internet, no account, no servers. Android app + PWA." />
+  <meta name="theme-color" content="#000000" />
+  <meta property="og:title" content="OffPay" />
+  <meta property="og:description" content="Send money over UPI. No internet. Just *99# and a phone signal." />
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://offpayapp.vercel.app/" />
-  <meta property="og:image" content="assets/logos/icon.png" />
-  <meta property="og:site_name" content="OffPay" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="OffPay — UPI without the internet" />
-  <meta name="twitter:description" content="Zero data. Zero login. Zero servers. Send UPI over *99# USSD." />
-
   <link rel="icon" type="image/png" href="assets/logos/icon.png" />
   <link rel="apple-touch-icon" href="assets/logos/icon.png" />
-  <link rel="canonical" href="https://offpayapp.vercel.app/" />
-
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── NeoPOP palette (exact from app Colors.kt) ─── */
+    :root {
+      --black:        #000000;
+      --surface:      #0E0F12;
+      --surface-hi:   #16181D;
+      --surface-hir:  #1F2229;
+      --border:       #2A2D34;
+      --border-s:     #3A3E47;
+      --text-1:       #FFFFFF;
+      --text-2:       #9BA1A8;
+      --text-3:       #5A6068;
+      --lime:         #C5F542;
+      --lime-dim:     #8AAB2C;
+      --danger:       #FF4D4D;
+      --success:      #00D26A;
+      --mono:         'JetBrains Mono', monospace;
+      --sans:         'Plus Jakarta Sans', system-ui, sans-serif;
+      --max:          960px;
+      --pad:          clamp(16px, 4.5vw, 48px);
+    }
 
-  <link rel="stylesheet" href="styles.css" />
+    /* ─── reset ─── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    html, body {
+      background: var(--black);
+      color: var(--text-1);
+      font-family: var(--sans);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+      max-width: 100%;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(rgba(197, 245, 66, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: center;
+      z-index: -3;
+      pointer-events: none;
+    }
+    img { display: block; max-width: 100%; }
+    a { color: inherit; text-decoration: none; }
+    button { font-family: inherit; }
+    ::selection { background: var(--lime); color: var(--black); }
+
+    /* ─── layout helpers ─── */
+    .w { max-width: var(--max); margin: 0 auto; padding: 0 var(--pad); }
+    .divider { border: none; border-top: 1px solid var(--border); }
+    section { padding: clamp(56px, 8vw, 96px) 0; }
+
+    /* ─── typographic scale ─── */
+    .label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.22em;
+      color: var(--lime);
+      text-transform: uppercase;
+      display: block;
+      margin-bottom: 14px;
+    }
+    h1 {
+      font-size: clamp(32px, 9vw, 100px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 0.95;
+      color: var(--text-1);
+    }
+    h2 {
+      font-size: clamp(28px, 5vw, 56px);
+      font-weight: 800;
+      letter-spacing: -0.035em;
+      line-height: 1.0;
+      color: var(--text-1);
+    }
+    h3 { font-size: 15px; font-weight: 700; color: var(--text-1); }
+    .lime { color: var(--lime); }
+    .muted { color: var(--text-2); }
+    p.sub {
+      font-size: 15px;
+      color: var(--text-2);
+      line-height: 1.72;
+      max-width: 52ch;
+      margin-top: 12px;
+    }
+
+    /* ─── NeoPOP buttons: sharp edges, 4px shadow offset ─── */
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      font-family: var(--sans);
+      font-size: 14px; font-weight: 700; letter-spacing: 0.01em;
+      padding: 14px 22px;
+      min-height: 48px;
+      cursor: pointer; border: none;
+      transition: transform 80ms, box-shadow 80ms;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .btn:active { transform: translate(2px, 2px); }
+
+    .btn-lime {
+      background: var(--lime);
+      color: var(--black);
+      box-shadow: 3px 3px 0 var(--lime-dim);
+    }
+    .btn-lime:hover { box-shadow: 4px 4px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    .btn-lime:active { box-shadow: none; transform: translate(3px,3px); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--text-1);
+      border: 1px solid var(--border-s);
+      box-shadow: 3px 3px 0 var(--border);
+    }
+    .btn-outline:hover { box-shadow: 4px 4px 0 var(--border-s); transform: translate(-1px,-1px); }
+    .btn-outline:active { box-shadow: none; transform: translate(3px,3px); }
+
+    .btn-setup {
+      background: transparent;
+      color: var(--lime);
+      border: 1px solid var(--lime);
+      box-shadow: 3px 3px 0 rgba(197, 245, 66, 0.15);
+    }
+    .btn-setup:hover { box-shadow: 4px 4px 0 rgba(197, 245, 66, 0.25); transform: translate(-1px,-1px); }
+    .btn-setup:active { box-shadow: none; transform: translate(3px,3px); }
+
+    @media (max-width: 520px) {
+      .btn { width: 100%; }
+      .hero-btns { flex-direction: column; }
+      .dl-btns { flex-direction: column; }
+    }
+
+    /* ─── Nav ─── */
+    nav {
+      position: sticky; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 var(--pad); height: 54px;
+      height: calc(54px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
+      background: rgba(0,0,0,0.88);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-brand {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 16px; font-weight: 800; letter-spacing: -0.02em;
+    }
+    .nav-brand img { width: 26px; height: 26px; }
+    .nav-links {
+      display: flex; gap: 24px; margin: 0 auto;
+      font-size: 13px; font-weight: 500; color: var(--text-2);
+    }
+    .nav-links a:hover { color: var(--text-1); }
+    .nav-links a.active { color: var(--lime); }
+    .nav-dl {
+      font-size: 12px; font-weight: 700;
+      background: var(--lime); color: var(--black);
+      padding: 10px 16px;
+      min-height: 40px;
+      box-shadow: 2px 2px 0 var(--lime-dim);
+      transition: box-shadow 80ms, transform 80ms;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    .nav-dl:active { box-shadow: none; transform: translate(2px,2px); }
+    
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 22px;
+      height: 14px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 210;
+    }
+    .menu-toggle .bar {
+      width: 100%;
+      height: 2px;
+      background-color: var(--text-1);
+      transition: all 0.2s ease-in-out;
+    }
+    .mobile-menu {
+      position: fixed;
+      top: calc(54px + env(safe-area-inset-top, 0px));
+      left: 0;
+      width: 100%;
+      height: calc(100vh - (54px + env(safe-area-inset-top, 0px)));
+      background: rgba(13,13,13,0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 190;
+      display: flex;
+      flex-direction: column;
+      padding: 40px var(--pad);
+      transform: translateY(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-bottom: 1px solid var(--border);
+    }
+    .mobile-menu.active {
+      transform: translateY(0);
+    }
+    .mobile-menu-links {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .mobile-menu-links a {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-2);
+      text-transform: capitalize;
+      letter-spacing: -0.02em;
+      transition: color 0.2s ease;
+    }
+    .mobile-menu-links a:hover,
+    .mobile-menu-links a.active {
+      color: var(--lime);
+    }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .menu-toggle { display: flex; }
+      .menu-toggle.active .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+      .menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+      .menu-toggle.active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+    }
+
+    /* ─── Hero ─── */
+    .hero {
+      position: relative;
+      padding: clamp(72px, 12vw, 130px) 0 clamp(48px, 7vw, 80px);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    #hero-shader {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      display: block;
+    }
+    .hero-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(60% 40% at 50% 0%, rgba(197,245,66,0.08) 0%, transparent 70%),
+        radial-gradient(80% 60% at 50% 100%, transparent 0%, rgba(13,13,13,0.85) 100%),
+        linear-gradient(180deg, rgba(13,13,13,0.40) 0%, rgba(13,13,13,0.10) 35%, rgba(13,13,13,0.85) 100%);
+    }
+
+    /* Global Ambient Orbs */
+    .ambient-glow-1 {
+      position: absolute;
+      top: -100px;
+      right: 5%;
+      width: min(600px, 90vw);
+      height: 600px;
+      background: radial-gradient(circle, rgba(197, 245, 66, 0.06) 0%, transparent 70%);
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: -10;
+    }
+    .ambient-glow-2 {
+      position: absolute;
+      top: 1800px;
+      left: -10%;
+      width: min(500px, 80vw);
+      height: 500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: -10;
+    }
+    .ambient-glow-3 {
+      position: absolute;
+      top: 3200px;
+      right: -5%;
+      width: min(550px, 85vw);
+      height: 550px;
+      background: radial-gradient(circle, rgba(197, 245, 66, 0.05) 0%, transparent 70%);
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: -10;
+    }
+    .hero h1 { margin-bottom: 18px; }
+    .hero p.sub { margin-bottom: 32px; max-width: 46ch; }
+    .hero-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+
+    /* ─── NeoPOP card ─── */
+    .np-card {
+      background: var(--surface-hi);
+      border: 1px solid var(--border);
+      box-shadow: 4px 4px 0 var(--border);
+      padding: 24px;
+    }
+    .np-card-sm {
+      background: var(--surface-hi);
+      border: 1px solid var(--border);
+      box-shadow: 3px 3px 0 var(--border);
+      padding: 18px 20px;
+    }
+
+    /* ─── Video facade ─── */
+    .video-wrap {
+      margin-top: 44px;
+      aspect-ratio: 16/9;
+      position: relative;
+      border: 1px solid var(--border);
+      box-shadow: 6px 6px 0 var(--border);
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--surface);
+    }
+    .video-wrap iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: none; }
+    .video-facade {
+      position: absolute; inset: 0; display: flex;
+      flex-direction: column; align-items: center; justify-content: center;
+      background: var(--surface); z-index: 2; transition: opacity 180ms;
+    }
+    .video-facade.gone { opacity: 0; pointer-events: none; }
+    .video-facade img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; opacity: 0.28;
+    }
+    .play-ring {
+      position: relative;
+      width: 68px; height: 68px;
+      border: 1.5px solid rgba(255,255,255,0.25);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text-1); transition: border-color 140ms, color 140ms;
+    }
+    .video-facade:hover .play-ring { border-color: var(--lime); color: var(--lime); }
+    .play-label { position: relative; margin-top: 14px; font-size: 12px; font-weight: 600; color: var(--text-3); letter-spacing: 0.06em; }
+
+    /* ─── Screenshots strip ─── */
+    .shots {
+      display: flex; gap: 8px;
+      overflow-x: auto; scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none; margin-top: 24px;
+      padding-bottom: 2px; /* prevent border clipping */
+    }
+    .shots::-webkit-scrollbar { display: none; }
+    .shot {
+      flex: 0 0 auto; width: clamp(110px, 28vw, 176px);
+      scroll-snap-align: start;
+      border: 1px solid var(--border);
+      background: var(--surface-hi);
+    }
+    .shot img { width: 100%; aspect-ratio: 9/19.5; object-fit: cover; }
+    .shot-cap { padding: 8px 10px; font-size: 11px; font-weight: 600; color: var(--text-3); font-family: var(--mono); }
+
+    /* ─── Features grid ─── */
+    .feat-grid {
+      display: grid; grid-template-columns: repeat(3,1fr);
+      border: 1px solid var(--border);
+      margin-top: 36px;
+    }
+    @media (max-width: 680px) { .feat-grid { grid-template-columns: 1fr 1fr; } }
+    @media (max-width: 420px) { .feat-grid { grid-template-columns: 1fr; } }
+    .feat-cell {
+      padding: 20px 18px;
+      border-right: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface);
+      transition: background 150ms;
+    }
+    .feat-cell:hover { background: var(--surface-hi); }
+    /* 3-col: last cell in each row has no right border; last row has no bottom border */
+    .feat-cell:nth-child(3n) { border-right: none; }
+    .feat-cell:nth-last-child(-n+3):nth-child(3n+1),
+    .feat-cell:nth-last-child(-n+3):nth-child(3n+2),
+    .feat-cell:nth-last-child(-n+3):nth-child(3n+3) { border-bottom: none; }
+    /* 2-col mobile */
+    @media (max-width: 680px) {
+      .feat-cell:nth-child(3n) { border-right: 1px solid var(--border); }
+      .feat-cell:nth-child(2n) { border-right: none; }
+      .feat-cell:nth-last-child(-n+2) { border-bottom: none; }
+      .feat-cell:nth-last-child(1) { border-bottom: none; }
+    }
+    /* 1-col mobile */
+    @media (max-width: 420px) {
+      .feat-cell { border-right: none !important; }
+      .feat-cell:last-child { border-bottom: none; }
+    }
+
+    .feat-dot {
+      width: 8px; height: 8px; background: var(--lime);
+      margin-bottom: 14px;
+    }
+    .feat-cell h3 { margin-bottom: 6px; font-size: 14px; }
+    .feat-cell p { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+
+    /* ─── PWA section ─── */
+    .pwa-grid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: clamp(24px, 5vw, 60px); align-items: center;
+      margin-top: 36px;
+    }
+    @media (max-width: 680px) {
+      .pwa-grid { grid-template-columns: 1fr; }
+      /* on mobile show image below text, smaller */
+      .pwa-mockup { order: 2; }
+      .pwa-content { order: 1; }
+    }
+    .pwa-mockup img {
+      max-width: 200px;
+      margin: 0 auto;
+      filter: drop-shadow(4px 4px 0 var(--border));
+    }
+    @media (max-width: 680px) {
+      .pwa-mockup img { max-width: 130px; }
+    }
+    .install-steps { display: flex; flex-direction: column; gap: 6px; margin: 18px 0 24px; }
+    .install-step {
+      display: flex; gap: 12px; align-items: center;
+      background: var(--surface-hi); border: 1px solid var(--border);
+      padding: 14px;
+      min-height: 48px;
+    }
+    .install-os { font-family: var(--mono); font-size: 9px; letter-spacing: 0.12em; color: var(--lime); flex-shrink: 0; width: 42px; }
+    .install-step p { font-size: 13px; color: var(--text-2); }
+    .install-step strong { color: var(--text-1); font-weight: 600; }
+
+    /* ─── FAQ ─── */
+    .faq-list { margin-top: 32px; display: flex; flex-direction: column; gap: 4px; }
+    details { border: 1px solid var(--border); background: var(--surface); }
+    details[open] { border-left: 2px solid var(--lime); }
+    summary {
+      display: flex; justify-content: space-between; align-items: center;
+      gap: 14px; padding: 16px 18px;
+      font-size: 14px; font-weight: 600; color: var(--text-1);
+      cursor: pointer; list-style: none; user-select: none;
+      min-height: 52px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    summary::-webkit-details-marker { display: none; }
+    .chev { color: var(--text-3); flex-shrink: 0; transition: transform 200ms; }
+    details[open] .chev { transform: rotate(180deg); color: var(--lime); }
+    .faq-ans {
+      padding: 14px 18px 18px; border-top: 1px solid var(--border);
+      font-size: 13.5px; color: var(--text-2); line-height: 1.72;
+    }
+    .faq-ans a { color: var(--lime); }
+    .faq-ans code { font-family: var(--mono); font-size: 12px; color: var(--lime); background: rgba(197,245,66,0.07); padding: 1px 5px; }
+    .faq-ans strong { color: var(--text-1); font-weight: 600; }
+    .steps-list { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+    .step-row { display: flex; gap: 12px; align-items: flex-start; }
+    .step-num {
+      width: 22px; height: 22px; background: var(--lime);
+      color: var(--black); font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .step-body { font-size: 13px; color: var(--text-2); line-height: 1.55; }
+    .carrier-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+    .carrier-tag { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; padding: 5px 10px; font-weight: 500; }
+    .tag-yes { background: rgba(0,210,106,0.12); color: var(--success); border: 1px solid rgba(0,210,106,0.25); }
+    .tag-no  { background: rgba(255,77,77,0.1);  color: var(--danger);  border: 1px solid rgba(255,77,77,0.2); }
+    .modes-row { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .mode-card { background: var(--surface-hir); border: 1px solid var(--border); padding: 14px 16px; }
+    .mode-card b { color: var(--text-1); font-size: 13px; font-weight: 700; }
+    .mode-card p { font-size: 12.5px; color: var(--text-2); margin-top: 4px; line-height: 1.5; }
+
+    /* ─── Download box ─── */
+    .dl-box {
+      background: var(--surface);
+      border: 1px solid rgba(197,245,66,0.25);
+      box-shadow: 6px 6px 0 rgba(197,245,66,0.1);
+      padding: clamp(28px, 5vw, 56px);
+      margin-top: 36px;
+    }
+    .dl-box h2 { margin-bottom: 8px; }
+    .dl-box > p { margin-bottom: 28px; }
+    .dl-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+    .dl-note { margin-top: 18px; font-size: 12px; color: var(--text-3); }
+    .dl-note a { color: var(--text-2); }
+    .dl-note a:hover { color: var(--text-1); }
+
+    /* ─── Cat ─── */
+    .cat { position: relative; overflow: hidden; border-top: 1px solid var(--border); }
+    .cat-img { width: 100%; height: clamp(160px, 26vw, 300px); object-fit: cover; object-position: center 35%; filter: brightness(0.4); }
+    .cat-copy {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: var(--pad);
+    }
+    .cat-by { font-family: var(--mono); font-size: 10px; letter-spacing: 0.2em; color: var(--lime); margin-bottom: 12px; text-transform: uppercase; }
+    .cat-line { font-size: clamp(22px, 4.5vw, 44px); font-weight: 800; letter-spacing: -0.03em; color: var(--text-1); line-height: 1.08; }
+
+    /* ─── Footer ─── */
+    footer { background: var(--surface); border-top: 1px solid var(--border); padding: 24px var(--pad); }
+    .foot-in { max-width: var(--max); margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+    .foot-brand { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 800; letter-spacing: -0.02em; }
+    .foot-brand img { width: 22px; height: 22px; }
+    .foot-links { display: flex; flex-wrap: wrap; gap: 20px; font-size: 12px; color: var(--text-3); font-weight: 500; }
+    .foot-links a:hover { color: var(--text-1); }
+
+    /* ─── Modal ─── */
+    #modal { display: none; position: fixed; inset: 0; z-index: 999; background: rgba(0,0,0,0.72); backdrop-filter: blur(10px); align-items: center; justify-content: center; padding: 20px; }
+    #modal.on { display: flex; }
+    .modal-card {
+      background: var(--surface-hi);
+      border: 1px solid rgba(197,245,66,0.25);
+      box-shadow: 6px 6px 0 rgba(197,245,66,0.12);
+      padding: clamp(24px, 4vw, 40px);
+      max-width: 380px; width: 100%;
+      text-align: center;
+      animation: popIn 240ms cubic-bezier(.2,.8,.2,1);
+    }
+    @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+    .modal-card .lime-sq { width: 48px; height: 48px; background: var(--lime); display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+    .modal-card h3 { font-size: 17px; font-weight: 800; letter-spacing: -0.02em; color: var(--text-1); margin-bottom: 8px; }
+    .modal-card p { font-size: 13px; color: var(--text-2); line-height: 1.65; margin-bottom: 22px; }
+    .modal-cta { display: block; background: var(--lime); color: var(--black); font-weight: 700; font-size: 13px; padding: 13px; box-shadow: 3px 3px 0 var(--lime-dim); margin-bottom: 10px; transition: box-shadow 80ms, transform 80ms; }
+    .modal-cta:hover { box-shadow: 4px 4px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    .modal-skip { background: none; border: none; color: var(--text-3); font-size: 12px; cursor: pointer; padding: 4px; font-family: var(--sans); }
+    .modal-skip:hover { color: var(--text-2); }
+  </style>
 </head>
 <body>
 
@@ -37,944 +556,413 @@
 <div class="ambient-glow-2" aria-hidden="true"></div>
 <div class="ambient-glow-3" aria-hidden="true"></div>
 
-<!-- ░░░ Top nav ░░░ -->
-<header class="nav">
-  <a href="#top" class="brand" aria-label="OffPay home">
-    <img src="assets/logos/icon.png" alt="" />
-    <span class="wordmark"><span class="lime">Off</span>Pay</span>
-  </a>
-  <nav class="nav-links" aria-label="Primary">
-    <a href="#features">features</a>
-    <a href="#modes">modes</a>
-    <a href="#how">how</a>
-    <a href="#pwa">pwa</a>
-    <a href="about.html">about</a>
-  </nav>
-  <a href="#download" class="cta-mini" data-haptic="light">download</a>
-</header>
 
-<!-- ░░░ Hero — logo-led, centered ░░░ -->
-<section id="top" class="hero">
+<!-- Modal -->
+<div id="modal" role="dialog" aria-modal="true">
+  <div class="modal-card">
+    <div class="lime-sq">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <h3>One quick setup step</h3>
+    <p>OffPay needs Accessibility Service to auto-dial *99#. Watch the guide (takes about 2 minutes).</p>
+    <a href="setup.html" class="modal-cta">Watch Setup Guide →</a>
+    <button class="modal-skip" id="modal-skip">Skip for now</button>
+  </div>
+</div>
+
+<!-- Nav -->
+<nav>
+  <a href="index.html" class="nav-brand">
+    <img src="assets/logos/icon.png" alt="OffPay" />
+    <span><span class="lime">Off</span>Pay</span>
+  </a>
+  <div class="nav-links">
+    <a href="#demo">Demo</a>
+    <a href="#features">Features</a>
+    <a href="#pwa">PWA</a>
+    <a href="setup.html">Setup</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+  </div>
+  <div class="nav-right">
+    <a href="#download" class="nav-dl">Download</a>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-links">
+    <a href="#demo">Demo</a>
+    <a href="#features">Features</a>
+    <a href="#pwa">PWA</a>
+    <a href="setup.html">Setup</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+  </div>
+</div>
+
+<!-- ─── Hero ─── -->
+<section class="hero">
   <canvas id="hero-shader" aria-hidden="true"></canvas>
   <div class="hero-vignette" aria-hidden="true"></div>
-
-  <div class="hero-inner">
-
-    <div class="hero-logo">
-      <img src="assets/logos/icon.png" alt="OffPay" />
-    </div>
-
-    <div class="hero-eyebrow">
-      <span class="dot"></span>
-      <span>UPI · OFFLINE · *99#</span>
-    </div>
-
-    <h1 class="hero-wordmark"><span class="lime">Off</span>Pay</h1>
-
-    <p class="hero-title">
-      UPI without the <span class="lime">internet.</span>
-    </p>
-
-    <p class="hero-sub">
-      Pay, check balance, scan QR — over plain <code>*99#</code> on your SIM.
-      Zero data. Zero login. Zero servers.
-    </p>
-
-    <div class="hero-ctas">
-      <a class="neopop neopop-primary" href="#download" data-haptic="medium">
-        <span class="neopop-face">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>Download APK</span>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
+  <div class="w">
+    <h1>Pay over UPI.<br/><span class="lime">No internet.</span></h1>
+    <p class="sub">OffPay uses *99# (India's USSD-based UPI protocol) to send money, check balance, and scan QR codes entirely over your SIM's voice channel. Works on Airtel, Vi and BSNL with zero data.</p>
+    <div class="hero-btns">
+      <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener" class="btn btn-lime" id="apk-btn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+        Download APK
       </a>
-      <a class="neopop neopop-secondary" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
-        <span class="neopop-face">
-          <span>Try the PWA</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-    </div>
 
-    <div class="hero-phones">
-      <div class="hp"><img src="assets/screenshots/balance-result.jpeg" alt="" loading="lazy" /></div>
-      
-      <!-- Interactive Phone Simulator Container -->
-      <div class="hp hp-interactive">
-        <div class="phone-status-bar">
-          <span class="phone-time" id="sim-time">10:09</span>
-          <div class="phone-notch"></div>
-          <div class="phone-status-icons">
-            <span class="phone-carrier">Vi 5G</span>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle; margin-top: -2px;"><path d="M2 22h20V2z"/></svg>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-top: -2px;"><rect x="2" y="7" width="16" height="10" rx="2"/><path d="M22 11v2"/></svg>
-          </div>
-        </div>
-        
-        <div class="phone-screen" id="sim-screen">
-          <!-- View 1: Homescreen -->
-          <div class="sim-view active" id="view-home">
-            <div class="sim-app-header">
-              <div class="sim-brand"><span class="lime">Off</span>Pay</div>
-              <div class="sim-security-badge">
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg> SECURE
-              </div>
-            </div>
-            
-            <div class="sim-balance-card">
-              <div class="sim-balance-label">PRIMARY BANK</div>
-              <div class="sim-balance-bank">State Bank of India</div>
-              <div class="sim-balance-val" id="sim-home-balance">Balance: Hidden</div>
-            </div>
-            
-            <div class="sim-actions-grid">
-              <button class="sim-action-btn" id="btn-goto-pay" data-haptic="light" aria-label="Pay VPA">
-                <div class="sim-action-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-                </div>
-                <span>Pay VPA</span>
-              </button>
-              <button class="sim-action-btn" id="btn-goto-scan" data-haptic="light" aria-label="Scan QR Code">
-                <div class="sim-action-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7V5a2 2 0 012-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/></svg>
-                </div>
-                <span>Scan QR</span>
-              </button>
-              <button class="sim-action-btn" id="btn-goto-balance" data-haptic="light" aria-label="Check Balance">
-                <div class="sim-action-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-                </div>
-                <span>Balance</span>
-              </button>
-            </div>
+      <a href="setup.html" class="btn btn-setup">Setup Guide →</a>
 
-            <div class="sim-recent-header">RECENT TRANSACTIONS</div>
-            <div class="sim-recent-list">
-              <div class="sim-recent-item">
-                <div>
-                  <div class="sim-recent-title">harsh@upi</div>
-                  <div class="sim-recent-time">Today, 2:40 PM · offline</div>
-                </div>
-                <div class="sim-recent-amount lime">₹500.00</div>
-              </div>
-              <div class="sim-recent-item">
-                <div>
-                  <div class="sim-recent-title">lakshya@okaxis</div>
-                  <div class="sim-recent-time">Yesterday · offline</div>
-                </div>
-                <div class="sim-recent-amount lime">₹120.00</div>
-              </div>
-            </div>
-          </div>
-          
-          <!-- View 2: Send Money Form -->
-          <div class="sim-view" id="view-pay">
-            <div class="sim-view-header">
-              <button class="sim-back-btn" id="btn-pay-back" data-haptic="light" aria-label="Back to home">&larr;</button>
-              <span>Send Money Offline</span>
-            </div>
-            <div class="sim-form">
-              <label>RECIPIENT UPI ID</label>
-              <input type="text" id="sim-pay-vpa" value="harsh@upi" placeholder="example@upi" readonly />
-              
-              <label>AMOUNT (INR)</label>
-              <input type="text" id="sim-pay-amount" value="500" placeholder="₹ Enter Amount" readonly />
-              
-              <div class="sim-quick-amounts">
-                <button class="sim-quick-amount-btn" data-val="100" data-haptic="light">₹100</button>
-                <button class="sim-quick-amount-btn active" data-val="500" data-haptic="light">₹500</button>
-                <button class="sim-quick-amount-btn" data-val="2000" data-haptic="light">₹2,000</button>
-              </div>
-              
-              <button class="sim-submit-btn" id="btn-pay-submit" data-haptic="medium">Submit (*99#)</button>
-            </div>
-          </div>
-
-          <!-- View 3: Scan QR -->
-          <div class="sim-view" id="view-scan">
-            <div class="sim-view-header">
-              <button class="sim-back-btn" id="btn-scan-back" data-haptic="light" aria-label="Back to home">&larr;</button>
-              <span>Scan Offline QR</span>
-            </div>
-            <div class="sim-scanner-area">
-              <div class="sim-scanner-brackets"></div>
-              <div class="sim-scanner-laser"></div>
-              <div class="sim-scanner-label">Scanning local codes offline...</div>
-              
-              <div class="sim-mock-qr" id="btn-simulate-scan" data-haptic="medium">
-                <svg width="64" height="64" viewBox="0 0 29 29" fill="currentColor">
-                  <path d="M0 0h9v9H0zm1 1v7h7V1zm8 0h2v1H9zm1 2h1v1h-1zm-1 2h2v1H9zm3-5h9v9h-9zm1 1v7h7V1zm-4 7h1v1h-1zm1 1h1v1h-1zm-2 0h1v1h-1zm5-1h1v1h-1zm0 2h1v1h-1zm-1 0h1v1h-1zm-1-7h1v1h-1zm1 1h1v1h-1zm-2 0h1v1h-1zm0 2h1v1h-1zm3 1h1v1h-1zm3-5h9v9h-9zm1 1v7h7V1zM1 10h1v1H1zm2 0h1v1H3zm3 0h1v1H6zm4 0h1v1h-1zm2 0h2v1h-2zm4 0h1v1h-1zm3 0h2v1h-2zm3 0h1v1h-1zm-23 2h2v1H1zm3 0h2v1H4zm3 0h1v1H7zm2 0h1v1H9zm2 0h1v1h-1zm2 0h1v1h-1zm3 0h1v1h-1zm2 0h3v1h-3zm1-3h1v1h-1zm2 1h1v1h-1zm-1 1h1v1h-1zm1 1h1v1h-1zM2 14h1v1H2zm3 0h1v1H5zm1 2h1v1H6zm1-1h1v1H7zm4-3h1v1h-1zm1 2h2v1h-2zm3 0h1v1h-1zm2-2h1v1h-1zm3 0h1v1h-1zm-9 3h2v1h-2zm3 0h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm1-3h1v1h-1zm2 1h1v1h-1zM0 20h9v9H0zm1 1v7h7v-7zm10-1h1v1h-1zm2 0h1v1h-1zm1 0h2v1h-2zm3 0h2v1h-2zm3 0h1v1h-1zm-9 2h2v1h-2zm3 0h1v1h-1zm4 0h1v1h-1zm1 0h1v1h-1zm3 0h1v1h-1zm-11 2h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm2 0h2v1h-2zm4 0h1v1h-1zm-13 2h1v1h-1zm2 0h1v1h-1zm2 0h1v1h-1zm4 0h2v1h-2zm3 0h2v1h-2zm-12 2h1v1h-1zm3 0h1v1h-1zm2 0h1v1h-1zm3 0h1v1h-1zm2 0h1v1h-1zm3 0h1v1h-1zm2 0h1v1h-1z"/>
-                </svg>
-                <span class="sim-qr-tap-label">TAP TO SCAN MOCK QR</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- USSD overlay container -->
-          <div class="sim-overlay" id="sim-overlay-ussd">
-            <div class="sim-ussd-container">
-              <div class="sim-ussd-header">GSM Link Dialog</div>
-              <div class="sim-ussd-terminal" id="sim-ussd-log"></div>
-              <div class="sim-ussd-prompt" id="sim-ussd-prompt-box">
-                <div class="sim-ussd-prompt-text" id="sim-ussd-text">USSD request...</div>
-                <div class="sim-ussd-input-wrap">
-                  <input type="text" id="sim-ussd-input" readonly />
-                </div>
-                <div class="sim-ussd-buttons">
-                  <button id="btn-ussd-cancel" class="btn-ussd" data-haptic="light">Cancel</button>
-                  <button id="btn-ussd-send" class="btn-ussd active" data-haptic="medium">Send</button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- PIN Entry Keyboard overlay -->
-          <div class="sim-overlay" id="sim-overlay-pin">
-            <div class="sim-pin-container">
-              <div class="sim-pin-header">ENTER 6-DIGIT UPI PIN</div>
-              <div class="sim-pin-dots">
-                <span class="pin-dot"></span>
-                <span class="pin-dot"></span>
-                <span class="pin-dot"></span>
-                <span class="pin-dot"></span>
-                <span class="pin-dot"></span>
-                <span class="pin-dot"></span>
-              </div>
-              <div class="sim-pin-keypad">
-                <button class="pin-key" data-val="1" data-haptic="light" aria-label="Key 1">1</button>
-                <button class="pin-key" data-val="2" data-haptic="light" aria-label="Key 2">2</button>
-                <button class="pin-key" data-val="3" data-haptic="light" aria-label="Key 3">3</button>
-                <button class="pin-key" data-val="4" data-haptic="light" aria-label="Key 4">4</button>
-                <button class="pin-key" data-val="5" data-haptic="light" aria-label="Key 5">5</button>
-                <button class="pin-key" data-val="6" data-haptic="light" aria-label="Key 6">6</button>
-                <button class="pin-key" data-val="7" data-haptic="light" aria-label="Key 7">7</button>
-                <button class="pin-key" data-val="8" data-haptic="light" aria-label="Key 8">8</button>
-                <button class="pin-key" data-val="9" data-haptic="light" aria-label="Key 9">9</button>
-                <button class="pin-key-back" data-haptic="light" aria-label="Backspace">&larr;</button>
-                <button class="pin-key" data-val="0" data-haptic="light" aria-label="Key 0">0</button>
-                <button class="pin-key-clear" data-haptic="light" aria-label="Clear">C</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Success / Confetti Overlay -->
-          <div class="sim-overlay" id="sim-overlay-success">
-            <div class="sim-success-card">
-              <div class="sim-success-circle">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-                  <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
-              </div>
-              <h3 id="sim-success-title">Payment Success</h3>
-              <p id="sim-success-desc">Transferred ₹500 to harsh@upi</p>
-              <div class="sim-success-details">
-                <div>NPCI Ref: <span id="sim-success-ref" class="mono">849204810283</span></div>
-                <div>Method: GSM Dialing (*99#)</div>
-                <div>Signal Integrity: High</div>
-              </div>
-              <button class="sim-submit-btn" id="btn-success-close" data-haptic="medium" style="width: 100%;">Done</button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-      
-      <div class="hp"><img src="assets/screenshots/qr-scanner.jpeg" alt="" loading="lazy" /></div>
+      <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-outline">Try PWA</a>
     </div>
   </div>
 </section>
 
-<!-- ░░░ Marquee belt ░░░ -->
-<section class="belt" aria-hidden="true">
-  <div class="belt-track">
-    <span>OFFLINE UPI</span><span class="bullet">●</span>
-    <span>NO DATA NEEDED</span><span class="bullet">●</span>
-    <span>*99# OVER SIM</span><span class="bullet">●</span>
-    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
-    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
-    <span>OFFLINE UPI</span><span class="bullet">●</span>
-    <span>NO DATA NEEDED</span><span class="bullet">●</span>
-    <span>*99# OVER SIM</span><span class="bullet">●</span>
-    <span>PIN STAYS LOCAL</span><span class="bullet">●</span>
-    <span>BUILT FOR INDIA</span><span class="bullet">●</span>
-  </div>
-</section>
+<hr class="divider" />
 
-<!-- ░░░ Stats bar ░░░ -->
-<section class="stats-bar" aria-label="Key metrics">
-  <div class="stats-inner">
-    <div class="stat-item">
-      <div class="stat-num" data-target="300">0</div>
-      <div class="stat-suffix">M+</div>
-      <div class="stat-label">Indians in low-coverage areas</div>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="500">0</div>
-      <div class="stat-suffix">ms</div>
-      <div class="stat-label">PIN memory wipe window</div>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="0">0</div>
-      <div class="stat-suffix"></div>
-      <div class="stat-label">Bytes of mobile data used</div>
-    </div>
-    <div class="stat-divider"></div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="100">0</div>
-      <div class="stat-suffix">%</div>
-      <div class="stat-label">Open source · MIT License</div>
-    </div>
-  </div>
-</section>
 
-<!-- ░░░ Trust badges ░░░ -->
-<section class="trust-section">
-  <div class="trust-inner">
-    <div class="trust-label">Verified credentials</div>
-    <div class="trust-badges">
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        <span>NPCI *99# Protocol</span>
-      </div>
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/></svg>
-        <span>MIT License</span>
-      </div>
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
-        <span>Open Source</span>
-      </div>
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1.72m7.56 0h1.72a2 2 0 0 1 2 2v1.72"/><path d="M11 5H6.83A2 2 0 0 0 5 6.83V19"/></svg>
-        <span>Zero Server Calls</span>
-      </div>
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-        <span>SQLCipher Encrypted</span>
-      </div>
-      <div class="trust-badge">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-        <span>No Account Needed</span>
-      </div>
-    </div>
-  </div>
-</section>
+<!-- ─── Demo ─── -->
+<section id="demo">
+  <div class="w">
+    <span class="label">Demo</span>
+    <h2>See it working.</h2>
+    <p class="sub">A real payment on a real phone. Airplane mode on. No tricks.</p>
 
-<!-- ░░░ Features (Bento Grid) ░░░ -->
-<section id="features" class="section">
-  <div class="section-head">
-    <div class="kicker">FEATURES</div>
-    <h2>Everything UPI.<br/><span class="lime">None of the internet.</span></h2>
-  </div>
-
-  <div class="bento-grid">
-    <!-- Card 1: Auto Dialing (Double Width) -->
-    <div class="bento-card bento-span-2">
-      <div>
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+    <div class="video-wrap" data-yt="iODYB15kApI">
+      <div class="video-facade">
+        <img src="https://img.youtube.com/vi/iODYB15kApI/maxresdefault.jpg" alt="" />
+        <div class="play-ring">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
         </div>
-        <h3>Auto Carrier Dialing</h3>
-        <p>No dialer menus to navigate manually. OffPay leverages Android Accessibility APIs to drive NUUP network calls (*99#) automatically in the background. Experience real-time progress dialogs right inside the app.</p>
-      </div>
-      
-      <div class="terminal-box">
-        <span class="terminal-prompt">$</span> offpay execute --ussd="*99#"<br/>
-        <span class="lime">[OK] Established Connection to GSM Cell Tower (-68dBm)</span><br/>
-        <span>[NUUP] NUUP Voice-Channel Response: 1. Send Money, 2. Check Balance...</span><br/>
-        <span class="terminal-prompt">$</span> <span class="terminal-cursor"></span>
+        <span class="play-label">Watch · 2 min</span>
       </div>
     </div>
 
-    <!-- Card 2: PIN Never Persists (Single Width) -->
-    <div class="bento-card">
-      <div>
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15v2m-6 4h12a2 2 0 0 0 2-2v-7a2 2 0 00-2-2H6a2 2 0 00-2 2v7a2 2 0 002 2zm10-12V7a4 4 0 00-8 0v3"/></svg>
-        </div>
-        <h3>Volatile RAM Buffers</h3>
-        <p>Zero non-volatile residue. Your 4 or 6-digit UPI PIN is cleared from memory buffers within 500 milliseconds of submission. It is never saved, cached, or written to disk.</p>
-      </div>
-      
-      <div class="ram-wipe-box">
-        <div class="ram-wipe-line">
-          <span>Registers:</span>
-          <span class="ram-status">ACTIVE</span>
-        </div>
-        <div class="ram-wipe-line">
-          <span>RAM Block:</span>
-          <span class="mono">0x7F9B1E4A</span>
-        </div>
-        <div class="ram-wipe-line">
-          <span>PIN Data:</span>
-          <span class="ram-wipe-value" id="bento-ram-val">******</span>
-        </div>
-        <div class="ram-wipe-line">
-          <span>Wipe Loop:</span>
-          <span class="mono lime" id="bento-ram-timer">500ms</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Card 3: Zero Analytics (Single Width) -->
-    <div class="bento-card">
-      <div>
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <h3>Zero Analytics</h3>
-        <p>No telemetry, no tracking scripts, and no external servers. The app operates as an air-gapped sandbox. Your financial ledger belongs to you alone.</p>
-      </div>
-      
-      <div class="terminal-box" style="color: #06c270;">
-        <span class="terminal-prompt">$</span> cat AndroidManifest.xml | grep INTERNET<br/>
-        <span style="color: #ee4d37;">[FAIL] android.permission.INTERNET - Not Found</span><br/>
-        <span class="lime">[OK] android.permission.CALL_PHONE - Configured</span>
-      </div>
-    </div>
-
-    <!-- Card 4: Offline QR Scanning (Single Width) -->
-    <div class="bento-card">
-      <div>
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2M21 7V5a2 2 0 00-2-2h-2M3 17v2a2 2 0 002 2h2M21 17v2a2 2 0 01-2 2h-2"/></svg>
-        </div>
-        <h3>Pinch-to-Scan QR</h3>
-        <p>Scan standard merchant codes without an active network. OffPay parses the UPI deep link URL locally, extracts the merchant identifier and pre-fills transaction screens instantly.</p>
-      </div>
-      
-      <div class="ledger-row" style="margin-top: 14px; background: rgba(197, 245, 66, 0.05); border: 1px dashed var(--lime);">
-        <span class="mono" style="font-size: 11px; color: var(--lime);">[QR] Chai Point Merchant</span>
-        <span class="mono" style="font-size: 11px; font-weight: 700;">chaipoint@upi</span>
-      </div>
-    </div>
-
-    <!-- Card 5: SQLCipher Database (Double Width) -->
-    <div class="bento-card bento-span-2">
-      <div>
-        <div class="card-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8v4l2 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-        </div>
-        <h3>Encrypted Local Ledger</h3>
-        <p>Keep a detailed record of your payments offline. Ledger entries are encrypted using industry-standard SQLCipher database formats on your device. Swipe to delete, tap to check details, or retry transfers with a single tap.</p>
-      </div>
-      
-      <div class="mini-ledger">
-        <div class="ledger-row" id="ledger-item-1">
-          <div>
-            <span class="ledger-vpa">harsh@upi</span>
-            <div style="font-size: 10px; color: var(--text-3); margin-top: 2px;">June 06, 2:40 PM · Jio 5G</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="ledger-amount">₹500.00</span>
-            <button class="ledger-delete-btn" onclick="document.getElementById('ledger-item-1').style.opacity='0'; setTimeout(()=>document.getElementById('ledger-item-1').style.display='none', 300); window.playClickSound('light');" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 16px; font-weight: bold;" data-haptic="light">&times;</button>
-          </div>
-        </div>
-        <div class="ledger-row" id="ledger-item-2">
-          <div>
-            <span class="ledger-vpa">lakshya@okaxis</span>
-            <div style="font-size: 10px; color: var(--text-3); margin-top: 2px;">June 05, 1:12 PM · Airtel</div>
-          </div>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span class="ledger-amount">₹120.00</span>
-            <button class="ledger-delete-btn" onclick="document.getElementById('ledger-item-2').style.opacity='0'; setTimeout(()=>document.getElementById('ledger-item-2').style.display='none', 300); window.playClickSound('light');" style="background: transparent; border: none; color: var(--danger); cursor: pointer; font-size: 16px; font-weight: bold;" data-haptic="light">&times;</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ░░░ Two modes — compact, small screenshots ░░░ -->
-<section id="modes" class="section">
-  <div class="section-head">
-    <div class="kicker">TWO MODES</div>
-    <h2>Auto for the believers.<br/><span class="lime">Manual for the rest.</span></h2>
-  </div>
-
-  <div class="modes-row">
-    <article class="mode mode-auto">
-      <header>
-        <span class="mode-pill">DEFAULT</span>
-        <h3>Auto</h3>
-      </header>
-      <p>OffPay drives the carrier dialog start to finish. You stay in OffPay throughout — branded overlay, real-time progress.</p>
-      <figure class="mode-shot">
-        <img src="assets/screenshots/payment-running.jpeg" alt="" loading="lazy" />
+    <div class="shots">
+      <figure class="shot">
+        <img src="assets/screenshots/pay-form.jpeg" alt="Pay screen" loading="lazy" />
+        <div class="shot-cap">Pay</div>
       </figure>
-    </article>
-
-    <article class="mode mode-manual">
-      <header>
-        <span class="mode-pill mode-pill-alt">FALLBACK</span>
-        <h3>Manual</h3>
-      </header>
-      <p>Copies the UPI ID, opens the dialer with <code>*99*1*3#</code> prefilled. You drive the rest. Works on any Android.</p>
-      <figure class="mode-shot">
-        <img src="assets/screenshots/settings.jpeg" alt="" loading="lazy" />
+      <figure class="shot">
+        <img src="assets/screenshots/pay-form-alt.jpeg" alt="PIN entry" loading="lazy" />
+        <div class="shot-cap">Enter PIN</div>
       </figure>
-    </article>
-  </div>
-</section>
-
-<!-- ░░░ Showcase carousel ░░░ -->
-<section class="section showcase">
-  <div class="section-head">
-    <div>
-      <div class="kicker">EVERY SCREEN</div>
-      <h2>The whole app.<br/><span class="lime">Six taps.</span></h2>
-    </div>
-    <div class="scroll-hint">SWIPE →</div>
-  </div>
-
-  <div class="phone-row">
-    <figure class="screen-card">
-      <img src="assets/screenshots/pay-form.jpeg" alt="OffPay Pay screen" loading="lazy" />
-      <figcaption>Pay</figcaption>
-    </figure>
-    <figure class="screen-card">
-      <img src="assets/screenshots/balance-form.jpeg" alt="OffPay Balance entry" loading="lazy" />
-      <figcaption>Balance</figcaption>
-    </figure>
-    <figure class="screen-card">
-      <img src="assets/screenshots/qr-scanner.jpeg" alt="OffPay QR scanner" loading="lazy" />
-      <figcaption>Scan</figcaption>
-    </figure>
-    <figure class="screen-card">
-      <img src="assets/screenshots/history-list.jpeg" alt="OffPay History list" loading="lazy" />
-      <figcaption>History</figcaption>
-    </figure>
-    <figure class="screen-card">
-      <img src="assets/screenshots/settings.jpeg" alt="OffPay Settings" loading="lazy" />
-      <figcaption>Settings</figcaption>
-    </figure>
-    <figure class="screen-card">
-      <img src="assets/screenshots/faq.jpeg" alt="OffPay FAQ" loading="lazy" />
-      <figcaption>FAQ</figcaption>
-    </figure>
-  </div>
-</section>
-
-<!-- ░░░ How it works ░░░ -->
-<section id="how" class="section how">
-  <div class="section-head">
-    <div class="kicker">HOW IT WORKS · AUTO</div>
-    <h2>Type, tap, done.<br/><span class="lime">In about five seconds.</span></h2>
-  </div>
-
-  <div class="how-shots">
-    <figure class="how-shot">
-      <img src="assets/screenshots/pay-form.jpeg" alt="" loading="lazy" />
-      <figcaption>01 · Type</figcaption>
-    </figure>
-    <figure class="how-shot">
-      <img src="assets/screenshots/pay-form-alt.jpeg" alt="" loading="lazy" />
-      <figcaption>02 · PIN</figcaption>
-    </figure>
-    <figure class="how-shot">
-      <img src="assets/screenshots/payment-running.jpeg" alt="" loading="lazy" />
-      <figcaption>03 · Running</figcaption>
-    </figure>
-    <figure class="how-shot">
-      <img src="assets/screenshots/payment-success.jpeg" alt="" loading="lazy" />
-      <figcaption>04 · Done</figcaption>
-    </figure>
-  </div>
-
-  <ol class="how-steps">
-    <li class="how-step">
-      <span class="step-num">01</span>
-      <div>
-        <h3>Type or scan</h3>
-        <p>UPI ID + amount, or scan the merchant's QR.</p>
-      </div>
-    </li>
-    <li class="how-step">
-      <span class="step-num">02</span>
-      <div>
-        <h3>Inline PIN</h3>
-        <p>Six lime boxes. Auto-fires on the sixth digit.</p>
-      </div>
-    </li>
-    <li class="how-step">
-      <span class="step-num">03</span>
-      <div>
-        <h3>OffPay handles it</h3>
-        <p>Branded overlay covers the carrier dialog. Live progress.</p>
-      </div>
-    </li>
-    <li class="how-step">
-      <span class="step-num">04</span>
-      <div>
-        <h3>Bank confirmation</h3>
-        <p>NPCI's success message + reference number, encrypted history.</p>
-      </div>
-    </li>
-  </ol>
-</section>
-
-<!-- ░░░ Failure & history detail ░░░ -->
-<section class="section detail">
-  <div class="detail-grid">
-    <div>
-      <div class="kicker">FAILURE, HONESTLY</div>
-      <h2 class="display">Carrier said no?<br/><span class="lime">You'll know exactly why.</span></h2>
-      <p class="lead">Wrong PIN, bank not linked, daily limit, wrong VPA — OffPay surfaces the carrier's exact reply. Tap "Why did this fail?" for FAQ-level guidance.</p>
-    </div>
-    <figure class="detail-shot">
-      <img src="assets/screenshots/payment-failed.jpeg" alt="OffPay payment failed screen" loading="lazy" />
-    </figure>
-  </div>
-
-  <div class="detail-grid alt">
-    <figure class="detail-shot">
-      <img src="assets/screenshots/history-detail.jpeg" alt="OffPay history detail" loading="lazy" />
-    </figure>
-    <div>
-      <div class="kicker">EVERY TRANSACTION, KEPT</div>
-      <h2 class="display">200 payments.<br/><span class="lime">Encrypted. On-device.</span></h2>
-      <p class="lead">Swipe a row to delete. Tap to expand the carrier's full reply. Hit "Pay again" to repeat with the same VPA, amount, note.</p>
+      <figure class="shot">
+        <img src="assets/screenshots/payment-running.jpeg" alt="In progress" loading="lazy" />
+        <div class="shot-cap">In progress</div>
+      </figure>
+      <figure class="shot">
+        <img src="assets/screenshots/payment-success.jpeg" alt="Success" loading="lazy" />
+        <div class="shot-cap">Done</div>
+      </figure>
+      <figure class="shot">
+        <img src="assets/screenshots/qr-scanner.jpeg" alt="QR scanner" loading="lazy" />
+        <div class="shot-cap">Scan QR</div>
+      </figure>
+      <figure class="shot">
+        <img src="assets/screenshots/history-list.jpeg" alt="History" loading="lazy" />
+        <div class="shot-cap">History</div>
+      </figure>
+      <figure class="shot">
+        <img src="assets/screenshots/balance-result.jpeg" alt="Balance" loading="lazy" />
+        <div class="shot-cap">Balance</div>
+      </figure>
     </div>
   </div>
 </section>
 
-<!-- ░░░ PWA section — uses iPhone 14 Pro mockup ░░░ -->
-<section id="pwa" class="section pwa">
-  <div class="pwa-grid">
-    <div>
-      <div class="kicker">FOR iPHONES</div>
-      <h2 class="display">No Play Store?<br/><span class="lime">Use the PWA.</span></h2>
-      <p class="lead">
-        OffPay's web companion lives at
-        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener"><code>offpay.vercel.app</code></a>.
-        Same UI. Same scanner. Hands the *99# step off to your dialer.
+<hr class="divider" />
+
+<!-- ─── Features ─── -->
+<section id="features">
+  <div class="w">
+    <span class="label">Features</span>
+    <h2>What it does.</h2>
+    <p class="sub">Built around one constraint: no internet permission in the manifest. The app is physically incapable of making a network call.</p>
+
+    <div class="feat-grid">
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>Auto *99# dialing</h3>
+        <p>Accessibility Service drives the carrier USSD dialog in the background. You stay in the app the whole time.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>QR scanner</h3>
+        <p>Camera reads merchant UPI QR codes. Parsed locally, with no network call to decode anything.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>Balance check</h3>
+        <p>Check your bank balance over *99# the same way. No data needed.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>Local history</h3>
+        <p>Up to 200 transactions stored on-device with SQLCipher encryption. Swipe to delete, tap to retry.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>Manual fallback</h3>
+        <p>Skip Accessibility altogether: manual mode opens your dialer pre-filled with the *99# sequence.</p>
+      </div>
+      <div class="feat-cell">
+        <div class="feat-dot"></div>
+        <h3>Open source · MIT</h3>
+        <p>Every permission, every API call is on GitHub. Verify it yourself before installing.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ─── PWA ─── -->
+<section id="pwa">
+  <div class="w">
+    <span class="label">PWA</span>
+    <h2>iPhone? No sideload?<br/><span class="lime">Use the web app.</span></h2>
+    <p class="sub"><a href="https://offpay.vercel.app" target="_blank" rel="noopener" style="color:var(--lime)">offpay.vercel.app</a> offers the same interface and QR scanner, and works on Android and iOS. Hands the *99# step to your native dialer. Installable from your browser. Runs offline after first load.</p>
+
+    <div class="pwa-grid">
+      <div class="pwa-content">
+        <div class="install-steps">
+          <div class="install-step">
+            <span class="install-os">iOS</span>
+            <p>Safari → <strong>Share</strong> → <strong>Add to Home Screen</strong></p>
+          </div>
+          <div class="install-step">
+            <span class="install-os">Android</span>
+            <p>Chrome → menu → <strong>Install app</strong></p>
+          </div>
+        </div>
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-lime">Open PWA →</a>
+      </div>
+      <div class="pwa-mockup">
+        <img src="assets/pwa-mockup.png" alt="OffPay PWA" loading="lazy" />
+      </div>
+    </div>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ─── FAQ ─── -->
+<section id="faq">
+  <div class="w">
+    <span class="label">FAQ</span>
+    <h2>Common questions.</h2>
+
+    <div class="faq-list">
+
+      <details>
+        <summary>What is *99# UPI?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">*99# is India's USSD-based UPI service built by NPCI. It works without internet. You dial a code, your bank shows menus through SMS-style dialogs over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
+      </details>
+
+      <details>
+        <summary>Which carriers work?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">
+          Airtel, Vodafone (Vi), and BSNL: yes. Jio: no. That's a Jio network-level constraint, not an OffPay limitation.
+          <div class="carrier-tags">
+            <span class="carrier-tag tag-yes">AIRTEL ✓</span>
+            <span class="carrier-tag tag-yes">VI ✓</span>
+            <span class="carrier-tag tag-yes">BSNL ✓</span>
+            <span class="carrier-tag tag-no">JIO ✗</span>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>What are the two modes?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">
+          <div class="modes-row">
+            <div class="mode-card">
+              <b>Auto</b>
+              <p>OffPay handles the carrier dialog automatically using Accessibility Service, keeping you in OffPay throughout the payment.</p>
+            </div>
+            <div class="mode-card">
+              <b>Manual</b>
+              <p>Copies the UPI ID and opens your dialer pre-filled with the *99# code. You navigate the menus yourself. No Accessibility Service needed.</p>
+            </div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>Why does it need Accessibility Service?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">Android's only public USSD API can't navigate multi-step menus. The Accessibility Service is what lets OffPay automatically type your amount, UPI ID, and PIN into the carrier's dialog so you don't have to. Without it, use Manual mode.</div>
+      </details>
+
+      <details>
+        <summary>Android 13+ says "Restricted settings" (can't enable Accessibility)
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">
+          Since OffPay is sideloaded (not from Play Store), Android 13+ blocks restricted settings like Accessibility by default. Fix:
+          <div class="steps-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-body">Settings → Apps → OffPay</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-body">Tap the ⋮ three-dot menu (top right)</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-body"><strong>Allow restricted settings</strong> → confirm with your PIN or fingerprint</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility. It works now.</div></div>
+          </div>
+        </div>
+      </details>
+
+      <details>
+        <summary>How do I enable banking on *99# first?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">
+          This one-time setup links your bank account to the *99# channel. After this, OffPay handles everything.
+          <div class="steps-list">
+            <div class="step-row"><div class="step-num">1</div><div class="step-body">Open your phone's dialer and call *99#</div></div>
+            <div class="step-row"><div class="step-num">2</div><div class="step-body">Enter your bank name when prompted (SBI, HDFC, ICICI, etc.)</div></div>
+            <div class="step-row"><div class="step-num">3</div><div class="step-body">Follow on-screen prompts to link your bank account</div></div>
+          </div>
+          Done once, you never need to do it again.
+        </div>
+      </details>
+
+      <details>
+        <summary>What if a payment fails?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">OffPay shows the carrier's exact error message. Common causes: wrong PIN, bank not linked to *99#, daily limit exceeded, wrong UPI ID, or weak signal. Tap the failed transaction in history to see the full reply and retry in one tap. A 25-second timeout prevents stuck sessions.</div>
+      </details>
+
+      <details>
+        <summary>What are the transaction limits?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">₹5,000 per transaction and ₹10,000 per day. These are NPCI network-level limits for *99#, not set by OffPay.</div>
+      </details>
+
+      <details>
+        <summary>Is OffPay on the Play Store?
+          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+        </summary>
+        <div class="faq-ans">Not currently. Download the APK from <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener">GitHub releases</a>, or use the <a href="https://offpay.vercel.app" target="_blank" rel="noopener">PWA</a> on any phone (including iOS) without sideloading.</div>
+      </details>
+
+    </div>
+    <p style="margin-top:14px; font-size:13px; color:var(--text-3)">More → <a href="faq.html" style="color:var(--lime)">full FAQ</a></p>
+  </div>
+</section>
+
+<hr class="divider" />
+
+<!-- ─── Download ─── -->
+<section id="download">
+  <div class="w">
+    <div class="dl-box">
+      <span class="label">Get it</span>
+      <h2>Download <span class="lime">OffPay</span>.</h2>
+      <p class="sub">Android APK, sideload, no Play Store. Or the PWA, which works on any phone with no install needed.</p>
+      <div class="dl-btns">
+        <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener" class="btn btn-lime" id="apk-btn-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
+          Download APK · Android 8+
+        </a>
+        <a href="setup.html" class="btn btn-setup">Setup Guide</a>
+        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener" class="btn btn-outline">Open PWA</a>
+      </div>
+      <p class="dl-note">
+        <a href="setup.html">Setup guide</a> ·
+        <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">Source on GitHub</a> ·
+        MIT License
       </p>
-
-      <div class="install-blocks">
-        <div class="install-card">
-          <header><span class="install-pill">iOS · Safari</span></header>
-          <ol>
-            <li>Open <code>offpay.vercel.app</code></li>
-            <li>Tap <b>Share</b> → <b>Add to Home Screen</b></li>
-            <li>Launch from your home screen</li>
-          </ol>
-        </div>
-        <div class="install-card">
-          <header><span class="install-pill">Android · Chrome</span></header>
-          <ol>
-            <li>Open <code>offpay.vercel.app</code></li>
-            <li>Menu → <b>Install app</b></li>
-            <li>Or grab the autonomous APK below</li>
-          </ol>
-        </div>
-      </div>
-
-      <a class="neopop neopop-primary" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="medium">
-        <span class="neopop-face">
-          <span>Open the PWA</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M7 17L17 7M17 7H8M17 7v9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-    </div>
-
-    <div class="pwa-mockup">
-      <img src="assets/pwa-mockup.png" alt="OffPay PWA on iPhone 14 Pro Max" loading="lazy" />
     </div>
   </div>
 </section>
 
-<!-- ░░░ Carriers ░░░ -->
-<section id="carriers" class="section carriers">
-  <div class="section-head">
-    <div class="kicker">CARRIER REALITY</div>
-    <h2>Works on<br/><span class="lime">what works.</span></h2>
+<!-- ─── Cat ─── -->
+<div class="cat" aria-hidden="true">
+  <img class="cat-img" src="assets/cat_aesthetic.png" alt="" loading="lazy" />
+  <div class="cat-copy">
+    <div class="cat-by">Made by Lakshya &amp; Harsh</div>
+    <div class="cat-line">now go pay<br/>without the <span class="lime">internet.</span></div>
   </div>
+</div>
 
-  <div class="carrier-table">
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">Airtel</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">Vi · Vodafone Idea</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-ok">
-      <span class="carrier-name">BSNL</span>
-      <span class="carrier-status">Works</span>
-    </div>
-    <div class="carrier-row carrier-bad">
-      <span class="carrier-name">Jio</span>
-      <span class="carrier-status">No *99# on network</span>
-    </div>
-  </div>
-</section>
 
-<!-- ░░░ Testimonials ░░░ -->
-<section class="section testimonials-section">
-  <div class="section-head">
-    <div class="kicker">WHAT PEOPLE SAY</div>
-    <h2>Trusted by users<br/><span class="lime">across India.</span></h2>
-  </div>
-  <div class="testimonials-grid">
-    <blockquote class="testimonial-card">
-      <div class="testimonial-quote">
-        "Paid for vegetables at the local mandi near Varanasi. No signal, no Wi-Fi — just typed the UPI ID, entered PIN. Done in 8 seconds. This is the app I didn't know I needed."
-      </div>
-      <footer class="testimonial-author">
-        <div class="testimonial-avatar" aria-hidden="true">RK</div>
-        <div>
-          <div class="testimonial-name">Rakesh Kumar</div>
-          <div class="testimonial-role">Merchant, Varanasi · Airtel</div>
-        </div>
-        <div class="testimonial-stars" aria-label="5 stars">★★★★★</div>
-      </footer>
-    </blockquote>
-    <blockquote class="testimonial-card">
-      <div class="testimonial-quote">
-        "Travelling through Rajasthan hills with near-zero 4G. OffPay was the only payment app that could complete a transaction. The offline QR scanner is genuinely impressive."
-      </div>
-      <footer class="testimonial-author">
-        <div class="testimonial-avatar" aria-hidden="true">PS</div>
-        <div>
-          <div class="testimonial-name">Priya Sharma</div>
-          <div class="testimonial-role">Solo traveller · Vi</div>
-        </div>
-        <div class="testimonial-stars" aria-label="5 stars">★★★★★</div>
-      </footer>
-    </blockquote>
-    <blockquote class="testimonial-card">
-      <div class="testimonial-quote">
-        "As a developer, the code quality and architecture is clean. No analytics, no trackers, proper SQLCipher encryption. This is what a responsible fintech app looks like."
-      </div>
-      <footer class="testimonial-author">
-        <div class="testimonial-avatar" aria-hidden="true">AM</div>
-        <div>
-          <div class="testimonial-name">Aman Mishra</div>
-          <div class="testimonial-role">Android Developer · BSNL</div>
-        </div>
-        <div class="testimonial-stars" aria-label="5 stars">★★★★★</div>
-      </footer>
-    </blockquote>
-  </div>
-</section>
-
-<!-- ░░░ Architecture ░░░ -->
-<section class="section arch-section">
-  <div class="section-head">
-    <div class="kicker">HOW THE PROTOCOL WORKS</div>
-    <h2>No middleman.<br/><span class="lime">Direct to NPCI.</span></h2>
-  </div>
-  <div class="arch-grid">
-    <div class="arch-flow">
-      <div class="arch-node">
-        <div class="arch-node-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-        </div>
-        <div class="arch-node-label">OffPay App</div>
-        <div class="arch-node-sub">Android · No internet permission</div>
-      </div>
-      <div class="arch-connector">
-        <div class="arch-connector-line"></div>
-        <div class="arch-connector-badge">Voice Channel · GSM</div>
-        <div class="arch-connector-line"></div>
-        <svg class="arch-connector-arrow" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L22 12 12 22"/></svg>
-      </div>
-      <div class="arch-node">
-        <div class="arch-node-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="2 20 12 4 22 20"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
-        </div>
-        <div class="arch-node-label">NUUP Gateway</div>
-        <div class="arch-node-sub">*99# · All carriers except Jio</div>
-      </div>
-      <div class="arch-connector">
-        <div class="arch-connector-line"></div>
-        <div class="arch-connector-badge">Secure USSD Protocol</div>
-        <div class="arch-connector-line"></div>
-        <svg class="arch-connector-arrow" width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L22 12 12 22"/></svg>
-      </div>
-      <div class="arch-node arch-node-highlight">
-        <div class="arch-node-icon">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-        </div>
-        <div class="arch-node-label">NPCI Network</div>
-        <div class="arch-node-sub">Bank authorization · UPI rails</div>
-      </div>
-    </div>
-    <div class="arch-callouts">
-      <div class="arch-callout">
-        <div class="arch-callout-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-        </div>
-        <div>
-          <div class="arch-callout-title">PIN never leaves device</div>
-          <div class="arch-callout-desc">Your UPI PIN is sent directly to the carrier's USSD dialog via Android's TelephonyManager API. OffPay never reads or stores it.</div>
-        </div>
-      </div>
-      <div class="arch-callout">
-        <div class="arch-callout-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55M5 19a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h1.72m7.56 0h1.72a2 2 0 0 1 2 2v1.72M11 5H6.83A2 2 0 0 0 5 6.83V19"/></svg>
-        </div>
-        <div>
-          <div class="arch-callout-title">Zero network permissions</div>
-          <div class="arch-callout-desc"><code>android.permission.INTERNET</code> is absent from the manifest. The app is physically incapable of making network requests.</div>
-        </div>
-      </div>
-      <div class="arch-callout">
-        <div class="arch-callout-icon">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
-        </div>
-        <div>
-          <div class="arch-callout-title">SQLCipher encrypted history</div>
-          <div class="arch-callout-desc">Transaction logs are AES-256 encrypted at rest using SQLCipher. No cloud sync. No export without your key.</div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ░░░ FAQ ░░░ -->
-<section class="section faq-section">
-  <div class="section-head">
-    <div class="kicker">FAQ</div>
-    <h2>Common questions,<br/><span class="lime">straight answers.</span></h2>
-  </div>
-  <div class="faq-grid">
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>Is OffPay a registered payment service or bank?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">No. OffPay is an open-source Android interface that automates the dialing of <code>*99#</code>. All financial transactions are processed exclusively by NPCI through your carrier's NUUP infrastructure. OffPay never touches or routes your money.</div>
-    </details>
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>Why doesn't it work on Jio?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">Jio does not support the USSD-based *99# protocol. This is a carrier-level limitation from Reliance Jio's network architecture, not an OffPay bug. Jio's network doesn't route NUUP USSD calls. All other major Indian carriers (Airtel, Vi, BSNL) support it.</div>
-    </details>
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>What happens to my UPI PIN?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">OffPay uses Android's <code>TelephonyManager.sendUssdRequest()</code> API to forward your PIN directly to the carrier's USSD session. The PIN is held in a volatile memory buffer for &lt;500ms and immediately zeroed. It is never logged, cached, or written to disk.</div>
-    </details>
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>Do I need to create an account?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">No account, no sign-up, no email, no phone verification. Install the APK and start paying. Your bank account is already linked to *99# by NPCI the moment you activated UPI — OffPay just provides a clean UI on top.</div>
-    </details>
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>What is the transaction limit?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">NPCI caps *99# transactions at ₹5,000 per transaction and ₹10,000 per day. These are network-level limits set by RBI/NPCI — not imposed by OffPay. Regular UPI apps have higher limits because they use data channels with stronger authentication flows.</div>
-    </details>
-    <details class="faq-item">
-      <summary class="faq-question">
-        <span>Is the source code auditable?</span>
-        <svg class="faq-chevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-      </summary>
-      <div class="faq-answer">Yes. OffPay is fully open source under the MIT License. The complete Android source code is available on GitHub at <code>@laksh-ya/OffPayApp</code>. You can verify every API call, permission, and data flow yourself before installing.</div>
-    </details>
-  </div>
-</section>
-
-<!-- ░░░ Download ░░░ -->
-<section id="download" class="section download">
-  <div class="download-card">
-    <div class="kicker">GET IT</div>
-    <h2>Two ways to <span class="lime">OffPay</span>.</h2>
-
-    <div class="download-row">
-      <a class="neopop neopop-primary big" href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener" data-haptic="strong">
-        <span class="neopop-face">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <span class="stack">
-            <small>Latest release</small>
-            OffPay.apk <span class="lite">· Android 8+</span>
-          </span>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-      <a class="neopop neopop-secondary big" href="https://offpay.vercel.app/" target="_blank" rel="noopener" data-haptic="light">
-        <span class="neopop-face">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM3 12h18M12 3a13 13 0 010 18M12 3a13 13 0 000 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-          <span class="stack">
-            <small>Browser · iOS · Android</small>
-            offpay.vercel.app
-          </span>
-        </span>
-        <span class="neopop-edge right"></span>
-        <span class="neopop-edge bottom"></span>
-      </a>
-    </div>
-
-    <div class="download-meta">
-      Read the <a href="about.html">story</a> · Source · <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a> · <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
-    </div>
-  </div>
-</section>
-
-<!-- ░░░ Footer ░░░ -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-brand">
+<!-- ─── Footer ─── -->
+<footer>
+  <div class="foot-in">
+    <a href="index.html" class="foot-brand">
       <img src="assets/logos/icon.png" alt="" />
-      <div>
-        <div class="wordmark"><span class="lime">Off</span>Pay</div>
-        <div class="footer-tag">UPI without the internet.</div>
-      </div>
+      <span><span class="lime">Off</span>Pay</span>
+    </a>
+    <div class="foot-links">
+      <a href="setup.html">Setup</a>
+      <a href="faq.html">FAQ</a>
+      <a href="about.html">About</a>
+      <a href="terms.html">Terms</a>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/Laksh-ya/OffPayApp" target="_blank" rel="noopener">GitHub</a>
+      <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
     </div>
-
-    <div class="footer-cols">
-      <div>
-        <h5>PRODUCT</h5>
-        <a href="#features">Features</a>
-        <a href="#modes">Modes</a>
-        <a href="#how">How</a>
-        <a href="#download">Download</a>
-      </div>
-      <div>
-        <h5>STORY</h5>
-        <a href="about.html">About</a>
-        <a href="https://offpay.vercel.app/" target="_blank" rel="noopener">PWA</a>
-        <a href="#carriers">Carriers</a>
-      </div>
-      <div>
-        <h5>CODE</h5>
-        <a href="https://github.com/laksh-ya/" target="_blank" rel="noopener">@laksh-ya</a>
-        <a href="https://github.com/harshtripathi272/" target="_blank" rel="noopener">@harshtripathi272</a>
-      </div>
-    </div>
-  </div>
-
-  <div class="footer-bottom">
-    <span>Side project. Not a registered payment service.</span>
-    <span>Built by <b>Lakshya & Harsh</b>.</span>
   </div>
 </footer>
 
+<script>
+  // Video facade → embed
+  document.querySelectorAll('.video-wrap[data-yt]').forEach(wrap => {
+    wrap.querySelector('.video-facade').addEventListener('click', () => {
+      const iframe = document.createElement('iframe');
+      iframe.src = `https://www.youtube.com/embed/${wrap.dataset.yt}?autoplay=1&rel=0`;
+      iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+      iframe.allowFullscreen = true;
+      wrap.appendChild(iframe);
+      wrap.querySelector('.video-facade').classList.add('gone');
+    }, { once: true });
+  });
+
+  // APK download → setup modal
+  ['apk-btn','apk-btn-2'].forEach(id => {
+    document.getElementById(id)?.addEventListener('click', () =>
+      setTimeout(() => document.getElementById('modal').classList.add('on'), 600)
+    );
+  });
+  document.getElementById('modal-skip').addEventListener('click', () => document.getElementById('modal').classList.remove('on'));
+  document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('on'); });
+
+  // Mobile menu toggle logic
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      mobileMenu.classList.toggle('active');
+      document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    });
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuToggle.classList.remove('active');
+        mobileMenu.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+    });
+  }
+</script>
+
 <script src="shader.js" defer></script>
-<script src="haptics.js" defer></script>
-<script src="main.js" defer></script>
 
 </body>
 </html>
