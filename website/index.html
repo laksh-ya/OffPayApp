@@ -40,12 +40,13 @@
     /* ─── reset ─── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
-    body {
+    html, body {
       background: var(--black);
       color: var(--text-1);
       font-family: var(--sans);
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      max-width: 100%;
     }
     body::before {
       content: "";
@@ -79,7 +80,7 @@
       margin-bottom: 14px;
     }
     h1 {
-      font-size: clamp(44px, 9vw, 100px);
+      font-size: clamp(32px, 9vw, 100px);
       font-weight: 800;
       letter-spacing: -0.04em;
       line-height: 0.95;
@@ -142,9 +143,11 @@
 
     /* ─── Nav ─── */
     nav {
-      position: sticky; top: 0; z-index: 200;
-      display: flex; align-items: center;
+      position: sticky; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 0 var(--pad); height: 54px;
+      height: calc(54px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
       background: rgba(0,0,0,0.88);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
@@ -173,7 +176,10 @@
     }
     .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
     .nav-dl:active { box-shadow: none; transform: translate(2px,2px); }
-    @media (max-width: 620px) { .nav-links { display: none; } }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-dl { margin-left: auto; }
+    }
 
     /* ─── Hero ─── */
     .hero {

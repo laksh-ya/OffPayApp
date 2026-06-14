@@ -21,7 +21,7 @@
       --max: 960px; --pad: clamp(16px, 4.5vw, 48px);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--black); color: var(--text-1); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+    html, body { background: var(--black); color: var(--text-1); font-family: var(--sans); -webkit-font-smoothing: antialiased; overflow-x: hidden; max-width: 100%; }
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
     ::selection { background: var(--lime); color: var(--black); }
@@ -31,9 +31,11 @@
     .lime { color: var(--lime); }
 
     nav {
-      position: sticky; top: 0; z-index: 200;
-      display: flex; align-items: center;
+      position: sticky; top: 0; left: 0; right: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 0 var(--pad); height: 54px;
+      height: calc(54px + env(safe-area-inset-top, 0px));
+      padding-top: env(safe-area-inset-top, 0px);
       background: rgba(0,0,0,0.88); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
       border-bottom: 1px solid var(--border);
     }
@@ -43,10 +45,13 @@
     .nav-links a:hover { color: var(--text-1); } .nav-links a.active { color: var(--lime); }
     .nav-dl { font-size: 12px; font-weight: 700; background: var(--lime); color: var(--black); padding: 10px 16px; min-height: 40px; box-shadow: 2px 2px 0 var(--lime-dim); transition: box-shadow 80ms, transform 80ms; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
-    @media (max-width: 620px) { .nav-links { display: none; } }
+    @media (max-width: 768px) {
+      .nav-links { display: none; }
+      .nav-dl { margin-left: auto; }
+    }
 
     .page-hero { padding: clamp(64px, 9vw, 104px) 0 clamp(36px, 5vw, 56px); }
-    .page-hero h1 { font-size: clamp(36px, 7vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); margin-bottom: 12px; }
+    .page-hero h1 { font-size: clamp(28px, 7vw, 76px); font-weight: 800; letter-spacing: -0.04em; line-height: 0.95; color: var(--text-1); margin-bottom: 12px; }
     .page-hero p { font-size: 15px; color: var(--text-2); max-width: 50ch; line-height: 1.7; }
 
     .setup-section { padding: clamp(36px, 5vw, 64px) 0; }
