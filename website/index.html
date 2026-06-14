@@ -47,6 +47,17 @@
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
     }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background-image:
+        radial-gradient(rgba(197, 245, 66, 0.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      background-position: center;
+      z-index: -3;
+      pointer-events: none;
+    }
     img { display: block; max-width: 100%; }
     a { color: inherit; text-decoration: none; }
     button { font-family: inherit; }
@@ -165,7 +176,64 @@
     @media (max-width: 620px) { .nav-links { display: none; } }
 
     /* ─── Hero ─── */
-    .hero { padding: clamp(72px, 12vw, 130px) 0 clamp(48px, 7vw, 80px); }
+    .hero {
+      position: relative;
+      padding: clamp(72px, 12vw, 130px) 0 clamp(48px, 7vw, 80px);
+      overflow: hidden;
+      isolation: isolate;
+    }
+    #hero-shader {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: -2;
+      display: block;
+    }
+    .hero-vignette {
+      position: absolute;
+      inset: 0;
+      z-index: -1;
+      background:
+        radial-gradient(60% 40% at 50% 0%, rgba(197,245,66,0.08) 0%, transparent 70%),
+        radial-gradient(80% 60% at 50% 100%, transparent 0%, rgba(13,13,13,0.85) 100%),
+        linear-gradient(180deg, rgba(13,13,13,0.40) 0%, rgba(13,13,13,0.10) 35%, rgba(13,13,13,0.85) 100%);
+    }
+
+    /* Global Ambient Orbs */
+    .ambient-glow-1 {
+      position: absolute;
+      top: -100px;
+      right: 5%;
+      width: min(600px, 90vw);
+      height: 600px;
+      background: radial-gradient(circle, rgba(197, 245, 66, 0.06) 0%, transparent 70%);
+      filter: blur(120px);
+      pointer-events: none;
+      z-index: -10;
+    }
+    .ambient-glow-2 {
+      position: absolute;
+      top: 1800px;
+      left: -10%;
+      width: min(500px, 80vw);
+      height: 500px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.04) 0%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+      z-index: -10;
+    }
+    .ambient-glow-3 {
+      position: absolute;
+      top: 3200px;
+      right: -5%;
+      width: min(550px, 85vw);
+      height: 550px;
+      background: radial-gradient(circle, rgba(197, 245, 66, 0.05) 0%, transparent 70%);
+      filter: blur(110px);
+      pointer-events: none;
+      z-index: -10;
+    }
     .hero h1 { margin-bottom: 18px; }
     .hero p.sub { margin-bottom: 32px; max-width: 46ch; }
     .hero-btns { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -405,6 +473,10 @@
 </head>
 <body>
 
+<div class="ambient-glow-1" aria-hidden="true"></div>
+<div class="ambient-glow-2" aria-hidden="true"></div>
+<div class="ambient-glow-3" aria-hidden="true"></div>
+
 
 <!-- Modal -->
 <div id="modal" role="dialog" aria-modal="true">
@@ -438,6 +510,8 @@
 
 <!-- ─── Hero ─── -->
 <section class="hero">
+  <canvas id="hero-shader" aria-hidden="true"></canvas>
+  <div class="hero-vignette" aria-hidden="true"></div>
   <div class="w">
     <h1>Pay over UPI.<br/><span class="lime">No internet.</span></h1>
     <p class="sub">OffPay uses *99# — India's USSD-based UPI protocol — to send money, check balance, and scan QR codes entirely over your SIM's voice channel. Works on Airtel, Vi and BSNL with zero data.</p>
@@ -766,6 +840,8 @@
   document.getElementById('modal-skip').addEventListener('click', () => document.getElementById('modal').classList.remove('on'));
   document.getElementById('modal').addEventListener('click', function(e) { if (e.target === this) this.classList.remove('on'); });
 </script>
+
+<script src="shader.js" defer></script>
 
 </body>
 </html>
