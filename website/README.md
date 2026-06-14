@@ -1,9 +1,8 @@
-# OffPay — Landing Page
+# OffPay | Landing Page
 
 **Live:** [offpayapp.vercel.app](https://offpayapp.vercel.app/)
 
-Static, zero-dependency marketing site for OffPay. No build step, no
-framework — just HTML/CSS/JS served as-is.
+Static, zero-dependency marketing site for OffPay. No build step, no framework: just HTML/CSS/JS served as-is.
 
 ## Structure
 
@@ -42,15 +41,15 @@ cd website
 npx vercel --prod
 ```
 
-Or just push to `main` — Vercel auto-deploys from the `website/` root directory.
+Or just push to `main`: Vercel auto-deploys from the `website/` root directory.
 
 ## Design
 
 - **Type:** Gilroy (all weights, from `web-assets.cred.club`) + JetBrains Mono for kickers/code.
 - **Palette:** `#0d0d0d` canvas, `#C5F542` lime accent, no purple, no serif.
-- **Buttons:** Real NeoPOP plunk geometry — skewed parallelogram edges (`skewX/Y(45deg)`), front face translates `+6px` on press so the box collapses into the page.
+- **Buttons:** Real NeoPOP plunk geometry: skewed parallelogram edges (`skewX/Y(45deg)`), front face translates `+6px` on press so the box collapses into the page.
 - **Hero shader:** WebGL2 domain-warped fBm + diagonal chrome streak + pointer-following lime light + film grain. Caps DPR at 1.5, pauses via IntersectionObserver when off-screen.
-- **Carousels:** Showcase + How-it-works phone strips use native CSS `scroll-snap-type: x mandatory` — no JS carousel library.
+- **Carousels:** Showcase + How-it-works phone strips use native CSS `scroll-snap-type: x mandatory` (no JS carousel library).
 - **Reduced motion:** All animations respect `prefers-reduced-motion: reduce`.
 
 ## Updating screenshots
