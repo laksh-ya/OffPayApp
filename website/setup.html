@@ -45,9 +45,73 @@
     .nav-links a:hover { color: var(--text-1); } .nav-links a.active { color: var(--lime); }
     .nav-dl { font-size: 12px; font-weight: 700; background: var(--lime); color: var(--black); padding: 10px 16px; min-height: 40px; box-shadow: 2px 2px 0 var(--lime-dim); transition: box-shadow 80ms, transform 80ms; -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
     .nav-dl:hover { box-shadow: 3px 3px 0 var(--lime-dim); transform: translate(-1px,-1px); }
+    
+    .nav-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .menu-toggle {
+      display: none;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 22px;
+      height: 14px;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 0;
+      z-index: 210;
+    }
+    .menu-toggle .bar {
+      width: 100%;
+      height: 2px;
+      background-color: var(--text-1);
+      transition: all 0.2s ease-in-out;
+    }
+    .mobile-menu {
+      position: fixed;
+      top: calc(54px + env(safe-area-inset-top, 0px));
+      left: 0;
+      width: 100%;
+      height: calc(100vh - (54px + env(safe-area-inset-top, 0px)));
+      background: rgba(13,13,13,0.98);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 190;
+      display: flex;
+      flex-direction: column;
+      padding: 40px var(--pad);
+      transform: translateY(-100%);
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      border-bottom: 1px solid var(--border);
+    }
+    .mobile-menu.active {
+      transform: translateY(0);
+    }
+    .mobile-menu-links {
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+    }
+    .mobile-menu-links a {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text-2);
+      text-transform: capitalize;
+      letter-spacing: -0.02em;
+      transition: color 0.2s ease;
+    }
+    .mobile-menu-links a:hover,
+    .mobile-menu-links a.active {
+      color: var(--lime);
+    }
     @media (max-width: 768px) {
       .nav-links { display: none; }
-      .nav-dl { margin-left: auto; }
+      .menu-toggle { display: flex; }
+      .menu-toggle.active .bar:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+      .menu-toggle.active .bar:nth-child(2) { opacity: 0; }
+      .menu-toggle.active .bar:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
     }
 
     .page-hero { padding: clamp(64px, 9vw, 104px) 0 clamp(36px, 5vw, 56px); }
@@ -80,22 +144,40 @@
 </head>
 <body>
 
-<!-- Nav -->
 <nav>
   <a href="index.html" class="nav-brand">
     <img src="assets/logos/icon.png" alt="OffPay" />
     <span><span class="lime">Off</span>Pay</span>
   </a>
   <div class="nav-links">
-    <a href="index.html#demo">demo</a>
-    <a href="index.html#features">features</a>
-    <a href="index.html#pwa">pwa</a>
-    <a href="setup.html" class="active">setup</a>
-    <a href="faq.html">faq</a>
-    <a href="about.html">about</a>
+    <a href="index.html#demo">Demo</a>
+    <a href="index.html#features">Features</a>
+    <a href="index.html#pwa">PWA</a>
+    <a href="setup.html" class="active">Setup</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
   </div>
-  <a href="index.html#download" class="nav-dl">Download</a>
+  <div class="nav-right">
+    <a href="index.html#download" class="nav-dl">Download</a>
+    <button class="menu-toggle" id="menu-toggle" aria-label="Toggle Menu">
+      <span class="bar"></span>
+      <span class="bar"></span>
+      <span class="bar"></span>
+    </button>
+  </div>
 </nav>
+
+<!-- Mobile Menu Overlay -->
+<div class="mobile-menu" id="mobile-menu">
+  <div class="mobile-menu-links">
+    <a href="index.html#demo">Demo</a>
+    <a href="index.html#features">Features</a>
+    <a href="index.html#pwa">PWA</a>
+    <a href="setup.html" class="active">Setup</a>
+    <a href="faq.html">FAQ</a>
+    <a href="about.html">About</a>
+  </div>
+</div>
 
 <!-- Hero -->
 <section class="page-hero">
@@ -173,6 +255,24 @@
       wrap.querySelector('.video-facade').classList.add('gone');
     }, { once: true });
   });
+
+  // Mobile menu toggle logic
+  const menuToggle = document.getElementById('menu-toggle');
+  const mobileMenu = document.getElementById('mobile-menu');
+  if (menuToggle && mobileMenu) {
+    menuToggle.addEventListener('click', () => {
+      menuToggle.classList.toggle('active');
+      mobileMenu.classList.toggle('active');
+      document.body.style.overflow = mobileMenu.classList.contains('active') ? 'hidden' : '';
+    });
+    mobileMenu.querySelectorAll('a').forEach(link => {
+      link.addEventListener('click', () => {
+        menuToggle.classList.remove('active');
+        mobileMenu.classList.remove('active');
+        document.body.style.overflow = '';
+      });
+    });
+  }
 </script>
 
 </body>
