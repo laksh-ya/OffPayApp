@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>OffPay — UPI without the internet</title>
 
-  <meta name="description" content="OffPay sends UPI payments over *99# — no internet, no account, no servers. Android app + PWA." />
+  <meta name="description" content="OffPay sends UPI payments over *99#: no internet, no account, no servers. Android app + PWA." />
   <meta name="theme-color" content="#000000" />
   <meta property="og:title" content="OffPay" />
   <meta property="og:description" content="Send money over UPI. No internet. Just *99# and a phone signal." />
@@ -104,7 +104,7 @@
       margin-top: 12px;
     }
 
-    /* ─── NeoPOP buttons — sharp edges, 4px shadow offset ─── */
+    /* ─── NeoPOP buttons: sharp edges, 4px shadow offset ─── */
     .btn {
       display: inline-flex; align-items: center; justify-content: center; gap: 8px;
       font-family: var(--sans);
@@ -555,7 +555,7 @@
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="black" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
     </div>
     <h3>One quick setup step</h3>
-    <p>OffPay needs Accessibility Service to auto-dial *99#. Watch the guide — takes about 2 minutes.</p>
+    <p>OffPay needs Accessibility Service to auto-dial *99#. Watch the guide (takes about 2 minutes).</p>
     <a href="setup.html" class="modal-cta">Watch Setup Guide →</a>
     <button class="modal-skip" id="modal-skip">Skip for now</button>
   </div>
@@ -603,7 +603,7 @@
   <div class="hero-vignette" aria-hidden="true"></div>
   <div class="w">
     <h1>Pay over UPI.<br/><span class="lime">No internet.</span></h1>
-    <p class="sub">OffPay uses *99# — India's USSD-based UPI protocol — to send money, check balance, and scan QR codes entirely over your SIM's voice channel. Works on Airtel, Vi and BSNL with zero data.</p>
+    <p class="sub">OffPay uses *99# (India's USSD-based UPI protocol) to send money, check balance, and scan QR codes entirely over your SIM's voice channel. Works on Airtel, Vi and BSNL with zero data.</p>
     <div class="hero-btns">
       <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener" class="btn btn-lime" id="apk-btn">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>
@@ -675,7 +675,7 @@
   <div class="w">
     <span class="label">Features</span>
     <h2>What it does.</h2>
-    <p class="sub">Built around one constraint — no internet permission in the manifest. The app is physically incapable of making a network call.</p>
+    <p class="sub">Built around one constraint: no internet permission in the manifest. The app is physically incapable of making a network call.</p>
 
     <div class="feat-grid">
       <div class="feat-cell">
@@ -686,7 +686,7 @@
       <div class="feat-cell">
         <div class="feat-dot"></div>
         <h3>QR scanner</h3>
-        <p>Camera reads merchant UPI QR codes. Parsed locally — no network call to decode anything.</p>
+        <p>Camera reads merchant UPI QR codes. Parsed locally, with no network call to decode anything.</p>
       </div>
       <div class="feat-cell">
         <div class="feat-dot"></div>
@@ -701,7 +701,7 @@
       <div class="feat-cell">
         <div class="feat-dot"></div>
         <h3>Manual fallback</h3>
-        <p>Skip Accessibility altogether — manual mode opens your dialer pre-filled with the *99# sequence.</p>
+        <p>Skip Accessibility altogether: manual mode opens your dialer pre-filled with the *99# sequence.</p>
       </div>
       <div class="feat-cell">
         <div class="feat-dot"></div>
@@ -719,7 +719,7 @@
   <div class="w">
     <span class="label">PWA</span>
     <h2>iPhone? No sideload?<br/><span class="lime">Use the web app.</span></h2>
-    <p class="sub"><a href="https://offpay.vercel.app" target="_blank" rel="noopener" style="color:var(--lime)">offpay.vercel.app</a> — same interface, same QR scanner, works on Android and iOS. Hands the *99# step to your native dialer. Installable from your browser. Runs offline after first load.</p>
+    <p class="sub"><a href="https://offpay.vercel.app" target="_blank" rel="noopener" style="color:var(--lime)">offpay.vercel.app</a> offers the same interface and QR scanner, and works on Android and iOS. Hands the *99# step to your native dialer. Installable from your browser. Runs offline after first load.</p>
 
     <div class="pwa-grid">
       <div class="pwa-content">
@@ -756,7 +756,7 @@
         <summary>What is *99# UPI?
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </summary>
-        <div class="faq-ans">*99# is India's USSD-based UPI service built by NPCI. It works without internet — you dial a code, your bank shows menus through SMS-style dialogs over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
+        <div class="faq-ans">*99# is India's USSD-based UPI service built by NPCI. It works without internet. You dial a code, your bank shows menus through SMS-style dialogs over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
       </details>
 
       <details>
@@ -764,7 +764,7 @@
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </summary>
         <div class="faq-ans">
-          Airtel, Vodafone (Vi), and BSNL — yes. Jio — no. That's a Jio network-level constraint, not an OffPay limitation.
+          Airtel, Vodafone (Vi), and BSNL: yes. Jio: no. That's a Jio network-level constraint, not an OffPay limitation.
           <div class="carrier-tags">
             <span class="carrier-tag tag-yes">AIRTEL ✓</span>
             <span class="carrier-tag tag-yes">VI ✓</span>
@@ -782,7 +782,7 @@
           <div class="modes-row">
             <div class="mode-card">
               <b>Auto</b>
-              <p>OffPay handles the carrier dialog automatically using Accessibility Service — you stay in OffPay throughout the payment.</p>
+              <p>OffPay handles the carrier dialog automatically using Accessibility Service, keeping you in OffPay throughout the payment.</p>
             </div>
             <div class="mode-card">
               <b>Manual</b>
@@ -800,7 +800,7 @@
       </details>
 
       <details>
-        <summary>Android 13+ says "Restricted settings" — can't enable Accessibility
+        <summary>Android 13+ says "Restricted settings" (can't enable Accessibility)
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </summary>
         <div class="faq-ans">
@@ -809,7 +809,7 @@
             <div class="step-row"><div class="step-num">1</div><div class="step-body">Settings → Apps → OffPay</div></div>
             <div class="step-row"><div class="step-num">2</div><div class="step-body">Tap the ⋮ three-dot menu (top right)</div></div>
             <div class="step-row"><div class="step-num">3</div><div class="step-body"><strong>Allow restricted settings</strong> → confirm with your PIN or fingerprint</div></div>
-            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility — it works now</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility. It works now.</div></div>
           </div>
         </div>
       </details>
@@ -840,7 +840,7 @@
         <summary>What are the transaction limits?
           <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
         </summary>
-        <div class="faq-ans">₹5,000 per transaction and ₹10,000 per day — NPCI network-level limits for *99#, not set by OffPay.</div>
+        <div class="faq-ans">₹5,000 per transaction and ₹10,000 per day. These are NPCI network-level limits for *99#, not set by OffPay.</div>
       </details>
 
       <details>
@@ -863,7 +863,7 @@
     <div class="dl-box">
       <span class="label">Get it</span>
       <h2>Download <span class="lime">OffPay</span>.</h2>
-      <p class="sub">Android APK · sideload · no Play Store. Or the PWA — works on any phone, no install needed.</p>
+      <p class="sub">Android APK, sideload, no Play Store. Or the PWA, which works on any phone with no install needed.</p>
       <div class="dl-btns">
         <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener" class="btn btn-lime" id="apk-btn-2">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14"/></svg>

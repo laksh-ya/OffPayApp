@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>FAQ — OffPay</title>
+  <title>FAQ | OffPay</title>
   <meta name="description" content="Frequently asked questions about OffPay." />
   <meta name="theme-color" content="#000000" />
   <link rel="icon" type="image/png" href="assets/logos/icon.png" />
@@ -213,7 +213,7 @@
   <div class="w">
     <span class="label">FAQ</span>
     <h1>Questions<br/><span class="lime">answered.</span></h1>
-    <p>Everything about how OffPay works, what it can and can't do — sourced from the app itself.</p>
+    <p>Everything about how OffPay works, what it can and can't do, sourced from the app itself.</p>
   </div>
 </section>
 
@@ -226,11 +226,11 @@
     <div class="faq-group">
       <details open>
         <summary>What is *99# UPI? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">*99# is India's USSD-based UPI service built by NPCI. It works without internet — you dial a code, your bank responds through SMS-style menus over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
+        <div class="faq-body">*99# is India's USSD-based UPI service built by NPCI. It works without internet. You dial a code, your bank responds through SMS-style menus over the voice channel, and you reply to send money. Works on any phone with a basic cellular signal.</div>
       </details>
       <details>
         <summary>Is OffPay on the Play Store? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">Not currently. Download the APK from <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener">GitHub releases</a>, or use the <a href="https://offpay.vercel.app" target="_blank" rel="noopener">PWA</a> on any phone — Android or iOS — without sideloading.</div>
+        <div class="faq-body">Not currently. Download the APK from <a href="https://github.com/laksh-ya/offpayapp/releases" target="_blank" rel="noopener">GitHub releases</a>, or use the <a href="https://offpay.vercel.app" target="_blank" rel="noopener">PWA</a> on any phone (Android or iOS) without sideloading.</div>
       </details>
       <details>
         <summary>Do I need an account? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
@@ -256,7 +256,7 @@
       <details>
         <summary>Which carriers work? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
         <div class="faq-body">
-          Airtel, Vodafone (Vi), and BSNL — yes. Jio — no. That's a Jio network-level constraint, not an OffPay limitation.
+          Airtel, Vodafone (Vi), and BSNL: yes. Jio: no. That's a Jio network-level constraint, not an OffPay limitation.
           <div class="carrier-tags">
             <span class="carrier-tag tag-yes">AIRTEL ✓</span>
             <span class="carrier-tag tag-yes">VI ✓</span>
@@ -298,11 +298,11 @@
       </details>
       <details>
         <summary>Why does it need Accessibility Service? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">Android's only public USSD API can't navigate multi-step menus. Accessibility Service lets OffPay automatically type your amount, UPI ID, and PIN into the carrier's dialog so you don't have to. If you'd rather not, use Manual mode — it just opens your dialer instead.</div>
+        <div class="faq-body">Android's only public USSD API can't navigate multi-step menus. Accessibility Service lets OffPay automatically type your amount, UPI ID, and PIN into the carrier's dialog so you don't have to. If you'd rather not, use Manual mode: it just opens your dialer instead.</div>
       </details>
       <details>
         <summary>Why does it need Call Phone permission? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">To programmatically initiate USSD calls to *99#. OffPay never places regular phone calls — only USSD requests to the carrier. It also reads the active SIM's carrier name to warn you if you're on Jio (where *99# is unsupported).</div>
+        <div class="faq-body">To programmatically initiate USSD calls to *99#. OffPay never places regular phone calls, only USSD requests to the carrier. It also reads the active SIM's carrier name to warn you if you're on Jio (where *99# is unsupported).</div>
       </details>
       <details>
         <summary>Android 13+ won't let me enable Accessibility <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
@@ -312,7 +312,7 @@
             <div class="step-row"><div class="step-num">1</div><div class="step-body">Settings → Apps → OffPay</div></div>
             <div class="step-row"><div class="step-num">2</div><div class="step-body">Tap the ⋮ three-dot menu (top right)</div></div>
             <div class="step-row"><div class="step-num">3</div><div class="step-body"><strong>Allow restricted settings</strong> → confirm with your PIN or fingerprint</div></div>
-            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility — it works now</div></div>
+            <div class="step-row"><div class="step-num">4</div><div class="step-body">Return to OffPay → enable Accessibility. It works now.</div></div>
           </div>
           The <a href="setup.html">setup video</a> shows exactly where.
         </div>
@@ -323,7 +323,7 @@
     <div class="faq-group">
       <details>
         <summary>Is my PIN safe? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">Your PIN is held in volatile memory only, masked as •••• in any logs, cleared within 500ms of session end, never persisted, and never shared. The app has no INTERNET permission — it's structurally incapable of sending anything anywhere.</div>
+        <div class="faq-body">Your PIN is held in volatile memory only, masked as •••• in any logs, cleared within 500ms of session end, never persisted, and never shared. The app has no INTERNET permission and is structurally incapable of sending anything anywhere.</div>
       </details>
       <details>
         <summary>What if a payment fails? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
@@ -331,7 +331,7 @@
       </details>
       <details>
         <summary>How does the overlay work? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">In Auto mode, OffPay paints a branded overlay over the system USSD dialog so you only ever see OffPay's UI during a session. We never see your PIN — it's typed locally on your device, never stored, and never sent anywhere.</div>
+        <div class="faq-body">In Auto mode, OffPay paints a branded overlay over the system USSD dialog so you only ever see OffPay's UI during a session. We never see your PIN, as it's typed locally on your device, never stored, and never sent anywhere.</div>
       </details>
     </div>
 
@@ -339,11 +339,11 @@
     <div class="faq-group">
       <details>
         <summary>What is the PWA and how is it different? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">The web app at <a href="https://offpay.vercel.app" target="_blank" rel="noopener">offpay.vercel.app</a> has the same UI and QR scanner. It generates a <code>tel:</code> link that opens your native dialer pre-filled with the *99# code — you complete the menus there. No Accessibility Service needed, works on Android and iOS.</div>
+        <div class="faq-body">The web app at <a href="https://offpay.vercel.app" target="_blank" rel="noopener">offpay.vercel.app</a> has the same UI and QR scanner. It generates a <code>tel:</code> link that opens your native dialer pre-filled with the *99# code, and you complete the menus there. No Accessibility Service needed, works on Android and iOS.</div>
       </details>
       <details>
         <summary>Does the PWA work offline? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
-        <div class="faq-body">Yes. After the first load the PWA caches itself and runs fully offline. The *99# call goes over your SIM — no internet needed for the transaction itself.</div>
+        <div class="faq-body">Yes. After the first load the PWA caches itself and runs fully offline. The *99# call goes over your SIM, with no internet needed for the transaction itself.</div>
       </details>
     </div>
 
