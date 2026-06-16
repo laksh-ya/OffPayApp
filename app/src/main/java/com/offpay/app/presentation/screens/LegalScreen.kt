@@ -38,7 +38,7 @@ import com.offpay.app.presentation.ui.theme.NeoPopType
  * Effective date stamped on every legal screen. Bump on every material
  * edit so users can see when terms last changed.
  */
-private const val EFFECTIVE_DATE = "26 May 2026"
+private const val EFFECTIVE_DATE = "16 June 2026"
 
 /**
  * Privacy policy screen — reachable from Settings → "Legal" → "Privacy
@@ -76,6 +76,14 @@ fun PrivacyScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         LegalSection(
             heading = "Encrypted history",
             body = "Successful payments are saved to a local SQLite database encrypted with SQLCipher. The raw file on disk is unreadable without the app's key. The database is capped at 200 most-recent records and you can clear it any time from the History screen. Uninstalling OffPay deletes everything."
+        )
+        LegalSection(
+            heading = "Clipboard Privacy",
+            body = "OffPay accesses your system clipboard strictly to copy the recipient's VPA / UPI ID (in Manual Mode) or read imported QR code texts. Clipboard content is processed transiently in volatile memory on-device and is never written to disk, stored, or transmitted to any server."
+        )
+        LegalSection(
+            heading = "Screen Capture and Recording Privacy",
+            body = "OffPay operates completely offline and lacks permission to query other running apps or monitor your operating system for active background screen recorders, casting services (e.g. Chromecast, Miracast), or remote control tools. To protect your financial data, ensure your screen is not being shared, cast, or recorded by other apps when entering your UPI PIN."
         )
         LegalSection(
             heading = "Permissions",
@@ -128,6 +136,22 @@ fun TermsScreen(onClose: () -> Unit, modifier: Modifier = Modifier) {
         LegalSection(
             heading = "Your responsibilities",
             body = "You are solely responsible for the accuracy of every UPI ID and amount you enter. *99# transactions are typically irreversible once your bank confirms them. Always double-check the recipient before tapping Pay. You are also responsible for keeping your UPI PIN private and your device secure. Do not share screenshots that show a PIN being entered."
+        )
+        LegalSection(
+            heading = "Network Security and Carrier Risks",
+            body = "OffPay relies entirely on the cellular network's USSD (*99#) signaling channel to execute transactions. You acknowledge and agree that USSD communications are not encrypted end-to-end in the same manner as internet-based (TCP/IP) protocols. They are subject to carrier-level vulnerabilities, including but not limited to base station spoofing (IMSI catching), SIM swapping, and cellular traffic interception. You use the service at your own risk. OffPay is not liable for financial loss, identity theft, or unauthorized transactions resulting from carrier network security failures or device-level compromises."
+        )
+        LegalSection(
+            heading = "Clipboard Integrity",
+            body = "To facilitate manual operations, OffPay may copy payment details (such as UPI IDs) to your device's system clipboard. If your device is infected with malware or malicious third-party applications, clipboard data may be read, intercepted, or altered (clipboard hijacking). You are solely responsible for ensuring your device is free from malicious software. Always verify the recipient's details (VPA and Name) as shown on the final carrier confirmation screen before entering your UPI PIN."
+        )
+        LegalSection(
+            heading = "Screen Recording and Casting Risks",
+            body = "Your UPI PIN is sensitive financial data. You must ensure that no screen recording, screen casting, mirroring, or remote-access applications (such as TeamViewer, AnyDesk, Discord, or Zoom) are actively capturing or transmitting your screen while using OffPay. Entering your UPI PIN during an active capture session could expose your credentials to third parties. OffPay disclaims all liability for credentials compromised due to visual or capture-based recording."
+        )
+        LegalSection(
+            heading = "Android OS Customizations and Accessibility Limitations",
+            body = "OffPay's automated mode uses Android's Accessibility Service to read and respond to standard system USSD dialogs. However, custom Android distributions and vendor-specific skins (including but not limited to Xiaomi's HyperOS/MIUI, OPPO/Realme's ColorOS, and vivo's Funtouch OS) frequently alter the rendering, layout, and structure of these dialogs. These customizations may cause the automation logic to fail, time out, or input data incorrectly. Users are advised to double-check all inputs before final authorization or switch to Manual Mode if dialog behavior is inconsistent."
         )
         LegalSection(
             heading = "Carrier and bank charges",
@@ -289,6 +313,14 @@ private fun PrivacyContent() {
         body = "Successful payments are saved to a local SQLite database encrypted with SQLCipher. The raw file on disk is unreadable without the app's key. The database is capped at 200 most-recent records and you can clear it any time from the History screen. Uninstalling OffPay deletes everything."
     )
     LegalSection(
+        heading = "Clipboard Privacy",
+        body = "OffPay accesses your system clipboard strictly to copy the recipient's VPA / UPI ID (in Manual Mode) or read imported QR code texts. Clipboard content is processed transiently in volatile memory on-device and is never written to disk, stored, or transmitted to any server."
+    )
+    LegalSection(
+        heading = "Screen Capture and Recording Privacy",
+        body = "OffPay operates completely offline and lacks permission to query other running apps or monitor your operating system for active background screen recorders, casting services (e.g. Chromecast, Miracast), or remote control tools. To protect your financial data, ensure your screen is not being shared, cast, or recorded by other apps when entering your UPI PIN."
+    )
+    LegalSection(
         heading = "Permissions",
         body = "Phone (CALL_PHONE): only ever used to dial *99# codes, never regular numbers. Camera: live QR scanning, processed on-device by ML Kit, frames are not stored or uploaded. Phone state (READ_PHONE_STATE): reads the carrier name to apply the Jio fail-fast rule. Accessibility service: reads the carrier USSD dialog and types replies for you, restricted to known carrier dialog packages. Display over other apps (SYSTEM_ALERT_WINDOW): paints the OffPay UI over the carrier dialog in Auto mode. Denying any optional permission still leaves Manual mode fully usable."
     )
@@ -323,6 +355,22 @@ private fun TermsContent() {
     LegalSection(
         heading = "Your responsibilities",
         body = "You are solely responsible for the accuracy of every UPI ID and amount you enter. *99# transactions are typically irreversible once your bank confirms them. Always double-check the recipient before tapping Pay. You are also responsible for keeping your UPI PIN private and your device secure. Do not share screenshots that show a PIN being entered."
+    )
+    LegalSection(
+        heading = "Network Security and Carrier Risks",
+        body = "OffPay relies entirely on the cellular network's USSD (*99#) signaling channel to execute transactions. You acknowledge and agree that USSD communications are not encrypted end-to-end in the same manner as internet-based (TCP/IP) protocols. They are subject to carrier-level vulnerabilities, including but not limited to base station spoofing (IMSI catching), SIM swapping, and cellular traffic interception. You use the service at your own risk. OffPay is not liable for financial loss, identity theft, or unauthorized transactions resulting from carrier network security failures or device-level compromises."
+    )
+    LegalSection(
+        heading = "Clipboard Integrity",
+        body = "To facilitate manual operations, OffPay may copy payment details (such as UPI IDs) to your device's system clipboard. If your device is infected with malware or malicious third-party applications, clipboard data may be read, intercepted, or altered (clipboard hijacking). You are solely responsible for ensuring your device is free from malicious software. Always verify the recipient's details (VPA and Name) as shown on the final carrier confirmation screen before entering your UPI PIN."
+    )
+    LegalSection(
+        heading = "Screen Recording and Casting Risks",
+        body = "Your UPI PIN is sensitive financial data. You must ensure that no screen recording, screen casting, mirroring, or remote-access applications (such as TeamViewer, AnyDesk, Discord, or Zoom) are actively capturing or transmitting your screen while using OffPay. Entering your UPI PIN during an active capture session could expose your credentials to third parties. OffPay disclaims all liability for credentials compromised due to visual or capture-based recording."
+    )
+    LegalSection(
+        heading = "Android OS Customizations and Accessibility Limitations",
+        body = "OffPay's automated mode uses Android's Accessibility Service to read and respond to standard system USSD dialogs. However, custom Android distributions and vendor-specific skins (including but not limited to Xiaomi's HyperOS/MIUI, OPPO/Realme's ColorOS, and vivo's Funtouch OS) frequently alter the rendering, layout, and structure of these dialogs. These customizations may cause the automation logic to fail, time out, or input data incorrectly. Users are advised to double-check all inputs before final authorization or switch to Manual Mode if dialog behavior is inconsistent."
     )
     LegalSection(
         heading = "Carrier and bank charges",
