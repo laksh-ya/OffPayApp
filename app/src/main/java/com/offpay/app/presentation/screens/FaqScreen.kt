@@ -333,6 +333,42 @@ fun FaqScreen(
                 )
             }
 
+            // 11. Network Security Risks
+            ExpandableQuestion(question = "What are the network security risks of USSD?") {
+                Text(
+                    text = "USSD (*99#) signaling occurs over the unencrypted GSM voice channel, meaning it is not encrypted end-to-end like HTTPS. This makes it theoretically vulnerable to carrier-level interception, SIM swapping, and base station spoofing (IMSI catchers). OffPay has no control over cellular protocol security; users should operate with normal cellular safety precautions.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 12. Clipboard Hijacking
+            ExpandableQuestion(question = "Can other apps steal details from the clipboard?") {
+                Text(
+                    text = "In Manual Mode, OffPay copies details (like the recipient's UPI ID) to the system clipboard. If your device has malicious applications installed, they may perform clipboard hijacking to read or alter copied text. Always verify the recipient's name on the carrier's final confirmation screen before entering your PIN.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 13. Screen Recording / Casting Risks
+            ExpandableQuestion(question = "Is it safe to enter my PIN during screen share?") {
+                Text(
+                    text = "No. Since OffPay works entirely offline, it cannot monitor or block active screen recording, casting, or remote-desktop apps (AnyDesk, Zoom, TeamViewer). If you enter your PIN while sharing your screen, your PIN could be visually compromised. Ensure all sharing/recording is stopped before initiating a payment.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
+            // 14. Custom Android OEM Skins
+            ExpandableQuestion(question = "Why does automation fail on custom Android skins?") {
+                Text(
+                    text = "Custom Android distributions (like Xiaomi's HyperOS/MIUI, OPPO's ColorOS, or Vivo's Funtouch OS) modify the layout structure of system USSD dialogs. This can prevent the Accessibility Service from parsing the menus correctly in Auto Mode. If you experience issues, switch to Manual Mode in the app Settings to execute the transaction safely.",
+                    style = NeoPopType.BodyMedium,
+                    color = NeoPopColors.TextSecondary
+                )
+            }
+
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             // LINKS & ACTIONS
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

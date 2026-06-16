@@ -11,6 +11,15 @@ Only the latest active version of OffPay receives security updates. If you find 
 | >= 1.0  | Yes       |
 | < 1.0   | No        |
 
+## Threat Model & Out-of-Scope Risks
+
+OffPay operates completely offline to safeguard privacy, meaning it has zero network permissions (`android.permission.INTERNET`). However, users and security researchers must be aware of risks inherent to the device and cellular network environment that are outside the scope of OffPay's control:
+
+1. **USSD Network Security:** USSD signaling is transmitted over the GSM cellular network voice channel without end-to-end encryption. It remains susceptible to carrier-level interception, SIM swapping, and base station spoofing (e.g. IMSI catching).
+2. **Device-Level Clipboard Access:** In Manual Mode, OffPay copies details to the system clipboard. If a user runs malicious apps with clipboard monitoring/hijacking capabilities, copied data may be read or modified.
+3. **Screen Recording and Remote Mirroring:** OffPay runs offline and cannot monitor or prevent third-party background applications from recording, casting, or mirroring the screen. Users must ensure no screen capture is active when entering their PIN.
+4. **Android OS Custom Skins:** Layouts and dialog structures of standard carrier USSD interfaces may vary on vendor-specific skins (e.g. HyperOS, MIUI, ColorOS). This can cause automated parsing anomalies. Manual Mode acts as the safe fallback.
+
 ## Reporting a Vulnerability
 
 **Please do not report security vulnerabilities via public GitHub issues.**

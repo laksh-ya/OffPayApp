@@ -381,7 +381,27 @@
       </details>
     </div>
 
-    <div class="cat-label">PWA</div>
+    <div class="cat-label">Security & Risks</div>
+    <div class="faq-group">
+      <details>
+        <summary>What are the network security risks of USSD? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">USSD (*99#) signaling occurs over the unencrypted GSM voice channel, meaning it is not encrypted end-to-end like HTTPS. This makes it theoretically vulnerable to carrier-level interception, SIM swapping, and base station spoofing (IMSI catchers). OffPay has no control over cellular protocol security; users should operate with normal cellular safety precautions.</div>
+      </details>
+      <details>
+        <summary>Can other apps steal my details from the clipboard? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">In Manual Mode, OffPay copies details (like the recipient's UPI ID) to the system clipboard. If your device has malicious applications installed, they may perform clipboard hijacking to read or alter copied text. Always verify the recipient's name on the carrier's final confirmation screen before entering your PIN.</div>
+      </details>
+      <details>
+        <summary>Is it safe to enter my PIN during screen share or casting? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body"><strong>No.</strong> Since OffPay works entirely offline, it cannot monitor or block active screen recording, casting, or remote-desktop apps (AnyDesk, Zoom, TeamViewer). If you enter your PIN while sharing your screen, your PIN could be visually compromised. Ensure all sharing/recording is stopped before initiating a payment.</div>
+      </details>
+      <details>
+        <summary>Why does the automation fail on custom Android skins? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
+        <div class="faq-body">Custom Android distributions (like Xiaomi's HyperOS/MIUI, OPPO's ColorOS, or Vivo's Funtouch OS) modify the layout structure of system USSD dialogs. This can prevent the Accessibility Service from parsing the menus correctly in Auto Mode. If you experience issues, switch to <strong>Manual Mode</strong> in the app Settings to execute the transaction safely.</div>
+      </details>
+    </div>
+
+    <div class="cat-label">PWA</div></div>
     <div class="faq-group">
       <details>
         <summary>What is the PWA and how is it different? <svg class="chev" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg></summary>
