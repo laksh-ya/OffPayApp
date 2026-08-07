@@ -23,7 +23,10 @@ class ActionRunnerSuccessPropertyTest : FunSpec({
     // Fake UssdEnginePort for creating ActionRunner instance
     val fakeEngine = object : UssdEnginePort {
         override suspend fun dial(code: String) {}
+        override fun setPreferredSim(simInfo: SimInfo?) {}
         override suspend fun sendReply(reply: String): Boolean = true
+        override suspend fun fillReply(reply: String): Boolean = true
+        override suspend fun submitFilledReply(): Boolean = true
         override suspend fun cancel() {}
         override suspend fun dismissDialog(): Boolean = true
         override fun getSessionId(): Int = 0

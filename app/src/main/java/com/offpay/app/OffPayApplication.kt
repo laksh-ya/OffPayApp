@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
 import com.offpay.app.data.AppDatabase
+import com.offpay.app.data.ContactRepository
 import com.offpay.app.data.HistoryRepository
 import com.offpay.app.data.PreferencesRepository
 import com.offpay.app.domain.ActionRunner
@@ -37,6 +38,9 @@ class OffPayApplication : Application() {
     lateinit var prefsRepo: PreferencesRepository
         private set
 
+    lateinit var contactRepo: ContactRepository
+        private set
+
     // ─── Platform Layer ────────────────────────────────────────────────────────
 
     lateinit var overlayController: OverlayControllerImpl
@@ -64,6 +68,7 @@ class OffPayApplication : Application() {
         database = AppDatabase.create(this, passphrase)
         historyRepo = HistoryRepository(database.transactionDao())
         prefsRepo = PreferencesRepository(dataStore)
+        contactRepo = ContactRepository(this)
 
         // Platform layer
         overlayController = OverlayControllerImpl(this)

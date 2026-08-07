@@ -43,6 +43,9 @@ interface OverlayController {
     /** Callback invoked when the user taps cancel on the overlay. */
     var onCancel: (() -> Unit)?
 
+    /** Callback invoked when the user taps send/confirm on the full overlay. */
+    var onConfirm: (() -> Unit)?
+
     /** Callback invoked when the user taps the minimal bar (to bring app forward). */
     var onMinimalTapped: (() -> Unit)?
 }

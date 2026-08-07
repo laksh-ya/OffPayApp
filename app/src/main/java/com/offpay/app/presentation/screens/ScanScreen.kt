@@ -298,7 +298,10 @@ private fun CameraScannerContent(
                     icon = if (torchOn) Icons.Default.FlashOn else Icons.Default.FlashOff,
                     contentDescription = "Torch",
                     diameter = 56.dp,
-                    onClick = { torchOn = !torchOn }
+                    onClick = {
+                        torchOn = !torchOn
+                        qrManager.toggleTorch(torchOn)
+                    }
                 )
                 GlassyCircleButton(
                     icon = Icons.Default.PhotoLibrary,

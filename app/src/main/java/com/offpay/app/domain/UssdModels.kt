@@ -30,7 +30,8 @@ data class ActionStep(
     val reply: String? = null,
     val done: Boolean = false,
     val label: String? = null,
-    val delayMs: Long = 250L
+    val delayMs: Long = 250L,
+    val autoSubmit: Boolean = true
 )
 
 /**

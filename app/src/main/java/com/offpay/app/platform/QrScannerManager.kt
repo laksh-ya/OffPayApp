@@ -117,6 +117,9 @@ class QrScannerManager {
         val clamped = ratio.coerceIn(MIN_ZOOM, MAX_ZOOM)
         cameraControl?.setZoomRatio(clamped)
     }
+    fun toggleTorch(enabled: Boolean) {
+        cameraControl?.enableTorch(enabled)
+    }
 
     /**
      * Unbinds all camera use cases and releases the camera.

@@ -31,6 +31,7 @@ data class PermissionStatus(
     val callPhone: Boolean,
     val readPhoneState: Boolean,
     val camera: Boolean,
+    val contacts: Boolean,
     val accessibility: Boolean,
     val overlay: Boolean
 ) {
@@ -73,6 +74,7 @@ private fun currentStatus(context: Context): PermissionStatus {
         callPhone = isGranted(context, Manifest.permission.CALL_PHONE),
         readPhoneState = isGranted(context, Manifest.permission.READ_PHONE_STATE),
         camera = isGranted(context, Manifest.permission.CAMERA),
+        contacts = isGranted(context, Manifest.permission.READ_CONTACTS),
         accessibility = isAccessibilityServiceEnabled(context),
         overlay = Settings.canDrawOverlays(context)
     )
@@ -162,6 +164,8 @@ class PermissionLaunchers(
     fun requestPhoneBundle() = multi.launch(
         arrayOf(Manifest.permission.CALL_PHONE, Manifest.permission.READ_PHONE_STATE)
     )
+
+    fun requestContacts() = single.launch(Manifest.permission.READ_CONTACTS)
 
     fun requestCamera() = single.launch(Manifest.permission.CAMERA)
 }

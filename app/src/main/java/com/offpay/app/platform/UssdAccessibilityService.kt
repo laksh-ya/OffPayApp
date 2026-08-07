@@ -86,7 +86,7 @@ class UssdAccessibilityService : AccessibilityService() {
             feedbackType = AccessibilityServiceInfo.FEEDBACK_GENERIC
             flags = AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS or
                 AccessibilityServiceInfo.DEFAULT
-            notificationTimeout = 100
+            notificationTimeout = 10
         }
         Log.d(TAG, "service connected")
     }
@@ -137,6 +137,46 @@ class UssdAccessibilityService : AccessibilityService() {
      *
      * @return true if the reply was successfully sent
      */
+
+    fun fillReply(reply: String): Boolean {
+        val root = findUssdRoot() ?: return false
+        val edit = findEditText(root) ?: return false
+
+        val args = Bundle().apply {
+            putCharSequence(
+                AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,
+                reply
+            )
+        }
+        val ok = edit.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT, args)
+
+        lastEmittedText = null
+        frameFilter.reset()
+
+        return ok
+    }
+
+    fun submitFilledReply(): Boolean {
+        val root = findUssdRoot() ?: run {
+            Log.w(TAG, "submitFilledReply: no USSD window found")
+            return false
+        }
+        val edit = findEditText(root) ?: run {
+            Log.w(TAG, "submitFilledReply: no EditText in USSD window")
+            return false
+        }
+
+        lastEmittedText = null
+        frameFilter.reset()
+
+        val sendBtn = findClickableButton(root, SEND_LABELS)
+        val clicked = sendBtn?.performAction(AccessibilityNodeInfo.ACTION_CLICK) ?: false
+        if (!clicked) {
+            edit.performAction(AccessibilityNodeInfo.ACTION_CLICK)
+        }
+        return true
+    }
+
     fun sendReply(reply: String): Boolean {
         val root = findUssdRoot() ?: run {
             Log.w(TAG, "sendReply: no USSD window found")

@@ -15,4 +15,4 @@ data class FormValidationResult(val errors: Map<FormField, String>)
 /**
  * Identifiers for the payment form fields.
  */
-enum class FormField { VPA, AMOUNT, PIN }
+enum class FormField { VPA, MOBILE_NUMBER, AMOUNT, PIN }
