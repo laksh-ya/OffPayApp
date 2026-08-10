@@ -18,25 +18,25 @@ class CarrierDetector(private val context: Context) {
      * Reads the active SIM's carrier information via SubscriptionManager/TelephonyManager.
      * Returns null if no SIM is present or READ_PHONE_STATE permission is not granted.
      */
-    suspend fun getActiveSimInfo(): SimInfo? = withContext(Dispatchers.IO) {
+    suspend fun getAvailableSims(): List<SimInfo> = withContext(Dispatchers.IO) {
         try {
             val subscriptionManager =
                 context.getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as? SubscriptionManager
-                    ?: return@withContext fallbackFromTelephonyManager()
+                    ?: return@withContext listOfNotNull(fallbackFromTelephonyManager())
 
             val activeSubscriptions = try {
                 subscriptionManager.activeSubscriptionInfoList
             } catch (e: SecurityException) {
                 // READ_PHONE_STATE not granted
-                return@withContext fallbackFromTelephonyManager()
+                return@withContext listOfNotNull(fallbackFromTelephonyManager())
             }
 
             if (activeSubscriptions.isNullOrEmpty()) {
-                return@withContext fallbackFromTelephonyManager()
+                return@withContext listOfNotNull(fallbackFromTelephonyManager())
             }
 
+            activeSubscriptions.map { info ->
             // Use the first active subscription (default data SIM)
-            val info = activeSubscriptions[0]
             SimInfo(
                 slotIndex = info.simSlotIndex,
                 subscriptionId = info.subscriptionId,
@@ -55,10 +55,12 @@ class CarrierDetector(private val context: Context) {
                     info.mnc.toString()
                 }
             )
+            }
         } catch (e: Exception) {
-            fallbackFromTelephonyManager()
+            listOfNotNull(fallbackFromTelephonyManager())
         }
     }
+    suspend fun getActiveSimInfo(): SimInfo? = getAvailableSims().firstOrNull()
 
     /**
      * Fallback: use TelephonyManager when SubscriptionManager is unavailable.

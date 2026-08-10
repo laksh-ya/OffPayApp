@@ -38,7 +38,7 @@ data class ActionRun(
 class ActionRunner(private val engine: UssdEnginePort) {
 
     companion object {
-        const val DEFAULT_PACING_DELAY_MS = 250L
+        const val DEFAULT_PACING_DELAY_MS = 50L
 
         /**
          * Universal success patterns. Checked BEFORE step matching on every
@@ -57,8 +57,21 @@ class ActionRunner(private val engine: UssdEnginePort) {
             Regex("transaction\\s+successful", RegexOption.IGNORE_CASE),
             Regex("txn\\s+successful", RegexOption.IGNORE_CASE),
             Regex("payment\\s+successful", RegexOption.IGNORE_CASE),
+            Regex("request\\s+is\\s+being\\s+processed", RegexOption.IGNORE_CASE),
             // A real referenceId in the text is a strong success signal
             Regex("ref(?:erence)?\\s*(?:id|no|number|#)?\\s*[:\\-]?\\s*\\d{6,}", RegexOption.IGNORE_CASE)
+        )
+
+        /**
+         * Transient "loading" patterns. Frames matching these are ignored
+         * to prevent "Unexpected carrier response" during transient network states.
+         */
+        private val TRANSIENT_PATTERNS: List<Regex> = listOf(
+            Regex("requesting", RegexOption.IGNORE_CASE),
+            Regex("processing", RegexOption.IGNORE_CASE),
+            Regex("please\\s+wait", RegexOption.IGNORE_CASE),
+            Regex("sending", RegexOption.IGNORE_CASE),
+            Regex("ussd\\s+code\\s+running", RegexOption.IGNORE_CASE)
         )
     }
 
@@ -97,8 +110,9 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
             try {
                 // 1. Dismiss any leftover dialog and dial the action code.
+                val dialedCode = fillTemplate(action.code, vars)
                 engine.dismissDialog()
-                engine.dial(action.code)
+                engine.dial(dialedCode)
 
                 // 2. Capture our session ID. Frames with a different
                 //    sessionId are leftovers from a prior run and discarded.
@@ -140,8 +154,8 @@ class ActionRunner(private val engine: UssdEnginePort) {
                         val step = action.steps[matchedIndex]
                         currentStepIndex = matchedIndex + 1
 
-                        eventFlow.emit(ActionEvent.Progress(matchedIndex, totalSteps, step.label))
                         eventFlow.emit(ActionEvent.Frame(frame, matchedIndex))
+                        eventFlow.emit(ActionEvent.Progress(matchedIndex, totalSteps, step.label))
 
                         if (step.done) {
                             terminated = true
@@ -171,7 +185,12 @@ class ActionRunner(private val engine: UssdEnginePort) {
                             // progression instead of a slot-machine autofill.
                             delay(step.delayMs)
 
-                            engine.sendReply(reply)
+    if (step.autoSubmit) {
+        engine.sendReply(reply)
+    } else {
+        engine.fillReply(reply)
+    }
+
                             eventFlow.emit(ActionEvent.Reply(reply, matchedIndex))
                         }
                         return@collect
@@ -179,6 +198,11 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
                     // ── Priority 4: terminal frame with no match ───────────
                     if (frame.isTerminal) {
+                        // Ignore transient "loading" frames to wait for the final message.
+                        if (matchesPattern(text, TRANSIENT_PATTERNS)) {
+                            return@collect
+                        }
+
                         terminated = true
                         eventFlow.emit(ActionEvent.Error("Unexpected carrier response", text))
                         resultDeferred.complete(ActionResult(success = false, resultText = text))
@@ -246,5 +270,8 @@ class ActionRunner(private val engine: UssdEnginePort) {
         UNIVERSAL_SUCCESS_PATTERNS.any { it.containsMatchIn(text) }
 
     fun matchesFailurePattern(text: String, patterns: List<Regex>): Boolean =
+        patterns.any { it.containsMatchIn(text) }
+
+    private fun matchesPattern(text: String, patterns: List<Regex>): Boolean =
         patterns.any { it.containsMatchIn(text) }
 }

@@ -4,6 +4,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.offpay.app.domain.OperationMode
@@ -16,9 +17,48 @@ object PreferencesKeys {
     val FIRST_LAUNCH_COMPLETE = booleanPreferencesKey("first_launch_complete")
     val LAST_BALANCE_TEXT = stringPreferencesKey("last_balance_text")
     val LAST_BALANCE_TIMESTAMP = longPreferencesKey("last_balance_timestamp")
+    val UPI_PIN_LENGTH = intPreferencesKey("upi_pin_length")
+    val DEFAULT_SIM_SLOT = intPreferencesKey("default_sim_slot")
+    val SELECTED_SIM_CARRIER = stringPreferencesKey("selected_sim_carrier")
+    val LAST_KNOWN_SIM_IDS = stringPreferencesKey("last_known_sim_ids")
 }
 
 class PreferencesRepository(private val dataStore: DataStore<Preferences>) {
+
+    val selectedSimCarrier: Flow<String?> = dataStore.data.map { it[PreferencesKeys.SELECTED_SIM_CARRIER] }
+
+    suspend fun setSelectedSimCarrier(name: String?) {
+        dataStore.edit { prefs ->
+            if (name == null) prefs.remove(PreferencesKeys.SELECTED_SIM_CARRIER)
+            else prefs[PreferencesKeys.SELECTED_SIM_CARRIER] = name
+        }
+    }
+
+    val lastKnownSimIds: Flow<String?> = dataStore.data.map { it[PreferencesKeys.LAST_KNOWN_SIM_IDS] }
+
+    suspend fun setLastKnownSimIds(ids: String) {
+        dataStore.edit { it[PreferencesKeys.LAST_KNOWN_SIM_IDS] = ids }
+    }
+
+    val upiPinLength: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.UPI_PIN_LENGTH] ?: 6
+    }
+
+    suspend fun setUpiPinLength(length: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.UPI_PIN_LENGTH] = length
+        }
+    }
+
+    val defaultSimSlot: Flow<Int> = dataStore.data.map { preferences ->
+        preferences[PreferencesKeys.DEFAULT_SIM_SLOT] ?: -1
+    }
+
+    suspend fun setDefaultSimSlot(slot: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.DEFAULT_SIM_SLOT] = slot
+        }
+    }
 
     val operationMode: Flow<OperationMode> = dataStore.data.map { preferences ->
         val stored = preferences[PreferencesKeys.OPERATION_MODE]

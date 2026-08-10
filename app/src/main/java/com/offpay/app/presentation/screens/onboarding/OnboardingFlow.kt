@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -53,6 +54,8 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,13 +72,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.offpay.app.R
+import com.offpay.app.data.PreferencesRepository
+import com.offpay.app.domain.SimInfo
+import com.offpay.app.offPayApp
 import com.offpay.app.presentation.permissions.PermissionStatus
 import com.offpay.app.presentation.permissions.openAccessibilitySettings
 import com.offpay.app.presentation.permissions.openOverlaySettings
@@ -86,28 +88,24 @@ import com.offpay.app.presentation.ui.components.NeoPopPrimaryButton
 import com.offpay.app.presentation.ui.components.NeoPopSecondaryButton
 import com.offpay.app.presentation.ui.theme.NeoPopColors
 import com.offpay.app.presentation.ui.theme.NeoPopType
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 // ─── Hooks for the user to drop in real assets later ──────────────────────────
 
-/**
- * BHIM walkthrough screenshots, mirrored from FaqScreen so the same images
- * surface here too.
- */
 private val bhimStep1ImageRes: Int? = R.drawable.bhim_step1
 private val bhimStep2ImageRes: Int? = R.drawable.bhim_step2
 private val bhimStep3ImageRes: Int? = R.drawable.bhim_step3
 
-/**
- * Tutorial video URL. When non-null, the welcome page (page 1) renders a
- * small "Watch tutorial" link below the hero CTA.
- */
 private val TUTORIAL_VIDEO_URL: String? = "https://youtube.com/playlist?list=PL6zhuU_l94t1y25MDt96Z-MltD3S6iPFj&si=GNlanTwR-IcfOBI"
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
-fun OnboardingFlow(onComplete: () -> Unit) {
-    val totalPages = 6
+fun OnboardingFlow(
+    prefsRepo: PreferencesRepository,
+    onComplete: () -> Unit
+) {
+    val totalPages = 7
     val pagerState = rememberPagerState(pageCount = { totalPages })
     val scope = rememberCoroutineScope()
 
@@ -119,10 +117,12 @@ fun OnboardingFlow(onComplete: () -> Unit) {
             .fillMaxSize()
             .background(NeoPopColors.Black)
             .statusBarsPadding()
+            .navigationBarsPadding()
     ) {
         HorizontalPager(
             state = pagerState,
-            modifier = Modifier.weight(1f)
+            modifier = Modifier.weight(1f),
+            userScrollEnabled = false
         ) { page ->
             when (page) {
                 0 -> WelcomePage()
@@ -132,7 +132,11 @@ fun OnboardingFlow(onComplete: () -> Unit) {
                     scope.launch { pagerState.animateScrollToPage(4) }
                 })
                 4 -> PermissionsPage(permissions = permissions)
-                5 -> ReadyPage()
+                5 -> AppSetupPage(
+                    prefsRepo = prefsRepo,
+                    isVisible = pagerState.currentPage == 5
+                )
+                6 -> ReadyPage()
             }
         }
         Spacer(Modifier.height(8.dp))
@@ -147,6 +151,7 @@ fun OnboardingFlow(onComplete: () -> Unit) {
                     2 -> "Next"
                     3 -> "Continue"
                     4 -> if (permissions.readyForOverlayPay) "Looks Good" else "Continue Anyway"
+                    5 -> "Save Preferences"
                     else -> "Let's Pay"
                 },
                 onClick = {
@@ -171,8 +176,6 @@ private fun PageIndicator(current: Int, total: Int) {
     ) {
         repeat(total) { i ->
             val isActive = i == current
-            // 6dp dot inactive, 24dp lime pill active. Spring animation
-            // smooths the transition between states.
             val width by animateDpAsState(
                 targetValue = if (isActive) 24.dp else 6.dp,
                 animationSpec = spring(stiffness = androidx.compose.animation.core.Spring.StiffnessMedium),
@@ -192,8 +195,6 @@ private fun PageIndicator(current: Int, total: Int) {
         }
     }
 }
-
-// ── Page 1: Welcome ──
 
 @Composable
 private fun WelcomePage() {
@@ -240,8 +241,6 @@ private fun WelcomePage() {
             style = NeoPopType.BodyLarge,
             color = NeoPopColors.TextSecondary
         )
-        // Optional inline link to a tutorial video — only renders when the
-        // top-of-file constant is set.
         TUTORIAL_VIDEO_URL?.let { url ->
             Spacer(Modifier.height(20.dp))
             Row(
@@ -268,8 +267,6 @@ private fun WelcomePage() {
         }
     }
 }
-
-// ── Page 2: What is *99# ──
 
 @Composable
 private fun Star99ExplainerPage() {
@@ -335,8 +332,6 @@ private fun CarrierPill(name: String, supported: Boolean, modifier: Modifier = M
     }
 }
 
-// ── Page 3: *99# Banking Setup (NEW) ──
-
 @Composable
 private fun Star99BankingSetupPage() {
     val context = LocalContext.current
@@ -346,7 +341,6 @@ private fun Star99BankingSetupPage() {
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 24.dp, vertical = 24.dp)
     ) {
-        // ── One-time badge ──
         Box(
             Modifier
                 .background(NeoPopColors.Accent.copy(alpha = 0.14f))
@@ -373,7 +367,6 @@ private fun Star99BankingSetupPage() {
         )
         Spacer(Modifier.height(20.dp))
 
-        // ── Instructions card ──
         NeoPopCard(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text(
@@ -393,7 +386,6 @@ private fun Star99BankingSetupPage() {
 
         Spacer(Modifier.height(20.dp))
 
-        // ── Dial *99# button ──
         NeoPopPrimaryButton(
             text = "Dial *99#",
             leadingIcon = Icons.Default.Phone,
@@ -407,7 +399,6 @@ private fun Star99BankingSetupPage() {
 
         Spacer(Modifier.height(16.dp))
 
-        // ── Video guide link ──
         NeoPopSecondaryButton(
             text = "Watch Official *99# Guide",
             leadingIcon = Icons.Default.PlayArrow,
@@ -423,7 +414,6 @@ private fun Star99BankingSetupPage() {
 
         Spacer(Modifier.height(20.dp))
 
-        // ── Info note ──
         Box(
             Modifier
                 .fillMaxWidth()
@@ -447,8 +437,6 @@ private fun Star99BankingSetupPage() {
         }
     }
 }
-
-// ── Page 4: BHIM setup (screenshots) ──
 
 @Composable
 private fun BhimSetupPage(onSkip: () -> Unit) {
@@ -479,20 +467,19 @@ private fun BhimSetupPage(onSkip: () -> Unit) {
 
         NeoPopCard(modifier = Modifier.fillMaxWidth()) {
             Column {
-                NumberedStep(1, "Open BHIM app → tap your profile avatar (initials in top-left).")
+                NumberedStep(1, "Open BHIM app -> tap your profile avatar (initials in top-left).")
                 ImageSlot(res = bhimStep1ImageRes)
                 Spacer(Modifier.height(14.dp))
-                NumberedStep(2, "Scroll down → tap Settings.")
+                NumberedStep(2, "Scroll down -> tap Settings.")
                 ImageSlot(res = bhimStep2ImageRes)
                 Spacer(Modifier.height(14.dp))
-                NumberedStep(3, "Find \"USSD service (*99#)\" under Account settings → toggle it ON.")
+                NumberedStep(3, "Find \"USSD service (*99#)\" under Account settings -> toggle it ON.")
                 ImageSlot(res = bhimStep3ImageRes)
             }
         }
 
         Spacer(Modifier.height(20.dp))
 
-        // Official BHIM guide link
         val bhimContext = LocalContext.current
         Box(
             Modifier
@@ -508,7 +495,7 @@ private fun BhimSetupPage(onSkip: () -> Unit) {
             contentAlignment = Alignment.Center
         ) {
             Text(
-                text = "Official BHIM *99# Setup Guide →",
+                text = "Official BHIM *99# Setup Guide ->",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.Accent
             )
@@ -531,70 +518,6 @@ private fun BhimSetupPage(onSkip: () -> Unit) {
     }
 }
 
-@Composable
-private fun NumberedStep(index: Int, body: String) {
-    Row(verticalAlignment = Alignment.Top) {
-        Box(
-            Modifier
-                .size(24.dp)
-                .background(NeoPopColors.Accent),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = index.toString(),
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.Black
-            )
-        }
-        Spacer(Modifier.width(12.dp))
-        Text(
-            text = body,
-            style = NeoPopType.BodyMedium,
-            color = NeoPopColors.TextSecondary,
-            modifier = Modifier.weight(1f)
-        )
-    }
-}
-
-@Composable
-private fun ImageSlot(res: Int?) {
-    Spacer(Modifier.height(10.dp))
-    if (res != null) {
-        // Real screenshot: scale-to-fit, capped at 480dp tall so the portrait
-        // BHIM screenshots don't dominate the screen on small devices.
-        Image(
-            painter = painterResource(id = res),
-            contentDescription = null,
-            contentScale = ContentScale.Fit,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(max = 480.dp)
-        )
-    } else {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .aspectRatio(16f / 9f)
-                .background(NeoPopColors.Surface)
-                .drawBehind {
-                    drawRect(
-                        color = NeoPopColors.Accent.copy(alpha = 0.4f),
-                        style = Stroke(width = 1f)
-                    )
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = "step image",
-                style = NeoPopType.LabelMedium,
-                color = NeoPopColors.TextMuted
-            )
-        }
-    }
-}
-
-// ── Page 4: Permissions ──
-
 private data class PermissionInfo(
     val key: String,
     val icon: ImageVector,
@@ -603,7 +526,6 @@ private data class PermissionInfo(
     val why: String,
     val granted: Boolean,
     val onGrant: () -> Unit,
-    /** When true, the GRANT button shows an inline FAQ-link hint below it. */
     val showFaqHint: Boolean = false
 )
 
@@ -640,8 +562,6 @@ private fun PermissionsPage(permissions: PermissionStatus) {
             why = "Android's only public USSD API can't navigate multi-step menus. The accessibility service is what lets OffPay automatically type your amount, VPA and PIN into the carrier's dialog so you don't have to.",
             granted = permissions.accessibility,
             onGrant = { openAccessibilitySettings(context) },
-            // Android 13+ may grey out the toggle. The FAQ has the workaround
-            // — surface a tappable hint right next to the GRANT button.
             showFaqHint = true
         ),
         PermissionInfo(
@@ -789,7 +709,6 @@ private fun PermissionCard(info: PermissionInfo, onHelp: () -> Unit) {
                 Spacer(Modifier.width(10.dp))
                 StatusButton(granted = info.granted, onGrant = info.onGrant)
             }
-            // Inline "Can't enable?" expandable fix for restricted settings.
             if (info.showFaqHint && !info.granted) {
                 Spacer(Modifier.height(10.dp))
                 RestrictedSettingsFix()
@@ -841,11 +760,6 @@ private fun StatusButton(granted: Boolean, onGrant: () -> Unit) {
     }
 }
 
-/**
- * Expandable inline fix for Android 13+ "Restricted Settings" that prevents
- * enabling accessibility for sideloaded apps. Shows a tappable "Can't enable?"
- * label that expands to reveal step-by-step instructions + guide link.
- */
 @Composable
 private fun RestrictedSettingsFix() {
     val context = LocalContext.current
@@ -883,7 +797,6 @@ private fun RestrictedSettingsFix() {
                     .background(NeoPopColors.Surface)
                     .padding(14.dp)
             ) {
-                // Explanation
                 Text(
                     text = "Why does this happen?",
                     style = NeoPopType.LabelSmall,
@@ -897,16 +810,15 @@ private fun RestrictedSettingsFix() {
                 )
                 Spacer(Modifier.height(12.dp))
 
-                // Steps
                 Text(
                     text = "FIX:",
                     style = NeoPopType.LabelSmall,
                     color = NeoPopColors.Accent
                 )
                 Spacer(Modifier.height(8.dp))
-                NumberedStep(1, "Go to your phone's Settings → Apps → OffPay")
+                NumberedStep(1, "Go to your phone's Settings -> Apps -> OffPay")
                 Spacer(Modifier.height(6.dp))
-                NumberedStep(2, "Tap the ⋮ three dots in the top right corner")
+                NumberedStep(2, "Tap the : three dots in the top right corner")
                 Spacer(Modifier.height(6.dp))
                 NumberedStep(3, "Select \"Allow restricted settings\" and confirm with your PIN/fingerprint")
                 Spacer(Modifier.height(6.dp))
@@ -914,7 +826,6 @@ private fun RestrictedSettingsFix() {
 
                 Spacer(Modifier.height(14.dp))
 
-                // Guide link
                 NeoPopSecondaryButton(
                     text = "View Guide with Screenshots",
                     onClick = {
@@ -931,7 +842,208 @@ private fun RestrictedSettingsFix() {
     }
 }
 
-// ── Page 6: Ready ──
+@Composable
+private fun NumberedStep(index: Int, body: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        Box(
+            Modifier
+                .size(24.dp)
+                .background(NeoPopColors.Accent),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = index.toString(),
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.Black
+            )
+        }
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = body,
+            style = NeoPopType.BodyMedium,
+            color = NeoPopColors.TextSecondary,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun ImageSlot(res: Int?) {
+    Spacer(Modifier.height(10.dp))
+    if (res != null) {
+        Image(
+            painter = painterResource(id = res),
+            contentDescription = null,
+            contentScale = ContentScale.Fit,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(max = 480.dp)
+        )
+    } else {
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .aspectRatio(16f / 9f)
+                .background(NeoPopColors.Surface)
+                .drawBehind {
+                    drawRect(
+                        color = NeoPopColors.Accent.copy(alpha = 0.4f),
+                        style = Stroke(width = 1f)
+                    )
+                },
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = "step image",
+                style = NeoPopType.LabelMedium,
+                color = NeoPopColors.TextMuted
+            )
+        }
+    }
+}
+
+@Composable
+private fun AppSetupPage(
+    prefsRepo: PreferencesRepository,
+    isVisible: Boolean
+) {
+    val scope = rememberCoroutineScope()
+    val pinLength by prefsRepo.upiPinLength.collectAsState(initial = 6)
+    val defaultSim by prefsRepo.defaultSimSlot.collectAsState(initial = -1)
+    
+    val context = LocalContext.current
+    val app = context.offPayApp
+    var detectedSims by remember { mutableStateOf<List<SimInfo>>(emptyList()) }
+    
+    LaunchedEffect(isVisible) {
+        if (isVisible) {
+            // Wait 500ms to ensure permissions are synchronized with the
+            // telephony system before scanning for SIMs.
+            delay(500)
+            detectedSims = app.carrierDetector.getAvailableSims()
+        }
+    }
+
+    Column(
+        Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = 24.dp, vertical = 24.dp)
+    ) {
+        Text(
+            text = "APP SETTINGS",
+            style = NeoPopType.LabelMedium,
+            color = NeoPopColors.Accent
+        )
+        Spacer(Modifier.height(8.dp))
+        Text(
+            text = "Configure your preferences.",
+            style = NeoPopType.DisplayMedium,
+            color = NeoPopColors.TextPrimary
+        )
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = "UPI PIN LENGTH",
+            style = NeoPopType.LabelSmall,
+            color = NeoPopColors.TextSecondary
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            SelectionPill(
+                label = "4 Digits",
+                selected = pinLength == 4,
+                onClick = { scope.launch { prefsRepo.setUpiPinLength(4) } },
+                modifier = Modifier.weight(1f)
+            )
+            SelectionPill(
+                label = "6 Digits",
+                selected = pinLength == 6,
+                onClick = { scope.launch { prefsRepo.setUpiPinLength(6) } },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            text = "DEFAULT SIM FOR TRANSACTIONS",
+            style = NeoPopType.LabelSmall,
+            color = NeoPopColors.TextSecondary
+        )
+        Spacer(Modifier.height(12.dp))
+        
+        SelectionPill(
+            label = "Ask every time (Default)",
+            selected = defaultSim == -1,
+            onClick = { 
+                scope.launch { 
+                    prefsRepo.setDefaultSimSlot(-1)
+                    prefsRepo.setSelectedSimCarrier(null)
+                } 
+            },
+            modifier = Modifier.fillMaxWidth()
+        )
+        
+        if (detectedSims.isNotEmpty()) {
+            Spacer(Modifier.height(8.dp))
+            detectedSims.forEach { sim ->
+                SelectionPill(
+                    label = "SIM ${sim.slotIndex + 1} (${sim.carrierName ?: "Unknown"})",
+                    selected = defaultSim == sim.slotIndex,
+                    onClick = { 
+                        scope.launch { 
+                            prefsRepo.setDefaultSimSlot(sim.slotIndex)
+                            prefsRepo.setSelectedSimCarrier(sim.carrierName ?: "Unknown")
+                        } 
+                    },
+                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
+                )
+            }
+        } else {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = "No SIMs detected. Grant Phone permission in the previous step to see SIM options here.",
+                style = NeoPopType.BodySmall,
+                color = NeoPopColors.TextMuted
+            )
+        }
+    }
+}
+
+@Composable
+private fun SelectionPill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    Box(
+        modifier
+            .background(if (selected) NeoPopColors.Accent else NeoPopColors.SurfaceHigh)
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+            .padding(vertical = 14.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(10.dp)
+                    .background(if (selected) NeoPopColors.Black else NeoPopColors.Border)
+            )
+            Spacer(Modifier.width(12.dp))
+            Text(
+                text = label,
+                style = NeoPopType.LabelMedium,
+                color = if (selected) NeoPopColors.Black else NeoPopColors.TextPrimary
+            )
+        }
+    }
+}
 
 @Composable
 private fun ReadyPage() {

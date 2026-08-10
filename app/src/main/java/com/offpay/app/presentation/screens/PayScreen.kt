@@ -16,8 +16,10 @@ import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -28,9 +30,11 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Contacts
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.QrCodeScanner
@@ -41,6 +45,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -59,7 +65,9 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.offpay.app.domain.FormField
@@ -84,6 +92,8 @@ import com.offpay.app.presentation.ui.theme.NeoPopType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.withFrameNanos
+import com.offpay.app.presentation.PayTargetType
+import com.offpay.app.presentation.ui.components.NeoPopToggle
 
 @Composable
 fun PayScreen(
@@ -97,13 +107,16 @@ fun PayScreen(
     val ui by viewModel.uiState.collectAsState()
     val session by viewModel.sessionState.collectAsState()
     val mode by viewModel.operationMode.collectAsState()
+    val pinLength by viewModel.upiPinLength.collectAsState()
+    val defaultSimSlot by viewModel.defaultSimSlot.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
+    val simOptions by viewModel.simOptions.collectAsState()
 
     // ── OffPay-wordmark easter egg ────────────────────────────────────
     // Five quick taps on the wordmark trigger a falling-money rain across
     // the screen. The counter resets if the user pauses for >1.4s.
-    var wordmarkTaps by remember { mutableStateOf(0) }
-    var lastWordmarkTap by remember { mutableStateOf(0L) }
+    var wordmarkTaps by remember { mutableIntStateOf(0) }
+    var lastWordmarkTap by remember { mutableLongStateOf(0L) }
     var showMoneyRain by remember { mutableStateOf(false) }
     LaunchedEffect(wordmarkTaps) {
         if (wordmarkTaps in 1..4) {
@@ -133,13 +146,19 @@ fun PayScreen(
             is SessionState.Idle -> PayForm(
                 ui = ui,
                 mode = mode,
+                pinLength = pinLength,
                 permissions = permissions,
+                onTargetTypeChanged = viewModel::onTargetTypeChanged,
                 onPay = { viewModel.attemptPayment() },
                 onScan = onNavigateScan,
                 onHistory = onNavigateHistory,
                 onVpa = { v -> viewModel.onFormFieldChanged(vpa = v) },
                 onAmount = { v -> viewModel.onFormFieldChanged(amount = v) },
                 onNote = { v -> viewModel.onFormFieldChanged(note = v) },
+                onMobileNumber = { v -> viewModel.onFormFieldChanged(mobileNumber = v) },
+                onContactSearch = viewModel::onContactSearch,
+                onContactSelected = viewModel::onContactSelected,
+                onSyncContacts = viewModel::syncContacts,
                 onPinChanged = viewModel::onPinChanged,
                 onWordmarkTap = onWordmarkTap
             )
@@ -169,6 +188,16 @@ fun PayScreen(
         ) {
             com.offpay.app.presentation.ui.components.MoneyRainOverlay(
                 onDone = { showMoneyRain = false }
+            )
+        }
+
+        if (!simOptions.isNullOrEmpty()) {
+            SimPickerDialog(
+                sims = simOptions.orEmpty(),
+                title = ui.simPickerTitle,
+                onSelect = viewModel::onSimSelected,
+                onAskEveryTime = if (defaultSimSlot != -1) viewModel::onAskEveryTimeSelected else null,
+                onDismiss = viewModel::dismissSimSelection
             )
         }
     }
@@ -222,12 +251,18 @@ private fun SnackbarBanner(
 private fun PayForm(
     ui: PayUiState,
     mode: OperationMode,
+    pinLength: Int,
     permissions: PermissionStatus,
+    onTargetTypeChanged: (PayTargetType) -> Unit,
     onPay: () -> Unit,
     onScan: () -> Unit,
     onHistory: () -> Unit,
     onVpa: (String) -> Unit,
     onAmount: (String) -> Unit,
+    onMobileNumber: (String) -> Unit,
+    onContactSearch: (String) -> Unit,
+    onContactSelected: (com.offpay.app.data.Contact) -> Unit,
+    onSyncContacts: () -> Unit,
     onNote: (String) -> Unit,
     onPinChanged: (String) -> Unit,
     onWordmarkTap: () -> Unit
@@ -239,15 +274,6 @@ private fun PayForm(
     val pinFocus = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
 
-    // Defer the initial focus request until after the first layout pass
-    // completes — requesting focus during composition (or before parent
-    // placement) crashes the BringIntoView responder on Compose-foundation.
-    LaunchedEffect(Unit) {
-        withFrameNanos { /* one frame: layout placement is now committed */ }
-        delay(50)
-        runCatching { amountFocus.requestFocus() }
-    }
-
     // The PIN section only appears AFTER the user taps the primary Pay
     // button (and the form's VPA + amount validate cleanly). Auto-popping
     // it while the user was still typing the UPI ID was confusing — the
@@ -256,10 +282,14 @@ private fun PayForm(
 
     // If the user edits the form back into an invalid state, hide the
     // section again so the next "Pay" tap re-validates cleanly.
-    val vpaLooksValid = ui.vpa.contains('@') && ui.vpa.substringAfter('@').isNotEmpty()
+    val recipientLooksValid = when (ui.targetType) {
+        PayTargetType.VPA -> ui.vpa.contains('@') && ui.vpa.substringAfter('@').isNotEmpty()
+        PayTargetType.MOBILE_NUMBER -> ui.mobileNumber.length == 10
+    }
     val amountLooksValid = ui.amount.toDoubleOrNull()?.let { it > 0.0 } == true
-    LaunchedEffect(vpaLooksValid, amountLooksValid, mode) {
-        if (!vpaLooksValid || !amountLooksValid || mode == OperationMode.MANUAL) {
+
+    LaunchedEffect(recipientLooksValid, amountLooksValid, mode, ui.targetType) {
+        if (!recipientLooksValid || !amountLooksValid || mode == OperationMode.MANUAL) {
             showPinSection = false
         }
     }
@@ -287,12 +317,21 @@ private fun PayForm(
         }
     }
 
-    // Auto-fire when 6 digits entered and form is valid (debounced 250ms).
+    // Auto-fire disabled at user request. Users now manually tap the Pay button
+    // or press the keyboard's Done key.
+    /*
     LaunchedEffect(ui.pin) {
-        if (ui.pin.length == 6 && pinSectionVisible) {
+        if (ui.pin.length == pinLength && pinSectionVisible) {
             delay(250)
             keyboard?.hide()
             onPay()
+        }
+    }
+    */
+
+    LaunchedEffect(permissions.contacts, ui.targetType) {
+        if (permissions.contacts && ui.targetType == PayTargetType.MOBILE_NUMBER && ui.contacts.isEmpty()) {
+            onSyncContacts()
         }
     }
 
@@ -307,7 +346,7 @@ private fun PayForm(
             onPay()
             return@handler
         }
-        if (!vpaLooksValid || !amountLooksValid) {
+        if (!recipientLooksValid || !amountLooksValid) {
             // Surface the field-level errors via the ViewModel's normal path.
             onPay()
             return@handler
@@ -357,20 +396,130 @@ private fun PayForm(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "to",
+                text = "To",
                 style = NeoPopType.LabelMedium,
                 color = NeoPopColors.TextSecondary
             )
             Spacer(Modifier.height(10.dp))
-            NeoPopTextField(
-                value = ui.vpa,
-                onValueChange = onVpa,
-                label = "UPI ID",
-                placeholder = "username@bank",
-                error = ui.errors[FormField.VPA],
-                keyboardType = KeyboardType.Email,
+
+            NeoPopToggle(
+                options = listOf(
+                    PayTargetType.VPA to "UPI ID",
+                    PayTargetType.MOBILE_NUMBER to "Mobile"
+                ),
+                selected = ui.targetType,
+                onSelect = onTargetTypeChanged,
                 modifier = Modifier.fillMaxWidth()
             )
+
+          
+
+            Spacer(Modifier.height(16.dp))
+            when (ui.targetType) {
+                PayTargetType.VPA -> {
+                    NeoPopTextField(
+                        value = ui.vpa,
+                        onValueChange = onVpa,
+                        label = "UPI ID",
+                        placeholder = "username@bank",
+                        error = ui.errors[FormField.VPA],
+                        keyboardType = KeyboardType.Email,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+
+                PayTargetType.MOBILE_NUMBER -> {
+                    NeoPopTextField(
+                        value = ui.mobileNumber,
+                        onValueChange = { value ->
+                            onMobileNumber(value.filter { it.isDigit() || it.isLetter() || it.isWhitespace() })
+                            onContactSearch(value)
+                        },
+                        label = "Mobile Number / Name",
+                        placeholder = "9876543210 or Name",
+                        error = ui.errors[FormField.MOBILE_NUMBER],
+                        keyboardType = KeyboardType.Text,
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Contacts,
+                                contentDescription = "Contacts",
+                                tint = if (permissions.contacts) NeoPopColors.Accent else NeoPopColors.TextMuted,
+                                modifier = Modifier
+                                    .size(24.dp)
+                                    .clickable {
+                                        if (permissions.contacts) {
+                                            onSyncContacts()
+                                        } else {
+                                            launchers.requestContacts()
+                                        }
+                                    }
+                            )
+                        }
+                    )
+
+                    // Contact search results
+                    if (ui.contactSearchQuery.isNotEmpty() || (permissions.contacts && ui.mobileNumber.isEmpty())) {
+                        val filteredContacts = remember(ui.contacts, ui.contactSearchQuery) {
+                            if (ui.contactSearchQuery.isBlank()) {
+                                ui.contacts.take(10)
+                            } else {
+                                ui.contacts.filter {
+                                    it.name.contains(ui.contactSearchQuery, ignoreCase = true) ||
+                                    it.phoneNumber.contains(ui.contactSearchQuery)
+                                }.take(10)
+                            }
+                        }
+
+                        if (filteredContacts.isNotEmpty()) {
+                            Spacer(Modifier.height(8.dp))
+                            NeoPopCard(modifier = Modifier.fillMaxWidth()) {
+                                Column {
+                                    filteredContacts.forEach { contact ->
+                                        Row(
+                                            Modifier
+                                                .fillMaxWidth()
+                                                .clickable {
+                                                    onContactSelected(contact)
+                                                    keyboard?.hide()
+                                                }
+                                                .padding(vertical = 12.dp, horizontal = 16.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Box(
+                                                Modifier
+                                                    .size(36.dp)
+                                                    .clip(CircleShape)
+                                                    .background(NeoPopColors.SurfaceHigh),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = contact.name.take(1).uppercase(),
+                                                    style = NeoPopType.LabelMedium,
+                                                    color = NeoPopColors.Accent
+                                                )
+                                            }
+                                            Spacer(Modifier.width(12.dp))
+                                            Column {
+                                                Text(
+                                                    text = contact.name,
+                                                    style = NeoPopType.BodyMedium,
+                                                    color = NeoPopColors.TextPrimary
+                                                )
+                                                Text(
+                                                    text = contact.phoneNumber,
+                                                    style = NeoPopType.LabelSmall,
+                                                    color = NeoPopColors.TextSecondary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -400,7 +549,8 @@ private fun PayForm(
                                 scrollState.animateScrollTo(scrollState.maxValue)
                             }
                         },
-                        error = ui.errors[FormField.PIN]
+                        error = ui.errors[FormField.PIN],
+                        length = pinLength
                     )
                 }
             }
@@ -460,7 +610,16 @@ private fun PayForm(
                     .focusRequester(pinFocus)
                     .size(1.dp)
                     .alpha(0f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboard?.hide()
+                        onPayClicked()
+                    }
+                ),
                 cursorBrush = SolidColor(NeoPopColors.Black),
                 singleLine = true,
                 textStyle = TextStyle(color = NeoPopColors.Black)
@@ -487,7 +646,8 @@ private fun PayForm(
 private fun InlinePinSection(
     value: String,
     onTap: () -> Unit,
-    error: String?
+    error: String?,
+    length: Int
 ) {
     NeoPopAccentCard(
         accent = NeoPopColors.Accent,
@@ -504,7 +664,7 @@ private fun InlinePinSection(
             Spacer(Modifier.height(14.dp))
             PinBoxes(
                 value = value,
-                length = 6,
+                length = length,
                 modifier = Modifier.fillMaxWidth()
             )
             if (error != null) {
@@ -675,20 +835,25 @@ private fun AmountInput(
     val borderColor = if (error != null) NeoPopColors.Danger else NeoPopColors.Accent
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text(
-            text = "you pay",
+            text = "You pay",
             style = NeoPopType.LabelMedium,
             color = NeoPopColors.TextSecondary
         )
-        Spacer(Modifier.height(10.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Spacer(Modifier.height(16.dp))
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.Center
+        ) {
             Text(
                 text = "₹",
                 style = NeoPopType.MonoLarge.copy(
                     color = NeoPopColors.TextSecondary,
-                    fontSize = 40.sp
+                    fontSize = 48.sp
                 )
             )
-            Spacer(Modifier.width(8.dp))
+
+            Spacer(Modifier.width(12.dp))
+
             BasicTextField(
                 value = value,
                 onValueChange = { v ->
@@ -698,35 +863,38 @@ private fun AmountInput(
                 },
                 modifier = Modifier
                     .focusRequester(focusRequester)
-                    .padding(horizontal = 8.dp),
+                    .width(IntrinsicSize.Min)
+                    .defaultMinSize(minWidth = 40.dp),
                 textStyle = NeoPopType.MonoLarge.copy(
                     color = NeoPopColors.TextPrimary,
-                    fontSize = 56.sp,
+                    fontSize = 64.sp,
                     fontWeight = FontWeight.Black
                 ),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 cursorBrush = SolidColor(NeoPopColors.Accent),
                 singleLine = true,
                 decorationBox = { inner ->
-                    if (value.isEmpty()) {
-                        Text(
-                            text = "0",
-                            style = NeoPopType.MonoLarge.copy(
-                                color = NeoPopColors.TextMuted,
-                                fontSize = 56.sp,
-                                fontWeight = FontWeight.Black
+                    Box(contentAlignment = Alignment.CenterStart) {
+                        if (value.isEmpty()) {
+                            Text(
+                                text = "0",
+                                style = NeoPopType.MonoLarge.copy(
+                                    color = NeoPopColors.TextMuted,
+                                    fontSize = 64.sp,
+                                    fontWeight = FontWeight.Black
+                                )
                             )
-                        )
+                        }
+                        inner()
                     }
-                    inner()
                 }
             )
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(12.dp))
         Box(
             Modifier
-                .height(2.dp)
-                .fillMaxWidth(0.6f)
+                .height(3.dp)
+                .fillMaxWidth(0.75f)
                 .background(borderColor)
         )
         if (error != null) {
@@ -762,10 +930,18 @@ private fun SessionRunningCard(state: SessionState.Running, onCancel: () -> Unit
         NeoPopCard(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text(
-                    text = state.label,
-                    style = NeoPopType.HeadlineLarge,
+                    text = state.carrierText ?: state.label,
+                    style = if (state.carrierText != null) NeoPopType.TitleLarge else NeoPopType.HeadlineLarge,
                     color = NeoPopColors.TextPrimary
                 )
+                if (state.carrierText != null && state.carrierText != state.label) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = state.label,
+                        style = NeoPopType.LabelMedium,
+                        color = NeoPopColors.Accent.copy(alpha = 0.7f)
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "Step ${state.stepIndex + 1} of ${state.total}",

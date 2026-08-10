@@ -76,6 +76,8 @@ import androidx.compose.ui.unit.dp
 import com.offpay.app.R
 import com.offpay.app.data.PreferencesRepository
 import com.offpay.app.domain.OperationMode
+import com.offpay.app.domain.SimInfo
+import com.offpay.app.offPayApp
 import com.offpay.app.presentation.HistoryViewModel
 import com.offpay.app.presentation.permissions.PermissionStatus
 import com.offpay.app.presentation.permissions.openAccessibilitySettings
@@ -104,9 +106,19 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val mode by prefsRepo.operationMode.collectAsState(initial = OperationMode.AUTO)
+    val pinLength by prefsRepo.upiPinLength.collectAsState(initial = 6)
+    val defaultSim by prefsRepo.defaultSimSlot.collectAsState(initial = -1)
+
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    val app = context.offPayApp
     val launchers = rememberPermissionLaunchers()
+
+    var detectedSims by remember { mutableStateOf<List<SimInfo>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        detectedSims = app.carrierDetector.getAvailableSims()
+    }
+
     val allGranted = permissions.phoneBundle && permissions.camera &&
         permissions.accessibility && permissions.overlay
     var permissionsExpanded by remember { mutableStateOf(!allGranted) }
@@ -143,6 +155,70 @@ fun SettingsScreen(
             selected = mode == OperationMode.MANUAL,
             onClick = { scope.launch { prefsRepo.setOperationMode(OperationMode.MANUAL) } }
         )
+
+        Spacer(Modifier.height(28.dp))
+        Hairline()
+        Spacer(Modifier.height(24.dp))
+
+        // ── Preferences (PIN & SIM) ──
+        SectionHeader("Preferences")
+        Spacer(Modifier.height(16.dp))
+
+        Text(
+            text = "UPI PIN LENGTH",
+            style = NeoPopType.LabelSmall,
+            color = NeoPopColors.TextSecondary
+        )
+        Spacer(Modifier.height(12.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            PreferencePill(
+                label = "4 Digits",
+                selected = pinLength == 4,
+                onClick = { scope.launch { prefsRepo.setUpiPinLength(4) } },
+                modifier = Modifier.weight(1f)
+            )
+            PreferencePill(
+                label = "6 Digits",
+                selected = pinLength == 6,
+                onClick = { scope.launch { prefsRepo.setUpiPinLength(6) } },
+                modifier = Modifier.weight(1f)
+            )
+        }
+
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = "DEFAULT SIM",
+            style = NeoPopType.LabelSmall,
+            color = NeoPopColors.TextSecondary
+        )
+        Spacer(Modifier.height(12.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            PreferencePill(
+                label = "Ask every time",
+                selected = defaultSim == -1,
+                onClick = { 
+                    scope.launch { 
+                        prefsRepo.setDefaultSimSlot(-1)
+                        prefsRepo.setSelectedSimCarrier(null)
+                    } 
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+            detectedSims.forEach { sim ->
+                PreferencePill(
+                    label = "SIM ${sim.slotIndex + 1} (${sim.carrierName ?: "Unknown"})",
+                    selected = defaultSim == sim.slotIndex,
+                    onClick = { 
+                        scope.launch { 
+                            prefsRepo.setDefaultSimSlot(sim.slotIndex)
+                            prefsRepo.setSelectedSimCarrier(sim.carrierName ?: "Unknown")
+                        } 
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
 
         Spacer(Modifier.height(28.dp))
         Hairline()
@@ -537,6 +613,40 @@ private fun CreditRow(name: String, handle: String, onClick: () -> Unit) {
             contentDescription = null,
             tint = NeoPopColors.TextMuted
         )
+    }
+}
+
+@Composable
+private fun PreferencePill(
+    label: String,
+    selected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val view = LocalView.current
+    Box(
+        modifier
+            .background(if (selected) NeoPopColors.Accent else NeoPopColors.SurfaceHigh)
+            .clickable {
+                view.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
+                onClick()
+            }
+            .padding(vertical = 12.dp, horizontal = 16.dp),
+        contentAlignment = Alignment.CenterStart
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(
+                Modifier
+                    .size(8.dp)
+                    .background(if (selected) NeoPopColors.Black else NeoPopColors.Border)
+            )
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = label,
+                style = NeoPopType.LabelMedium,
+                color = if (selected) NeoPopColors.Black else NeoPopColors.TextPrimary
+            )
+        }
     }
 }
 

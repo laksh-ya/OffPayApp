@@ -10,8 +10,15 @@ interface UssdEnginePort {
     /** Dial a USSD code (e.g. "*99*1*3#") via ACTION_CALL intent. */
     suspend fun dial(code: String)
 
+    /** Set the SIM to use for the next dial attempt, when the user chose one in-app. */
+    fun setPreferredSim(simInfo: SimInfo?)
+
     /** Send a reply string to the active carrier dialog. Returns true if successful. */
     suspend fun sendReply(reply: String): Boolean
+
+    suspend fun fillReply(reply: String): Boolean
+
+    suspend fun submitFilledReply(): Boolean
 
     /** Cancel the active USSD session and dismiss the carrier dialog. */
     suspend fun cancel()

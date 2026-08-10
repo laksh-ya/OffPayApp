@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.SystemClock
+import android.telecom.PhoneAccountHandle
+import android.telecom.TelecomManager
+import com.offpay.app.domain.SimInfo
 import com.offpay.app.domain.UssdEnginePort
 import com.offpay.app.domain.UssdFrame
 import kotlinx.coroutines.CoroutineScope
@@ -43,6 +46,9 @@ class UssdEngine(
     /** Timestamp (elapsedRealtime) of the last dial() call for double-tap protection. */
     private var lastDialTime: Long = 0L
 
+    @Volatile
+    private var preferredSim: SimInfo? = null
+
     // ─── Coroutine Infrastructure ──────────────────────────────────────────────
 
     private val scope = CoroutineScope(Dispatchers.Main + SupervisorJob())
@@ -62,9 +68,9 @@ class UssdEngine(
 
     companion object {
         const val DOUBLE_TAP_COOLDOWN_MS = 2_000L
-        const val SLOW_WATCH_TIMEOUT_MS = 12_000L
-        const val HARD_TIMEOUT_SEND_MS = 25_000L
-        const val HARD_TIMEOUT_OTHER_MS = 30_000L
+        const val SLOW_WATCH_TIMEOUT_MS = 25_000L
+        const val HARD_TIMEOUT_SEND_MS = 90_000L
+        const val HARD_TIMEOUT_OTHER_MS = 90_000L
     }
 
     // ─── UssdEnginePort Implementation ─────────────────────────────────────────
@@ -79,7 +85,7 @@ class UssdEngine(
      *  4. Cancel any in-flight timers, clear counters
      *  5. Increment sessionId
      *  6. sessionActive = true on engine and service
-     *  7. Hide leftover overlay
+     *  7. Keep the current overlay visible
      *  8. Register frame listener
      *  9. Start timers
      *  10. startActivity(ACTION_CALL)
@@ -117,7 +123,7 @@ class UssdEngine(
         service?.sessionActive = true
 
         // 7. Hide overlay from prior session
-        overlayController?.hide()
+        
 
         // 8. Register as frame listener
         service?.frameListener = this
@@ -131,8 +137,71 @@ class UssdEngine(
         val callIntent = Intent(Intent.ACTION_CALL).apply {
             data = Uri.parse("tel:$encodedCode")
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            preferredSim?.let { sim ->
+                
+                getPhoneAccountHandle(sim.subscriptionId)?.let { handle ->
+                    putExtra(TelecomManager.EXTRA_PHONE_ACCOUNT_HANDLE, handle)
+                }
+
+                
+                putExtra("com.android.phone.extra.slot", sim.slotIndex)
+                putExtra("slot", sim.slotIndex)
+                putExtra("simSlot", sim.slotIndex)
+                putExtra("subscription", sim.subscriptionId)
+                putExtra("subscription_id", sim.subscriptionId)
+            }
         }
+        
+        
+        delay(100)
         context.startActivity(callIntent)
+    }
+
+    
+    private fun getPhoneAccountHandle(subscriptionId: Int): PhoneAccountHandle? {
+        if (subscriptionId == -1) return null
+        val telecomManager = context.getSystemService(Context.TELECOM_SERVICE) as? TelecomManager
+            ?: return null
+
+        return try {
+            telecomManager.getCallCapablePhoneAccounts().find { handle ->
+                // In modern Android, the handle ID is usually the subscription ID string.
+                handle.id == subscriptionId.toString()
+            }
+        } catch (_: SecurityException) {
+            null
+        }
+    }
+
+    override fun setPreferredSim(simInfo: SimInfo?) {
+        preferredSim = simInfo
+    }
+
+
+    override suspend fun fillReply(reply: String): Boolean {
+        if (!sessionActive) return false
+
+        val service = UssdAccessibilityService.instance ?: return false
+        val success = service.fillReply(reply)
+
+        if (success) {
+            resetSlowWatch()
+        }
+
+        return success
+    }
+
+    override suspend fun submitFilledReply(): Boolean {
+        if (!sessionActive) return false
+
+        val service = UssdAccessibilityService.instance ?: return false
+        val success = service.submitFilledReply()
+
+        if (success) {
+            resetSlowWatch()
+        }
+
+        return success
     }
 
     /**
@@ -219,7 +288,7 @@ class UssdEngine(
         slowWatchJob = scope.launch {
             delay(SLOW_WATCH_TIMEOUT_MS)
             if (sessionActive) {
-                terminateSession("Carrier unresponsive — no activity for 12 seconds")
+                terminateSession("Carrier unresponsive — no activity for 1.5 minutes")
             }
         }
     }

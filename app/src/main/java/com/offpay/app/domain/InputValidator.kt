@@ -6,12 +6,13 @@ package com.offpay.app.domain
  */
 object InputValidator {
 
-    private val VPA_PATTERN = Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9]+$")
+    private val VPA_PATTERN = Regex("^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+$")
     private const val VPA_MAX_LENGTH = 50
     private const val AMOUNT_MIN = 1.0
     private const val AMOUNT_MAX = 5000.0
     private val PIN_PATTERN = Regex("^\\d{4,6}$")
     private val DECIMAL_PLACES_PATTERN = Regex("^\\d+(\\.\\d{1,2})?$")
+    private val MOBILE_NUMBER_PATTERN = Regex("^[6-9]\\d{9}$")
 
     /**
      * Validates a UPI VPA (Virtual Payment Address).
@@ -28,6 +29,17 @@ object InputValidator {
         }
         if (!VPA_PATTERN.matches(trimmed)) {
             return ValidationResult(isValid = false, errorMessage = "Invalid VPA format")
+        }
+        return ValidationResult(isValid = true, errorMessage = null)
+    }
+
+    fun validateMobileNumber(mobileNumber: String): ValidationResult {
+        val trimmed = mobileNumber.trim()
+        if (trimmed.isEmpty()) {
+          return ValidationResult(isValid = false, errorMessage = "Mobile number is required")
+        }
+        if (!MOBILE_NUMBER_PATTERN.matches(trimmed)) {
+          return ValidationResult(isValid = false, errorMessage = "Enter a valid 10-digit mobile number")
         }
         return ValidationResult(isValid = true, errorMessage = null)
     }

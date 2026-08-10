@@ -2,6 +2,8 @@ package com.offpay.app.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.offpay.app.data.Contact
+import com.offpay.app.data.ContactRepository
 import com.offpay.app.data.HistoryRepository
 import com.offpay.app.data.PreferencesRepository
 import com.offpay.app.domain.ActionEvent
@@ -12,7 +14,8 @@ import com.offpay.app.domain.FormField
 import com.offpay.app.domain.InputValidator
 import com.offpay.app.domain.OperationMode
 import com.offpay.app.domain.SessionState
-import com.offpay.app.domain.UpiData
+import com.offpay.app.domain.SimInfo
+import com.offpay.app.domain.UssdEnginePort
 import com.offpay.app.domain.UpiParser
 import com.offpay.app.platform.CarrierDetector
 import com.offpay.app.platform.OverlayController
@@ -22,22 +25,26 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/**
- * UI state for the Pay screen form. PIN is captured inline on the form
- * itself in a highlighted "ENTER UPI PIN" section — no dedicated screen.
- */
+enum class PayTargetType { VPA, MOBILE_NUMBER }
+
 data class PayUiState(
+    val targetType: PayTargetType = PayTargetType.VPA,
     val vpa: String = "",
     val payeeName: String = "",
     val amount: String = "",
     val note: String = "",
     val pin: String = "",
+    val mobileNumber: String = "",
     val errors: Map<FormField, String> = emptyMap(),
-    val isSessionActive: Boolean = false
+    val isSessionActive: Boolean = false,
+    val contacts: List<Contact> = emptyList(),
+    val contactSearchQuery: String = "",
+    val simPickerTitle: String = "Choose SIM"
 )
 
 /**
@@ -62,7 +69,9 @@ class PayViewModel(
     private val actionRunner: ActionRunner,
     private val historyRepo: HistoryRepository,
     private val prefsRepo: PreferencesRepository,
+    private val contactRepo: ContactRepository,
     private val carrierDetector: CarrierDetector,
+    private val ussdEngine: UssdEnginePort,
     private val overlayController: OverlayController? = null,
     private val onDialerFallback: (String) -> Unit = {},
     private val clipboardWriter: (String) -> Unit = {},
@@ -75,6 +84,7 @@ class PayViewModel(
      */
     private val systemToast: (String) -> Unit = {}
 ) : ViewModel() {
+    private data class PendingPayment(val recipient: String, val amount: String, val note: String, val pin: String)
 
     private val _uiState = MutableStateFlow(PayUiState())
     val uiState: StateFlow<PayUiState> = _uiState.asStateFlow()
@@ -85,339 +95,254 @@ class PayViewModel(
     private val _snackbar = MutableStateFlow<String?>(null)
     val snackbar: StateFlow<String?> = _snackbar.asStateFlow()
 
-    /** Currently selected operation mode, observed for routing payments. */
+    private val _simOptions = MutableStateFlow<List<SimInfo>?>(null)
+    val simOptions: StateFlow<List<SimInfo>?> = _simOptions.asStateFlow()
+
     val operationMode: StateFlow<OperationMode> = prefsRepo.operationMode
         .stateIn(viewModelScope, SharingStarted.Eagerly, OperationMode.AUTO)
 
+    val upiPinLength: StateFlow<Int> = prefsRepo.upiPinLength
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 6)
+
+    val defaultSimSlot: StateFlow<Int> = prefsRepo.defaultSimSlot
+        .stateIn(viewModelScope, SharingStarted.Eagerly, -1)
+
     private var activeRun: ActionRun? = null
     private var sessionJob: Job? = null
+    private var pendingPayment: PendingPayment? = null
 
-    /**
-     * Re-prefills the form from a past transaction (used by "Pay again"
-     * in the History screen). Drops any in-memory PIN so the user must
-     * re-enter it; we never silently re-execute payments.
-     */
-    fun prefillFromTransaction(
-        vpa: String,
-        amount: String,
-        note: String?
-    ) {
-        _uiState.update { current ->
-            current.copy(
-                vpa = vpa,
-                amount = amount,
-                note = note ?: "",
-                pin = "",
-                errors = emptyMap()
-            )
+    init {
+        // Startup Hardware Sync
+        viewModelScope.launch {
+            val sims = carrierDetector.getAvailableSims()
+            if (sims.isEmpty()) return@launch
+
+            val defaultSlot = prefsRepo.defaultSimSlot.first()
+            val selectedCarrier = prefsRepo.selectedSimCarrier.first()
+            val currentSig = getSimSignature(sims)
+            val lastKnownSig = prefsRepo.lastKnownSimIds.first()
+
+            if (sims.size == 1) {
+                val onlySim = sims.first()
+                if (lastKnownSig != currentSig) {
+                    _snackbar.value = "Using only available SIM (${onlySim.carrierName})"
+                    prefsRepo.setDefaultSimSlot(onlySim.slotIndex)
+                    prefsRepo.setSelectedSimCarrier(onlySim.carrierName ?: "Unknown")
+                    prefsRepo.setLastKnownSimIds(currentSig)
+                }
+                return@launch
+            }
+
+            // If a default was set but hardware changed, ask immediately on startup.
+            if (defaultSlot != -1 && selectedCarrier != null && lastKnownSig != currentSig) {
+                _uiState.update { it.copy(simPickerTitle = "SIM change detected: Choose SIM") }
+                _simOptions.value = sims
+            }
         }
     }
 
-    /**
-     * Parses QR scanned data and autofills form fields for all non-null values.
-     */
+    private fun getSimSignature(sims: List<SimInfo>): String {
+        return sims.sortedBy { it.slotIndex }
+            .joinToString("|") { "${it.slotIndex}:${it.carrierName ?: "Unknown"}" }
+    }
+
+    fun onSimSelected(simInfo: SimInfo) {
+        val isHardwareChange = _uiState.value.simPickerTitle.contains("change")
+        _simOptions.value = null
+        
+        viewModelScope.launch {
+            // A choice in the "SIM Change" dialog makes the SIM permanent.
+            if (isHardwareChange) {
+                val sims = carrierDetector.getAvailableSims()
+                prefsRepo.setDefaultSimSlot(simInfo.slotIndex)
+                prefsRepo.setSelectedSimCarrier(simInfo.carrierName ?: "Unknown")
+                prefsRepo.setLastKnownSimIds(getSimSignature(sims))
+            }
+
+            val pending = pendingPayment
+            if (pending != null) {
+                pendingPayment = null
+                ussdEngine.setPreferredSim(simInfo)
+                runPayment(pending.recipient, pending.amount, pending.note, pending.pin)
+            }
+        }
+    }
+
+    fun onAskEveryTimeSelected() {
+        _simOptions.value = null
+        viewModelScope.launch {
+            val sims = carrierDetector.getAvailableSims()
+            // Permanent choice to disable default
+            prefsRepo.setDefaultSimSlot(-1)
+            prefsRepo.setSelectedSimCarrier(null)
+            prefsRepo.setLastKnownSimIds(getSimSignature(sims))
+            
+            val pending = pendingPayment
+            if (pending != null) {
+                pendingPayment = null
+                _uiState.update { it.copy(simPickerTitle = "Choose SIM") }
+                _simOptions.value = sims
+            }
+        }
+    }
+
+    fun dismissSimSelection() {
+        pendingPayment = null
+        _simOptions.value = null
+    }
+
+    private suspend fun handleSimDetection(sims: List<SimInfo>): SimInfo? {
+        val defaultSlot = prefsRepo.defaultSimSlot.first()
+        val selectedCarrier = prefsRepo.selectedSimCarrier.first()
+        val lastSig = prefsRepo.lastKnownSimIds.first()
+        val currentSig = getSimSignature(sims)
+
+        if (sims.size == 1) return sims.first()
+
+        // Block transaction if hardware doesn't match saved signature
+        if (defaultSlot != -1 && selectedCarrier != null) {
+            if (lastSig != currentSig) {
+                _uiState.update { it.copy(simPickerTitle = "SIM change detected: Choose SIM") }
+                return null
+            }
+            val currentInSlot = sims.find { it.slotIndex == defaultSlot }
+            if (currentInSlot != null && currentInSlot.carrierName == selectedCarrier) {
+                return currentInSlot
+            } else {
+                _uiState.update { it.copy(simPickerTitle = "SIM change detected: Choose SIM") }
+                return null
+            }
+        }
+
+        _uiState.update { it.copy(simPickerTitle = "Choose SIM") }
+        return null
+    }
+
+    fun onTargetTypeChanged(targetType: PayTargetType) {
+        _uiState.update { it.copy(targetType = targetType, errors = it.errors - FormField.VPA - FormField.MOBILE_NUMBER) }
+    }
+
+    fun syncContacts() { viewModelScope.launch { _uiState.update { it.copy(contacts = contactRepo.fetchContacts()) } } }
+    fun onContactSearch(query: String) { _uiState.update { it.copy(contactSearchQuery = query) } }
+    fun onContactSelected(contact: Contact) { _uiState.update { it.copy(mobileNumber = contact.phoneNumber, contactSearchQuery = "") } }
+
+    fun prefillFromTransaction(vpa: String, amount: String, note: String?) {
+        _uiState.update { it.copy(vpa = vpa, amount = amount, note = note ?: "", pin = "", errors = emptyMap()) }
+    }
+
     fun onQrScanned(raw: String) {
-        val upiData: UpiData = UpiParser.parse(raw) ?: return
-        _uiState.update { current ->
-            current.copy(
-                vpa = upiData.vpa,
-                payeeName = upiData.payeeName ?: current.payeeName,
-                amount = upiData.amount ?: current.amount,
-                note = upiData.transactionNote ?: current.note,
-                errors = emptyMap()
-            )
-        }
+        val upiData = UpiParser.parse(raw) ?: return
+        _uiState.update { it.copy(vpa = upiData.vpa, payeeName = upiData.payeeName ?: it.payeeName, amount = upiData.amount ?: it.amount, note = upiData.transactionNote ?: it.note, errors = emptyMap()) }
     }
 
-    /**
-     * Updates one or more form fields. Pass `null` to leave a field unchanged.
-     * Editing a field clears its validation error so the highlight goes away
-     * as soon as the user starts fixing it.
-     */
-    fun onFormFieldChanged(
-        vpa: String? = null,
-        amount: String? = null,
-        note: String? = null
-    ) {
+    fun onFormFieldChanged(vpa: String? = null, amount: String? = null, mobileNumber: String? = null, note: String? = null) {
         _uiState.update { current ->
             val newErrors = current.errors.toMutableMap()
             if (vpa != null) newErrors.remove(FormField.VPA)
             if (amount != null) newErrors.remove(FormField.AMOUNT)
-            current.copy(
-                vpa = vpa ?: current.vpa,
-                amount = amount ?: current.amount,
-                note = note ?: current.note,
-                errors = newErrors
-            )
+            if (mobileNumber != null) newErrors.remove(FormField.MOBILE_NUMBER)
+            current.copy(vpa = vpa ?: current.vpa, amount = amount ?: current.amount, mobileNumber = mobileNumber ?: current.mobileNumber, note = note ?: current.note, errors = newErrors)
         }
     }
 
-    /**
-     * Inline PIN editing. Strips non-digits and caps at 6. Clears any
-     * existing PIN error so the user sees the highlight clear as they type.
-     */
     fun onPinChanged(pin: String) {
-        val digits = pin.filter { it.isDigit() }.take(6)
-        _uiState.update { current ->
-            current.copy(
-                pin = digits,
-                errors = current.errors - FormField.PIN
-            )
-        }
+        val maxLength = upiPinLength.value
+        val digits = pin.filter { it.isDigit() }.take(maxLength)
+        _uiState.update { it.copy(pin = digits, errors = it.errors - FormField.PIN) }
     }
 
-    /**
-     * Attempts to start a payment. Validates the form, then either:
-     *  - Manual mode: copies VPA to clipboard, opens dialer, resets state.
-     *  - Advanced/Auto: runs the ActionRunner via [runPayment].
-     *
-     * Auto-fires once the user types a 6-digit PIN (the screen calls this).
-     * Manual taps of the Pay button at 4-5 digits also reach here.
-     */
     fun attemptPayment() {
         val state = _uiState.value
         val mode = operationMode.value
-
-        // For non-manual modes the accessibility service must be alive.
         if (mode != OperationMode.MANUAL && !actionRunner.isServiceEnabled()) {
-            _sessionState.value = SessionState.Failed(
-                message = "Accessibility service is disabled. Enable it in Settings.",
-                resultText = ""
-            )
+            _sessionState.value = SessionState.Failed(message = "Accessibility service is disabled. Enable it in Settings.", resultText = "")
             return
         }
-
-        // Validate VPA and amount up front for every mode (manual still
-        // needs a valid VPA — that's what we copy to the clipboard).
         val errors = mutableMapOf<FormField, String>()
-        InputValidator.validateVpa(state.vpa).also {
-            if (!it.isValid) errors[FormField.VPA] = it.errorMessage!!
+        when (state.targetType) {
+            PayTargetType.VPA -> InputValidator.validateVpa(state.vpa).also { if (!it.isValid) errors[FormField.VPA] = it.errorMessage!! }
+            PayTargetType.MOBILE_NUMBER -> InputValidator.validateMobileNumber(state.mobileNumber).also { if (!it.isValid) errors[FormField.MOBILE_NUMBER] = it.errorMessage!! }
         }
-        InputValidator.validateAmount(state.amount).also {
-            if (!it.isValid) errors[FormField.AMOUNT] = it.errorMessage!!
-        }
+        InputValidator.validateAmount(state.amount).also { if (!it.isValid) errors[FormField.AMOUNT] = it.errorMessage!! }
+        if (mode != OperationMode.MANUAL) InputValidator.validatePin(state.pin).also { if (!it.isValid) errors[FormField.PIN] = it.errorMessage!! }
 
-        // PIN is required only for automated modes; manual mode lets the
-        // user enter the PIN themselves in the dialer.
-        if (mode != OperationMode.MANUAL) {
-            InputValidator.validatePin(state.pin).also {
-                if (!it.isValid) errors[FormField.PIN] = it.errorMessage!!
-            }
-        }
-
-        if (errors.isNotEmpty()) {
-            _uiState.update { it.copy(errors = errors) }
-            return
-        }
+        if (errors.isNotEmpty()) { _uiState.update { it.copy(errors = errors) }; return }
         _uiState.update { it.copy(errors = emptyMap()) }
 
-        val cleanedVpa = state.vpa.trim()
-        val cleanedAmount = state.amount.trim()
-        val cleanedNote = state.note
-
+        val recipient = if (state.targetType == PayTargetType.VPA) state.vpa.trim() else state.mobileNumber.trim()
         if (mode == OperationMode.MANUAL) {
-            // Copy the recipient VPA so the user can paste it after the
-            // dialer opens (most carriers' *99# UI accepts a paste into the
-            // first prompt). Then fire the dialer with *99*1*3# prefilled.
-            clipboardWriter(cleanedVpa)
-            // In-app snackbar (visible only on the brief moment before the
-            // dialer takes the foreground).
-            _snackbar.value = "UPI ID copied — paste it on the *99# prompt"
-            onDialerFallback("*99*1*3#")
-            // System-level Toast so the same nudge actually surfaces on
-            // top of the dialer, where the in-app snackbar can't reach.
-            // We fire two toasts in sequence so the user sees one when
-            // the dialer first appears, and one a couple seconds later
-            // in case they missed the first.
-            systemToast("UPI ID copied — please paste it from the clipboard on the *99# prompt")
-            viewModelScope.launch {
-                delay(1_800)
-                systemToast("Paste the UPI ID from clipboard when the carrier asks for it")
-            }
-            // Reset transient session state — the user owns the dialer flow.
-            _sessionState.value = SessionState.Idle
-            return
+            clipboardWriter(recipient); onDialerFallback("*99*1*3#"); _sessionState.value = SessionState.Idle; return
         }
-
-        runPayment(cleanedVpa, cleanedAmount, cleanedNote, state.pin)
+        maybeRequestSimThenRun(recipient, state.amount.trim(), state.note, state.pin)
     }
 
-    /**
-     * Validates inputs and starts the USSD payment session if valid.
-     * Routes through ADVANCED or AUTO based on the user's preference.
-     */
-    private fun runPayment(vpa: String, amount: String, note: String, pin: String) {
-        val mode = operationMode.value
+    private fun maybeRequestSimThenRun(recipient: String, amount: String, note: String, pin: String) {
+        viewModelScope.launch {
+            val sims = carrierDetector.getAvailableSims()
+            if (sims.isEmpty()) { runPayment(recipient, amount, note, pin); return@launch }
+            if (operationMode.value == OperationMode.MANUAL) { runPayment(recipient, amount, note, pin); return@launch }
 
-        _uiState.update { it.copy(errors = emptyMap(), isSessionActive = true) }
-        _sessionState.value = SessionState.Running(
-            label = "Starting payment",
-            stepIndex = 0,
-            total = Actions.SendUpi.steps.size
-        )
-
-        // Show the appropriate overlay based on mode.
-        when (mode) {
-            OperationMode.AUTO -> {
-                overlayController?.show(
-                    title = "Paying ₹$amount",
-                    subtitle = "to $vpa",
-                    stepLabel = "STARTING"
-                )
-            }
-            OperationMode.ADVANCED -> {
-                overlayController?.showMinimal(
-                    progress = 0,
-                    total = Actions.SendUpi.steps.size,
-                    label = "PAYING"
-                )
-            }
-            OperationMode.MANUAL -> {
-                // Shouldn't reach here; attemptPayment short-circuits MANUAL.
+            val targetSim = handleSimDetection(sims)
+            if (targetSim != null) {
+                ussdEngine.setPreferredSim(targetSim)
+                runPayment(recipient, amount, note, pin)
+            } else {
+                pendingPayment = PendingPayment(recipient, amount, note, pin)
+                _simOptions.value = sims
             }
         }
+    }
+
+    private fun runPayment(recipient: String, amount: String, note: String, pin: String) {
+        val action = if (_uiState.value.targetType == PayTargetType.VPA) Actions.SendUpi else Actions.SendToMobile
+        _uiState.update { it.copy(isSessionActive = true) }
+        _sessionState.value = SessionState.Running(label = "Starting payment", stepIndex = 0, total = action.steps.size)
+        overlayController?.show(title = "Paying ₹$amount", subtitle = recipient, stepLabel = "STARTING")
         overlayController?.onCancel = { cancelSession() }
 
-        val vars = mapOf(
-            "vpa" to vpa,
-            "amount" to amount,
-            "note" to note.ifBlank { "Payment" },
-            "pin" to pin
-        )
+        val vars = if (_uiState.value.targetType == PayTargetType.VPA) mapOf("vpa" to recipient, "amount" to amount, "note" to note.ifBlank { "Payment" }, "pin" to pin)
+                   else mapOf("mobileNumber" to recipient, "amount" to amount, "note" to note.ifBlank { "Payment" }, "pin" to pin)
 
-        val run = actionRunner.runAction(Actions.SendUpi, vars, viewModelScope)
+        val run = actionRunner.runAction(action, vars, viewModelScope)
         activeRun = run
-
         sessionJob = viewModelScope.launch {
             launch {
+                var lastCarrierPrompt: String? = null
                 run.events.collect { event ->
-                    // Once we've reached a terminal session state (Success
-                    // or Failed), don't let any straggling events from the
-                    // runner overwrite it. ActionRunner already guards
-                    // its own re-entrancy, but this is belt-and-braces for
-                    // any synthetic frame that races through.
-                    val current = _sessionState.value
-                    if (current is SessionState.Success || current is SessionState.Failed) {
-                        return@collect
-                    }
+                    if (_sessionState.value !is SessionState.Running) return@collect
                     when (event) {
+                        is ActionEvent.Frame -> lastCarrierPrompt = cleanCarrierText(event.frame.text)
                         is ActionEvent.Progress -> {
-                            _sessionState.value = SessionState.Running(
-                                label = event.label ?: "Processing",
-                                stepIndex = event.stepIndex,
-                                total = event.total
-                            )
-                            when (mode) {
-                                OperationMode.AUTO -> overlayController?.update(
-                                    title = "Paying ₹$amount",
-                                    subtitle = "to $vpa",
-                                    stepLabel = (event.label ?: "Processing").uppercase()
-                                )
-                                OperationMode.ADVANCED -> overlayController?.updateMinimal(
-                                    progress = event.stepIndex,
-                                    total = event.total,
-                                    label = "PAYING"
-                                )
-                                else -> Unit
+                            _sessionState.value = SessionState.Running(label = event.label ?: "Processing", stepIndex = event.stepIndex, total = event.total, carrierText = lastCarrierPrompt)
+                            if (action.steps.getOrNull(event.stepIndex)?.autoSubmit == false) {
+                                overlayController?.onConfirm = { viewModelScope.launch { ussdEngine.submitFilledReply() } }
+                                overlayController?.show(title = "Paying ₹$amount", subtitle = lastCarrierPrompt ?: recipient, stepLabel = "CONFIRM")
+                            } else {
+                                overlayController?.onConfirm = null
+                                overlayController?.show(title = "Paying ₹$amount", subtitle = lastCarrierPrompt ?: recipient, stepLabel = (event.label ?: "Processing").uppercase())
                             }
                         }
-                        is ActionEvent.Done -> {
-                            _sessionState.value = SessionState.Success(resultText = event.resultText)
-                            overlayController?.hide()
-                            onSessionEnded()
-                            launch {
-                                historyRepo.recordTransaction(
-                                    vpa = vpa,
-                                    payeeName = _uiState.value.payeeName.ifBlank { null },
-                                    amount = amount,
-                                    note = note.ifBlank { null },
-                                    carrierReply = event.resultText
-                                )
-                            }
-                        }
-                        is ActionEvent.Error -> {
-                            _sessionState.value = SessionState.Failed(
-                                message = event.message,
-                                resultText = event.resultText
-                            )
-                            overlayController?.showError(
-                                title = "Payment failed",
-                                message = event.message
-                            )
-                            onSessionEnded()
-                        }
-                        else -> { /* Frame/Reply — no UI state change needed */ }
+                        is ActionEvent.Done -> { _sessionState.value = SessionState.Success(event.resultText); overlayController?.hide(); onSessionEnded(); launch { historyRepo.recordTransaction(recipient, _uiState.value.payeeName.ifBlank { null }, amount, note.ifBlank { null }, event.resultText) } }
+                        is ActionEvent.Error -> { _sessionState.value = SessionState.Failed(event.message, event.resultText); overlayController?.showError("Payment failed", event.message); onSessionEnded() }
+                        else -> Unit
                     }
                 }
             }
-
             val result = run.result.await()
-            if (!result.success && _sessionState.value is SessionState.Running) {
-                _sessionState.value = SessionState.Failed(
-                    message = result.resultText,
-                    resultText = result.resultText
-                )
-                overlayController?.showError(title = "Payment failed", message = result.resultText)
-                onSessionEnded()
-            }
+            if (!result.success && _sessionState.value is SessionState.Running) { _sessionState.value = SessionState.Failed(result.resultText, result.resultText); onSessionEnded() }
         }
     }
 
-    /** Cancel the active session. */
-    fun cancelSession() {
-        viewModelScope.launch {
-            activeRun?.cancel?.invoke()
-            overlayController?.hide()
-            _sessionState.value = SessionState.Idle
-            onSessionEnded()
-        }
+    private fun cleanCarrierText(text: String): String {
+        val lines = text.split("\n").filter { line -> line.isNotBlank() && !line.contains(Regex("^\\d+[.)]")) }
+        return if (lines.isEmpty()) text.trim() else lines.joinToString("\n").trim()
     }
 
-    /** Dismiss a terminal (success/failed) session card and return to the form. */
-    fun dismissSession() {
-        val wasSuccess = _sessionState.value is SessionState.Success
-        _sessionState.value = SessionState.Idle
-        if (wasSuccess) {
-            // After success, clear the form so the user starts fresh.
-            _uiState.update { PayUiState() }
-        } else {
-            // On failure, just clear the PIN so the user can re-enter it.
-            _uiState.update { it.copy(pin = "") }
-        }
-    }
-
-    fun clearFieldError(field: FormField) {
-        _uiState.update { current ->
-            if (current.errors.containsKey(field)) {
-                current.copy(errors = current.errors - field)
-            } else current
-        }
-    }
-
-    fun dismissSnackbar() {
-        _snackbar.value = null
-    }
-
-    fun onNavigateAway() {
-        // Defensive: if the user backs out mid-form, drop the in-memory PIN.
-        _uiState.update { it.copy(pin = "") }
-    }
-
-    fun onBackground() {
-        _uiState.update { it.copy(pin = "") }
-    }
-
-    /**
-     * Called whenever the session reaches a terminal state. Marks the
-     * session as inactive and schedules a wipe of the PIN within 500ms so
-     * it never lingers in memory longer than necessary.
-     */
-    private fun onSessionEnded() {
-        _uiState.update { it.copy(isSessionActive = false) }
-        activeRun = null
-        viewModelScope.launch {
-            delay(500)
-            _uiState.update { it.copy(pin = "") }
-        }
-    }
+    fun cancelSession() { viewModelScope.launch { activeRun?.cancel?.invoke(); _sessionState.value = SessionState.Idle; onSessionEnded() } }
+    fun dismissSession() { if (_sessionState.value is SessionState.Success) _uiState.update { PayUiState() } else _uiState.update { it.copy(pin = "") }; _sessionState.value = SessionState.Idle }
+    fun dismissSnackbar() { _snackbar.value = null }
+    fun onNavigateAway() { _uiState.update { it.copy(pin = "") } }
+    fun onBackground() { _uiState.update { it.copy(pin = "") } }
+    override fun onCleared() { super.onCleared(); _uiState.update { it.copy(pin = "") } }
+    private fun onSessionEnded() { _uiState.update { it.copy(isSessionActive = false) }; activeRun = null; pendingPayment = null; _simOptions.value = null; ussdEngine.setPreferredSim(null); viewModelScope.launch { delay(500); _uiState.update { it.copy(pin = "") } } }
 }

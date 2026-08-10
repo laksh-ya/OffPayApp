@@ -130,7 +130,7 @@ internal fun SessionSuccessCard(state: SessionState.Success, onDone: () -> Unit)
                 accent = NeoPopColors.Success,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
+                Column(Modifier.fillMaxWidth()) {
                     // Hero zone — confetti rendered behind, hero square in front.
                     Box(
                         Modifier
@@ -274,7 +274,7 @@ internal fun SessionFailedCard(
                 accent = NeoPopColors.Danger,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column {
+                Column(Modifier.fillMaxWidth()) {
                     Box(
                         Modifier
                             .fillMaxWidth()

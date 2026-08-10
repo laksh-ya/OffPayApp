@@ -10,6 +10,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Payments
@@ -71,9 +72,12 @@ fun OffPayApp() {
     val scope = rememberCoroutineScope()
 
     if (!firstLaunchDone) {
-        OnboardingFlow(onComplete = {
-            scope.launch { app.prefsRepo.setFirstLaunchComplete(true) }
-        })
+        OnboardingFlow(
+            prefsRepo = app.prefsRepo,
+            onComplete = {
+                scope.launch { app.prefsRepo.setFirstLaunchComplete(true) }
+            }
+        )
     } else {
         MainScaffold(
             app = app,
@@ -111,6 +115,7 @@ private fun MainScaffold(app: OffPayApplication, onReplayOnboarding: () -> Unit)
         Modifier
             .fillMaxSize()
             .background(NeoPopColors.Black)
+            .navigationBarsPadding()
     ) {
         Box(Modifier.weight(1f)) {
             NavHost(
@@ -283,7 +288,9 @@ private fun rememberPayViewModel(app: OffPayApplication): PayViewModel {
             actionRunner = app.actionRunner,
             historyRepo = app.historyRepo,
             prefsRepo = app.prefsRepo,
+            contactRepo = app.contactRepo,
             carrierDetector = app.carrierDetector,
+            ussdEngine = app.ussdEngine,
             overlayController = app.overlayController,
             onDialerFallback = { code ->
                 val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$code"))
@@ -303,6 +310,8 @@ private fun rememberBalanceViewModel(app: OffPayApplication): BalanceViewModel {
         BalanceViewModel(
             actionRunner = app.actionRunner,
             prefsRepo = app.prefsRepo,
+            carrierDetector = app.carrierDetector,
+            ussdEngine = app.ussdEngine,
             overlayController = app.overlayController,
             onDialerFallback = { code ->
                 val intent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$code"))

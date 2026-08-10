@@ -24,7 +24,10 @@ class ActionRunnerStepMatchPropertyTest : FunSpec({
     // tests call matchStep() and fillTemplate() directly.
     val fakeEngine = object : UssdEnginePort {
         override suspend fun dial(code: String) {}
+        override fun setPreferredSim(simInfo: SimInfo?) {}
         override suspend fun sendReply(reply: String) = true
+        override suspend fun fillReply(reply: String) = true
+        override suspend fun submitFilledReply() = true
         override suspend fun cancel() {}
         override suspend fun dismissDialog() = true
         override fun getSessionId() = 1

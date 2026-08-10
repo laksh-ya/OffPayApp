@@ -20,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ErrorOutline
@@ -42,6 +43,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -84,9 +86,12 @@ fun BalanceScreen(
     val ui by viewModel.uiState.collectAsState()
     val session by viewModel.sessionState.collectAsState()
     val mode by viewModel.operationMode.collectAsState()
+    val pinLength by viewModel.upiPinLength.collectAsState()
+    val defaultSimSlot by viewModel.defaultSimSlot.collectAsState()
     val last by viewModel.lastResult.collectAsState()
     val snackbar by viewModel.snackbar.collectAsState()
     val txns by historyViewModel.transactions.collectAsState()
+    val simOptions by viewModel.simOptions.collectAsState()
 
     val pinFocus = remember { FocusRequester() }
     val keyboard = LocalSoftwareKeyboardController.current
@@ -110,14 +115,16 @@ fun BalanceScreen(
             keyboard?.show()
         }
     }
-    // Auto-fire when the user has tapped in 6 digits.
+    // Auto-fire disabled at user request to prevent accidental submissions.
+    /*
     LaunchedEffect(ui.pin, mode) {
-        if (ui.pin.length == 6 && mode != OperationMode.MANUAL && session is SessionState.Idle) {
+        if (ui.pin.length == pinLength && mode != OperationMode.MANUAL && session is SessionState.Idle) {
             delay(250)
             keyboard?.hide()
             viewModel.attemptCheckBalance()
         }
     }
+    */
 
     Box(
         modifier
@@ -160,6 +167,7 @@ fun BalanceScreen(
                     mode = mode,
                     pin = ui.pin,
                     pinError = ui.pinError,
+                    pinLength = pinLength,
                     onTapPin = {
                         runCatching { pinFocus.requestFocus() }
                         keyboard?.show()
@@ -219,6 +227,16 @@ fun BalanceScreen(
             }
         }
 
+        if (!simOptions.isNullOrEmpty()) {
+            SimPickerDialog(
+                sims = simOptions.orEmpty(),
+                title = ui.simPickerTitle,
+                onSelect = viewModel::onSimSelected,
+                onAskEveryTime = if (defaultSimSlot != -1) viewModel::onAskEveryTimeSelected else null,
+                onDismiss = viewModel::dismissSimSelection
+            )
+        }
+
         // Hidden PIN field rendered as a SIBLING of the main content Column,
         // not nested inside it. This keeps it in the layout tree (so it can
         // hold focus and surface the IME) while staying out of any
@@ -244,7 +262,16 @@ fun BalanceScreen(
                     .focusRequester(pinFocus)
                     .size(1.dp)
                     .alpha(0f),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.NumberPassword),
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.NumberPassword,
+                    imeAction = ImeAction.Done
+                ),
+                keyboardActions = KeyboardActions(
+                    onDone = {
+                        keyboard?.hide()
+                        viewModel.attemptCheckBalance()
+                    }
+                ),
                 cursorBrush = SolidColor(NeoPopColors.Black),
                 singleLine = true,
                 textStyle = TextStyle(color = NeoPopColors.Black)
@@ -310,6 +337,7 @@ private fun IdleHero(
     mode: OperationMode,
     pin: String,
     pinError: String?,
+    pinLength: Int,
     onTapPin: () -> Unit
 ) {
     Column(
@@ -359,7 +387,8 @@ private fun IdleHero(
             BalancePinSection(
                 pin = pin,
                 onTap = onTapPin,
-                error = pinError
+                error = pinError,
+                length = pinLength
             )
         }
     }
@@ -398,7 +427,8 @@ private fun ManualHero() {
 private fun BalancePinSection(
     pin: String,
     onTap: () -> Unit,
-    error: String?
+    error: String?,
+    length: Int
 ) {
     NeoPopAccentCard(
         accent = NeoPopColors.Accent,
@@ -415,7 +445,7 @@ private fun BalancePinSection(
             Spacer(Modifier.height(14.dp))
             PinBoxes(
                 value = pin,
-                length = 6,
+                length = length,
                 modifier = Modifier.fillMaxWidth()
             )
             if (error != null) {
@@ -452,10 +482,18 @@ private fun SessionRunning(state: SessionState.Running) {
         NeoPopCard(modifier = Modifier.fillMaxWidth()) {
             Column {
                 Text(
-                    text = state.label,
-                    style = NeoPopType.HeadlineLarge,
+                    text = state.carrierText ?: state.label,
+                    style = if (state.carrierText != null) NeoPopType.TitleLarge else NeoPopType.HeadlineLarge,
                     color = NeoPopColors.TextPrimary
                 )
+                if (state.carrierText != null && state.carrierText != state.label) {
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = state.label,
+                        style = NeoPopType.LabelMedium,
+                        color = NeoPopColors.Accent.copy(alpha = 0.7f)
+                    )
+                }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     text = "Step ${state.stepIndex + 1} of ${state.total}",
@@ -526,7 +564,7 @@ private fun FailedCard(message: String, resultText: String, onRetry: () -> Unit)
         verticalArrangement = Arrangement.Center
     ) {
         NeoPopAccentCard(accent = NeoPopColors.Danger, modifier = Modifier.fillMaxWidth()) {
-            Column {
+            Column(Modifier.fillMaxWidth()) {
                 Box(
                     Modifier
                         .size(48.dp)

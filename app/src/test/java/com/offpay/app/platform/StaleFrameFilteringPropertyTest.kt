@@ -44,10 +44,13 @@ class StaleFrameFilteringPropertyTest : FunSpec({
         var cancelCalled = false
 
         override suspend fun dial(code: String) { dialCalled = true }
+        override fun setPreferredSim(simInfo: com.offpay.app.domain.SimInfo?) {}
         override suspend fun sendReply(reply: String): Boolean {
             repliesSent.add(reply)
             return true
         }
+        override suspend fun fillReply(reply: String): Boolean = true
+        override suspend fun submitFilledReply(): Boolean = true
         override suspend fun cancel() { cancelCalled = true }
         override suspend fun dismissDialog(): Boolean = true
         override fun getSessionId(): Int = currentSessionId

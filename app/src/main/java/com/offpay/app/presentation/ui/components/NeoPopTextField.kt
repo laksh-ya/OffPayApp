@@ -49,6 +49,7 @@ fun NeoPopTextField(
     modifier: Modifier = Modifier,
     placeholder: String? = null,
     leadingIcon: ImageVector? = null,
+    trailingIcon: @Composable (() -> Unit)? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     error: String? = null,
@@ -126,7 +127,7 @@ fun NeoPopTextField(
                     BasicTextField(
                         value = value,
                         onValueChange = onValueChange,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.weight(1f),
                         textStyle = textStyle,
                         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
                         visualTransformation = visualTransformation,
@@ -144,6 +145,10 @@ fun NeoPopTextField(
                             inner()
                         }
                     )
+                    if (trailingIcon != null) {
+                        Spacer(Modifier.size(10.dp))
+                        trailingIcon()
+                    }
                 }
             }
         }

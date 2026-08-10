@@ -52,6 +52,7 @@ object Actions {
         Regex("psp\\s+(is\\s+)?not\\s+(registered|recognised|recognized)", RegexOption.IGNORE_CASE),
         Regex("vpa\\s+(does\\s+not\\s+exist|is\\s+not\\s+(registered|valid))", RegexOption.IGNORE_CASE),
         Regex("upi\\s*id\\s+(is\\s+)?(invalid|incorrect|wrong)", RegexOption.IGNORE_CASE),
+        Regex("merchant\\s+error|payee\\s+psp|payee\\s+not\\s+found", RegexOption.IGNORE_CASE),
 
         // Account / user not found
         Regex("(no|not\\s+a)\\s+(account|user|customer)\\s+(found|registered|exists)", RegexOption.IGNORE_CASE),
@@ -71,6 +72,9 @@ object Actions {
         Regex("service\\s+(unavailable|not\\s+available|down)", RegexOption.IGNORE_CASE),
         Regex("try\\s+again\\s+later|temporarily\\s+unavailable", RegexOption.IGNORE_CASE),
         Regex("session\\s+(timed\\s+out|expired|terminated)", RegexOption.IGNORE_CASE),
+        Regex("not\\s+able\\s+to\\s+raise\\s+a\\s+request|connect\\s+with\\s+your\\s+bank", RegexOption.IGNORE_CASE),
+        Regex("network\\s+problem|network\\s+busy|connection\\s+problem|timed\\s+out", RegexOption.IGNORE_CASE),
+        Regex("cannot\\s+be\\s+processed|try\\s+after\\s+some\\s+time", RegexOption.IGNORE_CASE),
 
         // *99# user-not-onboarded phrases — the carrier returns these when
         // the user's mobile number isn't linked to a bank account for *99#.
@@ -81,6 +85,56 @@ object Actions {
         Regex("bank\\s+not\\s+found|no\\s+bank\\s+(linked|found)", RegexOption.IGNORE_CASE)
     )
 
+    val SendToMobile = Action(
+        code = "*99*1*1*{mobileNumber}#",
+        steps = listOf(
+            ActionStep(
+                match = Regex("(mobile\\s*number|mobile|msisdn|enter\\s+number|enter\\s+mobile)", RegexOption.IGNORE_CASE),
+                reply = "{mobileNumber}",
+                label = "Sending mobile number",
+                delayMs = 0L
+            ),
+            
+            ActionStep(
+                match = Regex("(enter\\s+amount|amount\\s+in\\s+rs|\\bamount\\b|\\bamt\\b)", RegexOption.IGNORE_CASE),
+                reply = "{amount}",
+                label = "Sending amount",
+                autoSubmit = false, // STOP HERE: Show Payee/Amount info
+                delayMs = 0L
+            ),
+            ActionStep(
+                match = Regex("\\b(remark|comment|note)\\b", RegexOption.IGNORE_CASE),
+                reply = "{note}",
+                label = "Adding note",
+                delayMs = 0L
+            ),
+            ActionStep(
+                match = Regex(
+                    "\\bupi\\s*pin\\b|\\b(enter|6\\s*digit).*pin\\b",
+                    RegexOption.IGNORE_CASE
+                ),
+                reply = "{pin}",
+                label = "Entering UPI PIN",
+                delayMs = 0L
+            ),
+            ActionStep(
+                match = Regex("\\b(confirm|press\\s*1|are you sure)\\b", RegexOption.IGNORE_CASE),
+                reply = "1",
+                label = "Confirming",
+                delayMs = 0L
+            ),
+            ActionStep(
+                match = Regex(
+                    "successful|payment\\s+(?:sent|completed|done)|thank\\s*you\\s*for\\s*using|reference\\s+(?:no|number|id)\\s*[:\\-]",
+                    RegexOption.IGNORE_CASE
+                ),
+                done = true,
+                label = "Payment complete"
+            )
+        ),
+        failurePatterns = COMMON_FAILURES,
+        timeoutMs = 90_000L
+    )
     /**
      * Send money via UPI using *99*1*3#.
      * 6-step flow: VPA → Amount → Remark → PIN → Confirm → Success.
@@ -94,27 +148,41 @@ object Actions {
                 // collide with "Enter amount" and "Enter UPI PIN".
                 match = Regex("(receiver|payee|recipient|vpa|virtual.*payment|upi.*id)", RegexOption.IGNORE_CASE),
                 reply = "{vpa}",
-                label = "Sending UPI ID"
+                label = "Sending UPI ID",
+                delayMs = 0L
+            ),
+            // Optional: Merchant or Payee verification step that some carriers 
+            // insert for business VPAs like DMRC or Blinkit.
+            ActionStep(
+                match = Regex("\\b(merchant|payee|verified|verify|continue|confirm|accept|proceed|yes|press\\s*1)\\b", RegexOption.IGNORE_CASE),
+                reply = "1",
+                label = "Verifying payee",
+                delayMs = 0L
             ),
             ActionStep(
                 match = Regex("\\bamount\\b", RegexOption.IGNORE_CASE),
                 reply = "{amount}",
-                label = "Sending amount"
+                label = "Sending amount",
+                autoSubmit = false, // STOP HERE: Show Payee/Amount info
+                delayMs = 0L
             ),
             ActionStep(
                 match = Regex("\\b(remark|comment|note)\\b", RegexOption.IGNORE_CASE),
                 reply = "{note}",
-                label = "Adding note"
+                label = "Adding note",
+                delayMs = 0L
             ),
             ActionStep(
                 match = Regex("\\bupi\\s*pin\\b|\\b(enter|6\\s*digit).*pin\\b", RegexOption.IGNORE_CASE),
                 reply = "{pin}",
-                label = "Entering UPI PIN"
+                label = "Entering UPI PIN",
+                delayMs = 0L
             ),
             ActionStep(
                 match = Regex("\\b(confirm|press\\s*1|are you sure)\\b", RegexOption.IGNORE_CASE),
                 reply = "1",
-                label = "Confirming"
+                label = "Confirming",
+                delayMs = 0L
             ),
             ActionStep(
                 // Success terminal frame. Most success frames hit
@@ -126,7 +194,7 @@ object Actions {
             )
         ),
         failurePatterns = COMMON_FAILURES,
-        timeoutMs = 25_000L
+        timeoutMs = 90_000L
     )
 
     /**
@@ -157,6 +225,6 @@ object Actions {
             Regex("max(imum)?\\s*(attempts|tries|retries)", RegexOption.IGNORE_CASE),
             Regex("pin\\s*(blocked|locked|expired)", RegexOption.IGNORE_CASE)
         ),
-        timeoutMs = 18_000L
+        timeoutMs = 90_000L
     )
 }
