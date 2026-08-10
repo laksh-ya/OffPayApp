@@ -74,6 +74,7 @@ object Actions {
         Regex("session\\s+(timed\\s+out|expired|terminated)", RegexOption.IGNORE_CASE),
         Regex("not\\s+able\\s+to\\s+raise\\s+a\\s+request|connect\\s+with\\s+your\\s+bank", RegexOption.IGNORE_CASE),
         Regex("network\\s+problem|network\\s+busy|connection\\s+problem|timed\\s+out", RegexOption.IGNORE_CASE),
+        Regex("cannot\\s+be\\s+processed|try\\s+after\\s+some\\s+time", RegexOption.IGNORE_CASE),
 
         // *99# user-not-onboarded phrases — the carrier returns these when
         // the user's mobile number isn't linked to a bank account for *99#.
@@ -98,6 +99,7 @@ object Actions {
                 match = Regex("(enter\\s+amount|amount\\s+in\\s+rs|\\bamount\\b|\\bamt\\b)", RegexOption.IGNORE_CASE),
                 reply = "{amount}",
                 label = "Sending amount",
+                autoSubmit = false, // STOP HERE: Show Payee/Amount info
                 delayMs = 0L
             ),
             ActionStep(
@@ -113,7 +115,6 @@ object Actions {
                 ),
                 reply = "{pin}",
                 label = "Entering UPI PIN",
-                autoSubmit = false, // Stop at Summary/PIN screen
                 delayMs = 0L
             ),
             ActionStep(
@@ -162,6 +163,7 @@ object Actions {
                 match = Regex("\\bamount\\b", RegexOption.IGNORE_CASE),
                 reply = "{amount}",
                 label = "Sending amount",
+                autoSubmit = false, // STOP HERE: Show Payee/Amount info
                 delayMs = 0L
             ),
             ActionStep(
@@ -174,7 +176,6 @@ object Actions {
                 match = Regex("\\bupi\\s*pin\\b|\\b(enter|6\\s*digit).*pin\\b", RegexOption.IGNORE_CASE),
                 reply = "{pin}",
                 label = "Entering UPI PIN",
-                autoSubmit = false, // Stop at Summary/PIN screen
                 delayMs = 0L
             ),
             ActionStep(

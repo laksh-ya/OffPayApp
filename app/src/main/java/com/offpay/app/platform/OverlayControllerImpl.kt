@@ -56,6 +56,12 @@ class OverlayControllerImpl(private val context: Context) : OverlayController {
 
     override var onCancel: (() -> Unit)? = null
     override var onConfirm: (() -> Unit)? = null
+        set(value) {
+            field = value
+            runOnMain {
+                sendButton?.visibility = if (value != null) View.VISIBLE else View.GONE
+            }
+        }
     override var onMinimalTapped: (() -> Unit)? = null
 
     private fun fullParams(): WindowManager.LayoutParams {

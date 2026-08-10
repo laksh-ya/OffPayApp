@@ -57,8 +57,21 @@ class ActionRunner(private val engine: UssdEnginePort) {
             Regex("transaction\\s+successful", RegexOption.IGNORE_CASE),
             Regex("txn\\s+successful", RegexOption.IGNORE_CASE),
             Regex("payment\\s+successful", RegexOption.IGNORE_CASE),
+            Regex("request\\s+is\\s+being\\s+processed", RegexOption.IGNORE_CASE),
             // A real referenceId in the text is a strong success signal
             Regex("ref(?:erence)?\\s*(?:id|no|number|#)?\\s*[:\\-]?\\s*\\d{6,}", RegexOption.IGNORE_CASE)
+        )
+
+        /**
+         * Transient "loading" patterns. Frames matching these are ignored
+         * to prevent "Unexpected carrier response" during transient network states.
+         */
+        private val TRANSIENT_PATTERNS: List<Regex> = listOf(
+            Regex("requesting", RegexOption.IGNORE_CASE),
+            Regex("processing", RegexOption.IGNORE_CASE),
+            Regex("please\\s+wait", RegexOption.IGNORE_CASE),
+            Regex("sending", RegexOption.IGNORE_CASE),
+            Regex("ussd\\s+code\\s+running", RegexOption.IGNORE_CASE)
         )
     }
 
@@ -185,6 +198,11 @@ class ActionRunner(private val engine: UssdEnginePort) {
 
                     // ── Priority 4: terminal frame with no match ───────────
                     if (frame.isTerminal) {
+                        // Ignore transient "loading" frames to wait for the final message.
+                        if (matchesPattern(text, TRANSIENT_PATTERNS)) {
+                            return@collect
+                        }
+
                         terminated = true
                         eventFlow.emit(ActionEvent.Error("Unexpected carrier response", text))
                         resultDeferred.complete(ActionResult(success = false, resultText = text))
@@ -252,5 +270,8 @@ class ActionRunner(private val engine: UssdEnginePort) {
         UNIVERSAL_SUCCESS_PATTERNS.any { it.containsMatchIn(text) }
 
     fun matchesFailurePattern(text: String, patterns: List<Regex>): Boolean =
+        patterns.any { it.containsMatchIn(text) }
+
+    private fun matchesPattern(text: String, patterns: List<Regex>): Boolean =
         patterns.any { it.containsMatchIn(text) }
 }
